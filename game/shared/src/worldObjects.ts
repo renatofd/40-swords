@@ -3,7 +3,8 @@ import { type EnemyKind, isEnemyKind } from "./enemies";
 
 /**
  * The game's own Tiled object classes (the core only reads "spawn"):
- *  - "enemy"  point, string property `kind` (slime, goblin)
+ *  - "enemy"  point, string property `kind` (see ENEMY_KINDS), int `tier` (difficulty,
+ *             0 near the start) and bool `dungeon` (inside a dungeon: more elites)
  *  - "chest"  point: a chest with a random relic
  *  - "vendor" point: a merchant; its offers lie two tiles in front (see offerPosition)
  *  - "portal" rectangle, string property `target`: walking in moves the hero to
@@ -17,6 +18,8 @@ export interface EnemySpawn {
   kind: EnemyKind;
   x: number;
   y: number;
+  tier: number;
+  dungeon: boolean;
 }
 
 /** A chest or vendor. `id` is stable for a given map file (from the Tiled object id). */
@@ -56,7 +59,9 @@ export function parseWorldObjects(map: TiledMap): WorldObjects {
     switch (classOf(obj)) {
       case "enemy": {
         const kind = getProperty<string>(obj.properties, "kind") ?? obj.name;
-        if (isEnemyKind(kind)) result.enemies.push({ kind, ...centre(obj) });
+        const tier = Math.max(0, Math.floor(getProperty<number>(obj.properties, "tier") ?? 0));
+        const dungeon = getProperty<boolean>(obj.properties, "dungeon") === true;
+        if (isEnemyKind(kind)) result.enemies.push({ kind, ...centre(obj), tier, dungeon });
         break;
       }
       case "chest":
@@ -81,3 +86,42 @@ export function parseWorldObjects(map: TiledMap): WorldObjects {
 export function portalAt(portals: readonly Portal[], x: number, y: number): Portal | undefined {
   return portals.find((p) => x >= p.x && x < p.x + p.width && y >= p.y && y < p.y + p.height);
 }
+
+/** A group of screens with a name: a dungeon or a cave (from the map property `areas`). */
+export interface Area {
+  id: string;
+  kind: "dungeon" | "cave";
+  /** Screen rectangle. */
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+
+/** World layout from the map properties (written by tools/world-gen), for the minimap and banners. */
+export interface WorldInfo {
+  /** Size of the overworld in screens (interiors lie below it). */
+  columns: number;
+  rows: number;
+  /** One biome letter per overworld screen, row by row (see tools/world-gen). */
+  biomes: string;
+  areas: Area[];
+}
+
+export function parseWorldInfo(map: TiledMap): WorldInfo {
+  const columns = getProperty<number>(map.properties, "overworldColumns") ?? 0;
+  const rows = getProperty<number>(map.properties, "overworldRows") ?? 0;
+  const biomes = getProperty<string>(map.properties, "biomes") ?? "";
+  let areas: Area[] = [];
+  try {
+    const parsed = JSON.parse(getProperty<string>(map.properties, "areas") ?? "[]") as Area[];
+    if (Array.isArray(parsed)) areas = parsed;
+  } catch {
+    areas = [];
+  }
+  return { columns, rows, biomes, areas };
+}
+
+/** The area containing screen (col, row), if any. */
+export const areaAt = (areas: readonly Area[], col: number, row: number): Area | undefined =>
+  areas.find((a) => col >= a.col && col < a.col + a.width && row >= a.row && row < a.row + a.height);

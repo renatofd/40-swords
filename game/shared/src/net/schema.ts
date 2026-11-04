@@ -74,6 +74,8 @@ export const Enemy = schema({
   facing: t.uint8().default(0),
   /** Ticks left of the hurt flash. */
   hurt: t.uint8().default(0),
+  /** Stronger variant: more HP, damage and loot, and a chance to drop a chest. */
+  elite: t.boolean().default(false),
 });
 export type Enemy = SchemaType<typeof Enemy>;
 

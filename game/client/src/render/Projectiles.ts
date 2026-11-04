@@ -1,7 +1,7 @@
 import type { CollisionGrid } from "@core/shared";
-import { projectileKey, travelDistance, volleyAngles, WEAPON_IDS, WEAPONS, type WeaponId } from "@game/shared";
+import { type EnemyShotMessage, projectileKey, travelDistance, volleyAngles, WEAPON_IDS, WEAPONS } from "@game/shared";
 import type Phaser from "phaser";
-import { projectileTexture } from "./placeholderArt";
+import { hostileTexture, projectileTexture } from "./placeholderArt";
 
 interface Flying {
   sprite: Phaser.GameObjects.Image;
@@ -27,7 +27,7 @@ export interface VolleyView {
 }
 
 /**
- * Weapon projectiles, drawn only (the server decides hits). Each flies in a
+ * Projectiles of heroes' weapons and of enemies, drawn only (the server decides hits). Each flies in a
  * straight line from its volley and stops at the wall or range the shared
  * `travelDistance` gives, so it matches the server's flight; the server tells
  * when one stops early on an enemy (`end`).
@@ -43,20 +43,45 @@ export class Projectiles {
   spawnVolley(v: VolleyView, now: number) {
     WEAPON_IDS.forEach((weapon, w) => {
       if ((v.mask & (1 << w)) === 0) return;
+      const { speed, range } = WEAPONS[weapon];
       volleyAngles(weapon, v.counts[w] ?? 0, v.facing).forEach((angle, i) => {
-        this.spawn(projectileKey(v.owner, v.volley, w, i), weapon, v.x, v.y, angle, now);
+        this.spawn(
+          projectileKey(v.owner, v.volley, w, i),
+          projectileTexture(weapon),
+          v.x,
+          v.y,
+          angle,
+          speed,
+          range,
+          now,
+        );
       });
     });
   }
 
-  private spawn(key: string, weapon: WeaponId, x: number, y: number, angle: number, now: number) {
+  /** Enemy projectiles: key `${m.key}:${i}` for the i-th angle. */
+  spawnHostile(m: EnemyShotMessage, now: number) {
+    m.angles.forEach((angle, i) => {
+      this.spawn(`${m.key}:${i}`, hostileTexture(m.style), m.x, m.y, angle, m.speed, m.range, now);
+    });
+  }
+
+  private spawn(
+    key: string,
+    texture: string,
+    x: number,
+    y: number,
+    angle: number,
+    speed: number,
+    range: number,
+    now: number,
+  ) {
     if (this.flying.has(key)) return;
-    const def = WEAPONS[weapon];
     const dx = Math.cos(angle);
     const dy = Math.sin(angle);
-    const sprite = this.scene.add.image(x, y, projectileTexture(weapon)).setRotation(angle).setDepth(12);
-    const maxDist = travelDistance(this.grid, x, y, dx, dy, def.range);
-    this.flying.set(key, { sprite, x0: x, y0: y, dx, dy, speed: def.speed, maxDist, born: now });
+    const sprite = this.scene.add.image(x, y, texture).setRotation(angle).setDepth(12);
+    const maxDist = travelDistance(this.grid, x, y, dx, dy, range);
+    this.flying.set(key, { sprite, x0: x, y0: y, dx, dy, speed, maxDist, born: now });
   }
 
   end(key: string) {

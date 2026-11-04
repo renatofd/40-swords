@@ -2,7 +2,7 @@
  * Bump whenever schemas, inputs or messages in this game change in a way old
  * clients can't handle. Mismatched clients are told to reload.
  */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** Simulation rate in Hz. One input advances exactly one fixed step. */
 export const TICK_RATE = 30;
@@ -53,6 +53,10 @@ export const TOUCH_RADIUS = 10;
 
 /** Seconds before an emptied chest fills up again. */
 export const CHEST_RESPAWN_SECONDS = 120;
+
+/** A chest dropped by a boss or an elite disappears this long after being opened, or after a while unopened. */
+export const DROPPED_CHEST_OPEN_SECONDS = 8;
+export const DROPPED_CHEST_LIFETIME_SECONDS = 180;
 
 /** Seconds before a vendor offers a player new items. */
 export const SHOP_RESTOCK_SECONDS = 180;

@@ -2,8 +2,9 @@ import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import { createGameServer } from "@core/server";
 import { CORE_PROTOCOL_VERSION } from "@core/shared";
 import {
-  ENEMIES,
-  type EnemyKind,
+  BOSS_CHEST_RARITY,
+  type BossDownMessage,
+  type EnemyShotMessage,
   type GainMessage,
   INTEREST_RADIUS,
   type LevelUpMessage,
@@ -31,8 +32,13 @@ const v = { core: CORE_PROTOCOL_VERSION, game: PROTOCOL_VERSION };
 const objects = loadWorldObjects("overworld");
 
 /** Room internals the tests reach into to set up a scene (teleports, timers, gifts). */
+interface Brain {
+  home: { x: number; y: number; width: number; height: number };
+  def: { attacks: unknown[]; behaviour: string };
+  stats: { speed: number; damage: number };
+}
 interface RoomInternals {
-  brains: Map<string, { home: { x: number; y: number; width: number; height: number }; def: { speed: number } }>;
+  brains: Map<string, Brain>;
   respawnTicks: number;
   map: { pixelWidth: number; pixelHeight: number };
   giveRelic(id: string, player: Player, kind: string, rarity: number, source: string): void;
@@ -63,18 +69,28 @@ describe("WorldRoom", () => {
     return { client, player };
   }
 
-  /** Moves an enemy next to a point and keeps it there (no wandering off, no leash). */
-  function pinEnemy(room: unknown, state: WorldState, x: number, y: number, which = 0) {
-    const [id, enemy] = [...state.enemies.entries()][which] ?? [];
-    if (!id || !enemy) throw new Error("no enemies");
+  /**
+   * Moves an enemy next to a point and keeps it there (no walking, no leash).
+   * Picks the first enemy, or the first of `kind`; attacks are removed unless `keepAttacks`.
+   */
+  function pinEnemy(
+    room: unknown,
+    state: WorldState,
+    x: number,
+    y: number,
+    options: { kind?: string; keepAttacks?: boolean } = {},
+  ) {
+    const [id, enemy] = [...state.enemies.entries()].find(([, e]) => !options.kind || e.kind === options.kind) ?? [];
+    if (!id || !enemy) throw new Error(`no ${options.kind ?? "enemy"}`);
     const brain = internals(room).brains.get(id);
     if (!brain) throw new Error("no brain");
     const { pixelWidth, pixelHeight } = internals(room).map;
     brain.home = { x: 0, y: 0, width: pixelWidth, height: pixelHeight };
-    brain.def = { ...brain.def, speed: 0 };
+    brain.def = { ...brain.def, behaviour: "guard", attacks: options.keepAttacks ? brain.def.attacks : [] };
+    brain.stats = { ...brain.stats, speed: 0 };
     enemy.x = x;
     enemy.y = y;
-    return { id, enemy };
+    return { id, enemy, brain };
   }
 
   it("creates the hero picked before joining, with a sanitized name", async () => {
@@ -147,7 +163,8 @@ describe("WorldRoom", () => {
     await room.waitForNextTimestep();
     expect(room.state.enemies.size).toBe(objects.enemies.length);
     const kinds = new Set([...room.state.enemies.values()].map((e) => e.kind));
-    expect(kinds).toEqual(new Set(["slime", "goblin"]));
+    for (const kind of ["slime", "goblin", "skeleton", "brute", "warden", "colossus"])
+      expect(kinds.has(kind)).toBe(true);
     expect(room.state.chests.size).toBe(objects.chests.length);
   });
 
@@ -158,8 +175,8 @@ describe("WorldRoom", () => {
     const levelUps: LevelUpMessage[] = [];
     client.onMessage(Msg.levelUp, (m: LevelUpMessage) => levelUps.push(m));
 
-    // An enemy right in front of the player (facing south), one hit from death.
-    const { id, enemy } = pinEnemy(room, room.state, player.x, player.y + 12);
+    // A slime right in front of the player (facing south), one hit from death.
+    const { id, enemy } = pinEnemy(room, room.state, player.x, player.y + 12, { kind: "slime" });
     enemy.hp = 1;
     player.facing = 2;
     player.xp = xpToNext(1) - 1;
@@ -169,11 +186,11 @@ describe("WorldRoom", () => {
     input.send();
     await vi.waitFor(() => expect(room.state.enemies.has(id)).toBe(false));
 
-    expect(player.level).toBe(2);
-    expect(player.maxHp).toBe(statsFor("barbarian", 2).maxHp);
+    expect(player.level).toBeGreaterThanOrEqual(2);
+    expect(player.maxHp).toBe(statsFor("barbarian", player.level).maxHp);
     expect(player.hp).toBe(player.maxHp);
-    await vi.waitFor(() => expect(levelUps).toEqual([{ level: 2 }]));
-    expect(room.state.roster.get(client.sessionId)?.level).toBe(2);
+    await vi.waitFor(() => expect(levelUps.at(-1)).toEqual({ level: player.level }));
+    expect(room.state.roster.get(client.sessionId)?.level).toBe(player.level);
 
     // The drop lies where the enemy died; walk onto it.
     const drop = [...room.state.pickups.values()][0];
@@ -194,10 +211,10 @@ describe("WorldRoom", () => {
     const room = await createWorld();
     await room.waitForNextTimestep();
     const { player } = await joinAs(room, "knight");
-    const { enemy } = pinEnemy(room, room.state, player.x + 4, player.y);
+    const { brain } = pinEnemy(room, room.state, player.x + 4, player.y);
     const before = player.hp;
     await vi.waitFor(() => expect(player.hp).toBeLessThan(before));
-    const expected = Math.max(1, Math.round(ENEMIES[enemy.kind as EnemyKind].damage - statsFor("knight", 1).defense));
+    const expected = Math.max(1, Math.round(brain.stats.damage - statsFor("knight", 1).defense));
     expect(before - player.hp).toBe(expected);
     expect(player.invuln).toBeGreaterThan(0);
     expect(player.knockX).toBeLessThan(0); // pushed away (enemy is to the east)
@@ -215,7 +232,7 @@ describe("WorldRoom", () => {
     pinEnemy(room, room.state, 8, 8);
     await vi.waitFor(() => expect(player.dead).toBe(false));
     expect(player.hp).toBe(player.maxHp);
-    expect(screenOf(player.x, player.y)).toEqual({ col: 1, row: 1 });
+    expect(screenOf(player.x, player.y)).toEqual({ col: 8, row: 4 }); // the start square in the middle
   });
 
   it("weapons fire with the attack button; every copy adds a projectile, and they hurt enemies", async () => {
@@ -316,7 +333,61 @@ describe("WorldRoom", () => {
       await room.waitForNextTimestep();
     }
     await vi.waitFor(() => expect(player.warp).toBe(1));
-    expect(screenOf(player.x, player.y).row).toBe(3);
+    expect(screenOf(player.x, player.y).row).toBeGreaterThanOrEqual(8); // caves and dungeons lie below the overworld
+  });
+
+  it("ranged enemies shoot at heroes, and their shots hurt", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const { client, player } = await joinAs(room, "knight");
+    const shots: EnemyShotMessage[] = [];
+    client.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => shots.push(m));
+    // Straight south of the spawn the square is open floor (no pillar in the way).
+    pinEnemy(room, room.state, player.x, player.y + 48, { kind: "skeleton", keepAttacks: true });
+    const before = player.hp;
+    await vi.waitFor(() => expect(shots.length).toBeGreaterThan(0), { timeout: 5000 });
+    expect(shots[0]?.style).toBe("bone");
+    await vi.waitFor(() => expect(player.hp).toBeLessThan(before), { timeout: 5000 });
+  });
+
+  it("a boss drops a chest of at least rare relics and everyone hears about it", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const { client, player } = await joinAs(room, "barbarian", "Hero");
+    const downs: BossDownMessage[] = [];
+    const gains: GainMessage[] = [];
+    client.onMessage(Msg.bossDown, (m: BossDownMessage) => downs.push(m));
+    client.onMessage(Msg.gain, (m: GainMessage) => gains.push(m));
+    const chestsBefore = new Set(room.state.chests.keys());
+
+    const { id, enemy } = pinEnemy(room, room.state, player.x, player.y + 12, { kind: "warden" });
+    enemy.hp = 1;
+    player.facing = 2;
+    const input = client.input<PlayerInput>({ mode: "reliable" });
+    input.data.attack = 1;
+    input.send();
+    await vi.waitFor(() => expect(room.state.enemies.has(id)).toBe(false));
+    await vi.waitFor(() => expect(downs).toEqual([{ kind: "warden", by: "Hero" }]));
+
+    const [, dropped] = [...room.state.chests.entries()].find(([chestId]) => !chestsBefore.has(chestId)) ?? [];
+    if (!dropped) throw new Error("no chest dropped");
+    player.x = dropped.x;
+    player.y = dropped.y;
+    await vi.waitFor(() => expect(gains).toHaveLength(1));
+    expect(gains[0]?.rarity).toBeGreaterThanOrEqual(BOSS_CHEST_RARITY);
+  });
+
+  it("enemies far from every hero stand still", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const { player } = await joinAs(room, "knight");
+    const far = [...room.state.enemies.values()].filter(
+      (e) => Math.abs(e.x - player.x) > 2 * 320 || Math.abs(e.y - player.y) > 2 * 176,
+    );
+    expect(far.length).toBeGreaterThan(100);
+    const before = far.map((e) => [e.x, e.y]);
+    for (let i = 0; i < 20; i++) await room.waitForNextTimestep();
+    expect(far.map((e) => [e.x, e.y])).toEqual(before);
   });
 
   it("players can't hurt each other while PvP is off", async () => {

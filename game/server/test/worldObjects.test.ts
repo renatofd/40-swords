@@ -1,18 +1,56 @@
 import { loadMap } from "@core/server";
-import { OFFER_SLOTS, offerPosition, portalAt, screenOf, TILE_SIZE } from "@game/shared";
+import { ENEMIES, OFFER_SLOTS, offerPosition, portalAt, screenOf, TILE_SIZE } from "@game/shared";
 import { describe, expect, it } from "vitest";
-import { loadWorldObjects } from "../src/world/mapObjects";
+import { loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
 
 const map = loadMap("overworld", { tileSize: TILE_SIZE });
 const objects = loadWorldObjects("overworld");
+const info = loadWorldInfo("overworld");
 const solidAt = (x: number, y: number) => map.collision.isSolid(Math.floor(x / TILE_SIZE), Math.floor(y / TILE_SIZE));
 
 describe("overworld objects", () => {
-  it("has enemies, chests, vendors and portals", () => {
-    expect(objects.enemies.length).toBeGreaterThan(10);
-    expect(objects.chests.length).toBeGreaterThan(0);
-    expect(objects.vendors.length).toBeGreaterThan(0);
-    expect(objects.portals.length).toBeGreaterThan(0);
+  it("is a big world of screens with dungeons and caves", () => {
+    expect(info.columns).toBe(16);
+    expect(info.rows).toBe(8);
+    expect(info.biomes).toHaveLength(16 * 8);
+    expect(info.areas.filter((a) => a.kind === "dungeon")).toHaveLength(4);
+    expect(info.areas.filter((a) => a.kind === "cave").length).toBeGreaterThanOrEqual(6);
+    expect(objects.enemies.length).toBeGreaterThan(300);
+    expect(objects.chests.length).toBeGreaterThan(20);
+    expect(objects.vendors.length).toBeGreaterThanOrEqual(4);
+    const ranks = objects.enemies.map((e) => ENEMIES[e.kind].rank);
+    expect(ranks.filter((r) => r === "boss")).toHaveLength(4);
+    expect(ranks.filter((r) => r === "miniboss")).toHaveLength(4);
+  });
+
+  it("every boss, chest and vendor can be reached from the start, walking and through portals", () => {
+    const { width, height, tileSize } = map.collision;
+    const seen = new Set<number>();
+    const queue: [number, number][] = [];
+    const visit = (tx: number, ty: number) => {
+      const k = ty * width + tx;
+      if (tx < 0 || ty < 0 || tx >= width || ty >= height || seen.has(k) || map.collision.isSolid(tx, ty)) return;
+      seen.add(k);
+      queue.push([tx, ty]);
+    };
+    for (const s of map.spawns) visit(Math.floor(s.x / tileSize), Math.floor(s.y / tileSize));
+    while (queue.length > 0) {
+      const [tx, ty] = queue.pop() as [number, number];
+      const portal = portalAt(objects.portals, tx * tileSize + tileSize / 2, ty * tileSize + tileSize / 2);
+      if (portal) {
+        visit(Math.floor(portal.toX / tileSize), Math.floor(portal.toY / tileSize));
+        continue;
+      }
+      visit(tx + 1, ty);
+      visit(tx - 1, ty);
+      visit(tx, ty + 1);
+      visit(tx, ty - 1);
+    }
+    const reached = (p: { x: number; y: number }) =>
+      seen.has(Math.floor(p.y / tileSize) * width + Math.floor(p.x / tileSize));
+    for (const e of objects.enemies) if (ENEMIES[e.kind].rank !== "normal") expect(reached(e)).toBe(true);
+    for (const c of objects.chests) expect(reached(c)).toBe(true);
+    for (const v of objects.vendors) expect(reached(offerPosition(v, 1))).toBe(true);
   });
 
   it("portals land on open floor outside any portal, and every cave has a way out", () => {
