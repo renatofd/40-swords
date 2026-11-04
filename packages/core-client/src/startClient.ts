@@ -8,7 +8,7 @@ import {
 } from "@core/shared";
 import Phaser from "phaser";
 import { AudioManager } from "./audio/AudioManager";
-import type { GameContext, GameModule, MatchResult } from "./GameModule";
+import type { BeforeJoinContext, GameContext, GameModule, JoinChoice, MatchResult } from "./GameModule";
 import { detectLocale, I18n } from "./i18n";
 import { InputManager, isTouchDevice } from "./input";
 import { JoinError, joinRoom } from "./net/session";
@@ -60,6 +60,10 @@ class ClientApp<State> {
   private room?: Room<unknown, State>;
   /** Bumped on every join and on cancel, so a join that finishes too late is discarded. */
   private joinAttempt = 0;
+  /** The game's `beforeJoin` choice for the current or last match (reused by "Try again"). */
+  private choice: JoinChoice = {};
+  /** Set while the game's `beforeJoin` screen is up; aborting it returns to the menu. */
+  private preJoin?: AbortController;
   /** True between a connection drop and the reconnect (or the final leave). */
   private reconnecting = false;
   private playerName = "";
@@ -196,7 +200,9 @@ class ClientApp<State> {
         title,
         body,
         actions: [
-          ...(retry ? [{ label: this.i18n.t("action.retry"), onClick: () => void this.play(), primary: true }] : []),
+          ...(retry
+            ? [{ label: this.i18n.t("action.retry"), onClick: () => void this.join(this.choice), primary: true }]
+            : []),
           { label: this.i18n.t("action.backToMenu"), onClick: () => this.showMenu() },
         ],
       }),
@@ -240,12 +246,61 @@ class ClientApp<State> {
 
   // ─── Match lifecycle ──────────────────────────────────────────────────────
 
-  private async play() {
+  /** The sanitized name to join with (saved for next time), or a guest name. */
+  private joinName(): string {
     const maxLength = this.game.maxNameLength ?? DEFAULT_MAX_NAME_LENGTH;
     this.playerName = sanitizeName(this.playerName, "", maxLength);
     if (this.playerName) this.storage.set("name", this.playerName);
-    const name = this.playerName || `Guest${Math.floor(1000 + Math.random() * 9000)}`;
+    return this.playerName || `Guest${Math.floor(1000 + Math.random() * 9000)}`;
+  }
 
+  /** Play / Play again: the game's `beforeJoin` step, if it has one, then join. */
+  private async play() {
+    const beforeJoin = this.game.beforeJoin;
+    if (!beforeJoin) return this.join({});
+
+    const attempt = ++this.joinAttempt;
+    const controller = new AbortController();
+    this.preJoin?.abort();
+    this.preJoin = controller;
+    const ctx: BeforeJoinContext = {
+      t: this.i18n.t,
+      name: this.joinName(),
+      show: (render) => {
+        if (!controller.signal.aborted) this.ui.show(render);
+      },
+      audio: this.audio,
+      platform: this.platform,
+      storage: this.storage,
+      signal: controller.signal,
+    };
+    let choice: JoinChoice | null = null;
+    try {
+      choice = await beforeJoin(ctx);
+    } catch (err) {
+      console.error(err);
+    }
+    if (this.preJoin === controller) this.preJoin = undefined;
+    if (attempt !== this.joinAttempt || controller.signal.aborted) return; // left meanwhile
+    if (!choice) {
+      this.showMenu();
+      return;
+    }
+    await this.join(choice);
+  }
+
+  /** Esc on the `beforeJoin` screen: back to the menu. */
+  private cancelPreJoin() {
+    this.preJoin?.abort();
+    this.preJoin = undefined;
+    this.joinAttempt++;
+    this.showMenu();
+  }
+
+  /** Connects to the room the choice names (or the game's default room). */
+  private async join(choice: JoinChoice) {
+    this.choice = choice;
+    const name = this.joinName();
     const attempt = ++this.joinAttempt;
     this.ui.show(() =>
       messageScreen({
@@ -265,10 +320,17 @@ class ClientApp<State> {
     let room: Room<unknown, State>;
     try {
       room = await joinRoom<State>({
-        roomName: this.game.roomName,
+        roomName: choice.roomName ?? this.game.roomName,
         gameProtocolVersion: this.game.protocolVersion,
         rootSchema: this.game.rootSchema,
-        options: { ...this.game.joinOptions?.(), name, locale: this.i18n.locale, auth: this.platform.getAuthPayload() },
+        options: {
+          ...this.game.joinOptions?.(),
+          ...choice.options,
+          // Core options last: a game can't replace the name, locale or account.
+          name,
+          locale: this.i18n.locale,
+          auth: this.platform.getAuthPayload(),
+        },
       });
     } catch (err) {
       if (attempt !== this.joinAttempt) return; // cancelled from the connecting screen
@@ -451,7 +513,12 @@ class ClientApp<State> {
   }
 
   private onGlobalKey = (e: KeyboardEvent) => {
-    if (!this.room || isTextField(e.target)) return;
+    if (isTextField(e.target)) return;
+    if (e.code === "Escape" && this.preJoin) {
+      this.cancelPreJoin();
+      return;
+    }
+    if (!this.room) return;
     if (e.code === "Escape") {
       if (this.reconnecting) return; // the reconnect screen closes itself
       if (this.ui.isScreenOpen) this.resume();

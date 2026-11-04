@@ -2,6 +2,19 @@
 
 Mudanças do template. Jogos derivados: leia antes de `git merge template/main`. Veja [`docs/TEMPLATE.md`](docs/TEMPLATE.md).
 
+## 0.6.0
+
+Tela antes da partida e toques rápidos que não se perdem.
+
+### Novo
+- **`GameModule.beforeJoin`:** passo opcional entre o botão **Jogar** e a entrada na sala, para escolher personagem, time ou mapa. O jogo mostra a própria tela com `ctx.show(...)` e responde com a sala (`roomName`, por exemplo uma sala por mapa) e as opções de entrada (`options`), ou com `null` para voltar ao menu. Esc também volta ao menu. **Tentar novamente** repete a última escolha; **Jogar de novo** mostra a tela outra vez. O contexto traz `t`, `name`, `audio`, `platform`, `storage` (para lembrar a última escolha) e `signal`.
+- **`ctx.input.wasPressed(id)`:** verdadeiro no quadro seguinte a um aperto, mesmo que a tecla, o botão do controle ou o botão de toque já tenha sido solto (um toque mais curto que um quadro não se perde mais). Cada aperto conta uma vez; segurar não repete. Use para ações de um toque (atacar, interagir, abrir painel); `isDown` continua para ações seguradas.
+- O jogo de exemplo usa os dois: escolhe a cor antes de entrar (`game/client/src/ui/pickColor.ts`), e o servidor valida a cor recebida.
+
+### Ao atualizar um jogo
+- Nada no núcleo quebra: os dois recursos são opcionais.
+- O jogo de exemplo mudou (`game/*`, `PROTOCOL_VERSION` 4) e o `joinMatch` dos testes e2e escolhe uma cor (`tools/e2e/tests/helpers.ts`). Se o seu jogo já reescreveu esses arquivos, mantenha a sua versão nos conflitos.
+
 ## 0.5.0
 
 Revisão geral do template: segurança do servidor, reconexão no cliente, ferramentas no Windows e documentação.

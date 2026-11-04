@@ -43,7 +43,8 @@ Template for online web games (.io now, MMO-ready later): Phaser 4 client, Colys
 - Menus/HUD are DOM (`@core/client` ui), not Phaser text: needed for RTL Arabic, Devanagari, CJK and IME.
 - Every user-visible string goes through `t()`. Core strings: `packages/core-client/src/i18n/coreMessages.ts` (typed; missing keys fail typecheck). Game strings: `game/client/src/messages.ts`.
 - Supported locales (all must be filled): en, pt, es, fr, de, it, tr, ru, ar, hi, id, ja, zh, ko. Use CSS logical properties (inline/block) so RTL works.
-- Read input through `ctx.input` (`InputManager`: keyboard + gamepad + touch). Don't use Phaser keyboard (disabled).
+- Read input through `ctx.input` (`InputManager`: keyboard + gamepad + touch). Don't use Phaser keyboard (disabled). `isDown(id)` for held actions, `wasPressed(id)` for one-shot ones (a tap shorter than a frame still counts once).
+- Screens before joining (character/map select) go in `GameModule.beforeJoin`: resolve `{ roomName?, options? }` (or null for the menu); the server validates those join options.
 
 ## Maps
 
