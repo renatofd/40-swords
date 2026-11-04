@@ -1,5 +1,5 @@
 import type { EnemyKind, ShotStyle } from "../enemies";
-import type { OfferItem } from "../relics";
+import type { OfferItem, RelicKind } from "../relics";
 
 /** Message types between client and server (besides per-tick inputs and the state). */
 export const Msg = {
@@ -21,6 +21,8 @@ export const Msg = {
   enemyShot: "eshot",
   /** server → everyone: a boss or mini-boss was defeated. */
   bossDown: "boss",
+  /** server → everyone: a hero was defeated by another hero or by the storm (kill feed). */
+  kill: "kill",
 } as const;
 
 export interface DamageMessage {
@@ -58,7 +60,8 @@ export interface ProjectileEndMessage {
 export interface GainMessage {
   kind: OfferItem;
   rarity: number;
-  source: "chest" | "shop";
+  /** "loot": taken from a hero you defeated. */
+  source: "chest" | "shop" | "loot";
 }
 
 export interface OfferMessage {
@@ -93,4 +96,19 @@ export interface BossDownMessage {
   kind: EnemyKind;
   /** Name of the hero who landed the final blow. */
   by: string;
+}
+
+/** A hero went down in PvP or in the arena storm. */
+export interface KillMessage {
+  /** Session id and name of the hero who won the fight; empty when the storm did it. */
+  killer: string;
+  killerName: string;
+  victim: string;
+  victimName: string;
+  /** The relic the winner took (none when the loser had none, or the storm did it). */
+  relic?: { kind: RelicKind; rarity: number };
+  /** Rupees the winner took. */
+  rupees: number;
+  /** Arena placement of the loser (2 = runner-up); 0 outside the arena. */
+  place: number;
 }

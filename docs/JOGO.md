@@ -1,10 +1,10 @@
 # 40 Swords
 
-RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Partidas de roguelite com PvP (etapas futuras).
+RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Cada partida é uma corrida de roguelite: todos começam no nível 1 no centro, ficam mais fortes explorando, depois de 5 minutos podem se enfrentar e aos 30 minutos vão para uma arena de battle royale.
 
 > Toda a arte atual é **provisória, feita em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
 
-## Como jogar (etapa 3)
+## Como jogar (etapa 4)
 
 1. No menu, digite o nome e clique em **Jogar**.
 2. Escolha o **herói** (cada classe mostra os atributos) e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói fica lembrado.
@@ -14,7 +14,8 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 6. **Masmorras** (4, atrás de portas com pilares): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
 7. **Elites** (dourados e maiores): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
 8. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
-9. Ao subir de nível, os atributos melhoram e a vida enche. Se morrer, volta à praça em 3 segundos (sem perder nada).
+9. Ao subir de nível, os atributos melhoram e a vida enche. Se um monstro te derrotar, você volta à praça em 3 segundos sem perder nada. Se outro herói te derrotar (com o PvP ligado), ele leva **uma relíquia sua, sorteada, e todos os seus rupees**. Ao voltar à praça você fica 3 segundos invulnerável (o sprite pisca).
+10. Veja "A partida" abaixo: PvP aos 5 minutos e a arena aos 30.
 
 | Ação | Teclado | Controle | Toque |
 |---|---|---|---|
@@ -24,9 +25,34 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 
 Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um quadro.
 
-O PvP está desligado nesta etapa: jogadores não se ferem.
-
 > Segurar o botão de ataque dispara as armas sem parar, mas cada golpe de espada prende o herói por um instante. Andar segurando o botão é mais lento: para correr, solte o ataque.
+
+## A partida
+
+O relógio no canto superior direito mostra a fase atual e quanto falta para a próxima. Avisos aparecem 1 minuto antes do PvP e da arena.
+
+| Fase | Quando | O que acontece |
+|---|---|---|
+| Calmaria | 0 a 5 min | Só monstros: explore, junte relíquias e rupees, compre nas cavernas. Heróis não se ferem. |
+| PvP | 5 a 30 min | Heróis podem se ferir com a espada e com as armas. Os nomes dos rivais ficam vermelhos. Quem vence a luta leva **uma relíquia sorteada e todos os rupees** do derrotado, que volta à praça. Todos veem no feed (embaixo, no centro) quem derrotou quem. |
+| Arena | aos 30 min | Todos (inclusive quem estava caído) vão para a **arena**, com a vida cheia, espalhados num anel. Contagem de 5 s sem dano, e então: **battle royale**, sem volta. A câmera acompanha o herói. |
+| Tempestade | durante a luta na arena | A zona segura (o círculo) fecha dos cantos até o centro em 2 min 30 s. Fora dela, o herói perde 10% da vida máxima por segundo (ignora defesa). |
+| Resultado | quando sobra 1 (ou ninguém) | Quem ficar de pé vence. O resultado fica 15 s na tela e então começa uma **nova partida**: todos voltam ao nível 1, sem relíquias nem rupees, na praça; o mundo se renova (inimigos, baús, lojas). |
+
+- Na arena, quem cai está **fora** até a próxima partida: assiste à luta (o botão de ataque troca o herói acompanhado) e vê a própria posição.
+- A sala para de aceitar novos jogadores aos 25 minutos (quem chegasse no nível 1 logo antes da arena não teria chance); quem tentar entrar vai para outra sala, numa partida nova. A sala volta a aceitar jogadores quando a próxima partida começa. Se alguém ainda conseguir entrar com a arena já começada, assiste à luta e joga na partida seguinte.
+- O saque também vale na arena: derrotar alguém lá também tira dele uma relíquia (e os rupees).
+
+**Testar a partida mais rápido:** os tempos vêm de variáveis de ambiente do servidor (validadas ao iniciar):
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `MATCH_PVP_SECONDS` | `300` | Segundos até o PvP ligar |
+| `MATCH_ARENA_SECONDS` | `1800` | Segundos até a arena (mínimo 10) |
+
+Exemplo: `MATCH_PVP_SECONDS=30 MATCH_ARENA_SECONDS=120 pnpm dev` (no Windows, `set MATCH_PVP_SECONDS=30` e `set MATCH_ARENA_SECONDS=120` antes de `pnpm dev`). O jogador nunca controla esses tempos: só o servidor.
+
+As durações fixas (contagem da arena, tempestade, dano da tempestade, tempo do resultado, proteção ao renascer) ficam em `game/shared/src/match.ts`.
 
 ## Classes
 
@@ -123,7 +149,9 @@ Cada inimigo fica na tela onde nasceu e só age quando há um herói por perto. 
 
 ## O mapa
 
-`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 3 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas e as 8 cavernas), ligados por portais. São 320×121 tiles, ~530 inimigos e ~40 baús.
+`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 4 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas, as 8 cavernas e a arena), ligados por portais. São 320×132 tiles, ~530 inimigos e ~40 baús.
+
+A **arena** é uma sala de 2×2 telas (40×22 tiles) de areia com muralhas, pilares para se proteger e 16 pontos de entrada num anel. Não há portal até ela: só o servidor leva os heróis para lá.
 
 Regiões, de cima para baixo: montanhas e colinas ao norte, uma floresta larga, o cemitério e o pântano a oeste, lagos e prados no centro (a praça de início no meio), o deserto a leste e uma praia no canto sudeste.
 
@@ -133,13 +161,14 @@ Nem toda tela vizinha se liga: as ligações formam um labirinto (uma árvore a 
 
 Há dois caminhos:
 
-- **Gerador (recomendado):** o mundo sai de `tools/world-gen`. Em `src/world.ts` ficam o mapa de biomas (uma letra por tela), a posição das masmorras e cavernas, a praça e as cavernas desenhadas à mão, e a `SEED`. Em `src/build.ts` ficam as regras de cada bioma e das salas de masmorra. Rode `pnpm --filter @tools/world-gen generate`: o gerador confere as bordas entre telas e se tudo é alcançável a partir da praça (inclusive passando pelos portais), e regrava `content/maps/overworld.tmj` e `content/tilesets/overworld.png`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
+- **Gerador (recomendado):** o mundo sai de `tools/world-gen`. Em `src/world.ts` ficam o mapa de biomas (uma letra por tela), a posição das masmorras e cavernas, a praça, as cavernas e a arena (`ARENA`) desenhadas à mão, e a `SEED`. Em `src/build.ts` ficam as regras de cada bioma e das salas de masmorra. Rode `pnpm --filter @tools/world-gen generate`: o gerador confere as bordas entre telas e se tudo é alcançável a partir da praça (inclusive passando pelos portais), e regrava `content/maps/overworld.tmj` e `content/tilesets/overworld.png`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
 - **Tiled:** abra `content/maps/game.tiled-project` e edite o `.tmj` direto. Classes de objeto do jogo:
   - `spawn`: onde os jogadores nascem;
   - `enemy`: ponto com as propriedades `kind` (tipo do inimigo), `tier` (nível de dificuldade) e `dungeon` (dentro de masmorra);
   - `chest`: ponto com um baú;
   - `vendor`: ponto do vendedor; as 3 ofertas ficam numa fileira 2 tiles à frente dele, e precisam estar livres;
-  - `portal`: retângulo com a propriedade `target`, o nome do objeto para onde o herói vai ao entrar (use um ponto da classe `dest`).
+  - `portal`: retângulo com a propriedade `target`, o nome do objeto para onde o herói vai ao entrar (use um ponto da classe `dest`);
+  - `arenaSpawn`: ponto onde um herói aparece na arena (pelo menos 8). A área da arena vem da propriedade `areas` do mapa (tipo `arena`).
   
   Se editar no Tiled, não rode mais o gerador (ele sobrescreve o mapa).
 
@@ -147,7 +176,7 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 
 ## Trocar a arte
 
-- **Tileset:** substitua `content/tilesets/overworld.png` mantendo a ordem dos 25 tiles (8 colunas, 16×16, margem 1, espaçamento 2), ou crie outro tileset e remapeie no Tiled.
+- **Tileset:** substitua `content/tilesets/overworld.png` mantendo a ordem dos 29 tiles (8 colunas, 16×16, margem 1, espaçamento 2), ou crie outro tileset e remapeie no Tiled.
 - **Heróis e inimigos:** exporte do Aseprite para `content/sprites/<nome>.png + .json` com as tags `idle` e `walk`, usando os nomes `knight`, `rogue`, `barbarian` e os dos inimigos (`slime`, `goblin`, `bat`, `skeleton`, `scorpion`, `wolf`, `lurker`, `brute`, `hexer`, `warden`, `witch`, `matriarch`, `colossus`). O jogo passa a usar o sprite no lugar da forma provisória automaticamente (`game/client/src/render/placeholderArt.ts`).
 - **Baús, vendedor, pedestais, projéteis (dos heróis e dos inimigos) e o brilho dos elites:** desenhados em `game/client/src/render/placeholderArt.ts`.
 - **Ícones de relíquias e itens:** emojis em `game/client/src/ui/relicText.ts`.
@@ -164,10 +193,13 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Fórmulas de dano, crítico, roubo de vida | `game/shared/src/combat.ts` |
 | Objetos do mapa (inimigos, baús, vendedores, portais) | `game/shared/src/worldObjects.ts` |
 | Inimigos, elites, minichefes, chefes e a escala por nível | `game/shared/src/enemies.ts` |
-| Sala do mundo (IA e ataques dos inimigos, combate, projéteis, baús, lojas, níveis) | `game/server/src/rooms/WorldRoom.ts` |
+| Regras da partida (fases, tempestade, proteção ao renascer) | `game/shared/src/match.ts` |
+| Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
+| Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, fases da partida, arena) | `game/server/src/rooms/WorldRoom.ts` |
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
-| Cena, câmera por telas, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
+| Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
+| Relógio da partida, feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
 | Escolha de herói e mapa (antes de entrar) | `game/client/src/ui/heroSelect.ts` |
 | HUD: vida, relíquias, atributos, avisos | `game/client/src/ui/` |
 | Textos (14 idiomas) | `game/client/src/messages.ts` |
@@ -177,4 +209,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 1. ✅ **Base:** escolha de herói (3 classes), mapa, movimento em 8 direções, espada, inimigos com XP e rupees, níveis.
 2. ✅ **Relíquias e lojas:** relíquias com raridade (sorte), armas com recarga e multiplicação de projéteis, baús, vendedores em cavernas.
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
-4. Partida: PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, arena battle royale aos 30 minutos.
+4. ✅ **Partida:** PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, arena battle royale aos 30 minutos com tempestade, vencedor e nova partida.

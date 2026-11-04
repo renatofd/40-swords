@@ -60,8 +60,10 @@ export const Player = schema({
   arrowCd: t.uint8().default(0),
   novaN: t.uint16().default(0),
   novaCd: t.uint8().default(0),
-  /** Every relic owned (PvP looting takes from here later). */
+  /** Every relic owned (the winner of a PvP fight takes one of them). */
   relics: t.array(Relic),
+  /** Knocked out of the arena: watches until the next match (always `dead` too). */
+  out: t.boolean().default(false),
 });
 export type Player = SchemaType<typeof Player>;
 
@@ -113,5 +115,19 @@ export const WorldState = schema({
   chests: t.map(Chest).view(),
   /** Everyone in the room who picked a class, by session id. Cheap to send to all. */
   roster: t.map(RosterEntry),
+  // ─── The match (see match.ts) ───
+  /** MatchPhase. */
+  phase: t.uint8().default(0),
+  /** Seconds since the match started. */
+  clock: t.uint16().default(0),
+  /** Value of `clock` when the current phase ends; 0 while the arena fight lasts. */
+  phaseEnds: t.uint16().default(0),
+  /** Safe zone radius (px) around the arena centre during prep and the fight. */
+  zone: t.uint16().default(0),
+  /** Heroes still standing in the arena. */
+  alive: t.uint8().default(0),
+  /** Session id and name of the winner once the match ended (empty: nobody survived). */
+  winner: t.string().default(""),
+  winnerName: t.string().default(""),
 });
 export type WorldState = SchemaType<typeof WorldState>;

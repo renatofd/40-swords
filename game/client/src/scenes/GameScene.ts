@@ -4,6 +4,7 @@ import { type GameContext, h } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
 import {
   areaAt,
+  arenaRect,
   type BossDownMessage,
   type Chest,
   type DamageMessage,
@@ -11,9 +12,14 @@ import {
   type Enemy,
   type EnemyShotMessage,
   type GainMessage,
+  inRect,
+  isArenaPhase,
   isClassId,
   isEnemyKind,
+  isPvpPhase,
+  type KillMessage,
   type LevelUpMessage,
+  MatchPhase,
   Msg,
   OFFER_SLOTS,
   type OfferMessage,
@@ -59,6 +65,7 @@ import {
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
 import { GainCards } from "../ui/gainCard";
+import { MatchHud } from "../ui/matchHud";
 import { Minimap } from "../ui/minimap";
 import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
 import { StatusHud } from "../ui/statusHud";
@@ -75,6 +82,8 @@ const SCREEN_PAN_MS = 320;
 const TELEPORT_PX = 48;
 /** Within this distance of an offer, its card shows the details. */
 const OFFER_DETAILS_PX = 26;
+/** Sides of the polygon drawing the arena storm. */
+const ZONE_SEGMENTS = 96;
 
 /** The reconciler fields: everything `stepPlayer` reads or writes (see PlayerSimState). */
 const SIM_FIELDS = [
@@ -129,7 +138,21 @@ export class GameScene extends Phaser.Scene {
   private gains?: GainCards;
   private bossBar?: BossBar;
   private minimap?: Minimap;
+  private match?: MatchHud;
   private info!: WorldInfo;
+  private arena?: ReturnType<typeof arenaRect>;
+  /** Flip-screen in the world; a following camera inside the (bigger) arena. */
+  private cameraMode: "screens" | "arena" = "screens";
+  private zone?: Phaser.GameObjects.Graphics;
+  /** Zone radius last drawn (-1: none). */
+  private zoneDrawn = -1;
+  private lastPhase = -1;
+  /** Countdown warnings already shown in this match. */
+  private warned = new Set<number>();
+  /** Arena placement once knocked out (0 = still in). */
+  private place = 0;
+  /** Hero followed by the camera after a knock-out. */
+  private watchId = "";
   private portals: readonly Portal[] = [];
   /** Cave or dungeon the hero is in (to announce dungeons on entry). */
   private areaId = "";
@@ -160,6 +183,12 @@ export class GameScene extends Phaser.Scene {
     this.areaId = "";
     this.wasDead = false;
     this.attackQueued = false;
+    this.cameraMode = "screens";
+    this.zoneDrawn = -1;
+    this.lastPhase = -1;
+    this.warned = new Set();
+    this.place = 0;
+    this.watchId = "";
   }
 
   create() {
@@ -168,6 +197,8 @@ export class GameScene extends Phaser.Scene {
     this.buildMap(room.state.mapId);
     this.projectiles = new Projectiles(this, this.gameMap.collision);
     for (const v of this.vendors) this.add.image(v.x, v.y - 4, TEX_MERCHANT).setDepth(9);
+    // The storm tints the ground outside the safe zone (players stay on top).
+    this.zone = this.add.graphics().setDepth(5);
 
     const predict = Predict.get(room);
     this.predict = predict;
@@ -211,6 +242,14 @@ export class GameScene extends Phaser.Scene {
       this.renderShop(m.vendor);
     });
     room.onMessage(Msg.shopFail, () => this.ctx.ui.toast(t("shop.notEnough")));
+    room.onMessage(Msg.kill, (m: KillMessage) => {
+      this.match?.kill(m);
+      const loot = this.match?.lootText(m, room.sessionId);
+      if (loot) this.ctx.ui.toast(loot, 4000);
+      if (m.victim === room.sessionId && m.place > 0) this.place = m.place;
+      if (m.killer === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.2 });
+      else if (m.victim === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 0.6 });
+    });
 
     this.labels = new WorldLabels(this);
     this.status = new StatusHud(t);
@@ -218,7 +257,17 @@ export class GameScene extends Phaser.Scene {
     this.bossBar = new BossBar();
     this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
     this.status.addWidget(this.minimap.el);
-    hud.append(this.labels.el, this.status.el, this.gains.el, this.bossBar.el);
+    this.match = new MatchHud(t);
+    hud.append(
+      this.labels.el,
+      this.status.el,
+      this.gains.el,
+      this.bossBar.el,
+      this.match.timer,
+      this.match.feed,
+      this.match.banner,
+    );
+    this.lastPhase = room.state.phase;
     this.ctx.audio.playMusic(MUSIC_THEME);
     this.watchRoster();
     this.showControlsHint();
@@ -259,6 +308,7 @@ export class GameScene extends Phaser.Scene {
     this.vendors = objects.vendors;
     this.portals = objects.portals;
     this.info = parseWorldInfo(raw);
+    this.arena = arenaRect(this.info);
   }
 
   /** A hint that fades after a few seconds. */
@@ -422,6 +472,27 @@ export class GameScene extends Phaser.Scene {
 
   // ─── Camera ───────────────────────────────────────────────────────────────
 
+  /** Follows (x, y) inside the arena; flip-screen everywhere else. */
+  private updateCamera(x: number, y: number) {
+    const cam = this.cameras.main;
+    const { arena } = this;
+    if (arena && inRect(arena, x, y)) {
+      if (this.cameraMode !== "arena") {
+        this.cameraMode = "arena";
+        cam.panEffect.reset();
+        cam.setBounds(arena.x, arena.y, arena.width, arena.height);
+        this.screenKey = "";
+      }
+      cam.centerOn(x, y);
+      return;
+    }
+    if (this.cameraMode === "arena") {
+      this.cameraMode = "screens";
+      cam.setBounds(0, 0, this.gameMap.pixelWidth, this.gameMap.pixelHeight);
+    }
+    this.lookAtScreen(x, y, true);
+  }
+
   /** Classic flip-screen camera: slides to a neighbouring screen, cuts to a far one (caves). */
   private lookAtScreen(x: number, y: number, animate: boolean) {
     const { col, row } = screenOf(x, y);
@@ -473,6 +544,86 @@ export class GameScene extends Phaser.Scene {
     if (area?.kind === "dungeon") this.ctx.ui.toast(this.ctx.t(`dungeon.${area.id}`), 3000);
   }
 
+  // ─── The match ────────────────────────────────────────────────────────────
+
+  /** Toasts and sounds when the phase changes, and a warning a minute before PvP and the arena. */
+  private watchPhase() {
+    const { phase, clock, phaseEnds } = this.ctx.room.state;
+    const { ui, t, audio } = this.ctx;
+    if (phase !== this.lastPhase) {
+      const was = this.lastPhase;
+      this.lastPhase = phase;
+      if (phase === MatchPhase.pvp) ui.toast(t("toast.pvpOn"), 6000);
+      else if (phase === MatchPhase.prep) ui.toast(t("toast.arena"), 4000);
+      else if (phase === MatchPhase.arena) ui.toast(t("toast.fight"), 2000);
+      else if (phase === MatchPhase.calm && was === MatchPhase.ended) {
+        ui.toast(t("toast.newMatch"), 5000);
+        this.place = 0;
+        this.warned.clear();
+      }
+      if (was >= 0) audio.playSfx(SFX_UI, { rate: phase === MatchPhase.ended ? 0.7 : 1 });
+    }
+    if (
+      (phase === MatchPhase.calm || phase === MatchPhase.pvp) &&
+      phaseEnds - clock === 60 &&
+      !this.warned.has(phase)
+    ) {
+      this.warned.add(phase);
+      ui.toast(t(phase === MatchPhase.calm ? "toast.pvpSoon" : "toast.arenaSoon"), 4000);
+    }
+  }
+
+  /** The hero the camera follows after a knock-out; the attack button switches to the next one. */
+  private watched(next: boolean): [string, Player] | undefined {
+    const { room } = this.ctx;
+    const standing = [...room.state.players.entries()]
+      .filter(([id, p]) => id !== room.sessionId && !p.out)
+      .sort(([a], [b]) => (a < b ? -1 : 1));
+    if (standing.length === 0) return undefined;
+    let i = standing.findIndex(([id]) => id === this.watchId);
+    if (i < 0) i = 0;
+    else if (next) i = (i + 1) % standing.length;
+    const entry = standing[i];
+    this.watchId = entry?.[0] ?? "";
+    return entry;
+  }
+
+  /** The storm: a red tint outside the safe zone, redrawn only when the radius changes. */
+  private drawZone() {
+    const g = this.zone;
+    const { arena } = this;
+    const { phase, zone } = this.ctx.room.state;
+    const show = Boolean(arena) && isArenaPhase(phase);
+    const key = show ? zone : -1;
+    if (!g || key === this.zoneDrawn) return;
+    this.zoneDrawn = key;
+    g.clear();
+    if (!show || !arena) return;
+    // A ring from the zone's edge to past the arena corners, as side-by-side
+    // triangles (they never overlap, so the tint stays even).
+    const cx = arena.centerX;
+    const cy = arena.centerY;
+    const inner = Math.max(0, zone);
+    const outer = Math.max(inner, Math.hypot(arena.width, arena.height) / 2) + 16;
+    const point = (r: number, i: number) => {
+      const a = (i / ZONE_SEGMENTS) * Math.PI * 2;
+      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+    };
+    g.fillStyle(0xb01848, 0.32);
+    for (let i = 0; i < ZONE_SEGMENTS; i++) {
+      const [ix0, iy0] = point(inner, i);
+      const [ix1, iy1] = point(inner, i + 1);
+      const [ox0, oy0] = point(outer, i);
+      const [ox1, oy1] = point(outer, i + 1);
+      g.fillTriangle(ix0, iy0, ox0, oy0, ox1, oy1);
+      if (inner > 0) g.fillTriangle(ix0, iy0, ox1, oy1, ix1, iy1);
+    }
+    if (inner > 0) {
+      g.lineStyle(1, 0xffc8dc, 0.9);
+      g.strokeCircle(cx, cy, inner);
+    }
+  }
+
   // ─── Frame ────────────────────────────────────────────────────────────────
 
   override update(time: number) {
@@ -483,7 +634,8 @@ export class GameScene extends Phaser.Scene {
 
     if (input.wasPressed(ACTION_STATS)) this.status?.toggle();
     // A tap shorter than a frame still swings: it waits for the next simulation step.
-    if (input.wasPressed(ACTION_ATTACK)) this.attackQueued = true;
+    const attackPressed = input.wasPressed(ACTION_ATTACK);
+    if (attackPressed) this.attackQueued = true;
 
     // Drives prediction, interpolation and reconciliation, and returns how many
     // fixed steps came due, so we send exactly one input per simulation step.
@@ -518,14 +670,21 @@ export class GameScene extends Phaser.Scene {
     }
     this.projectiles?.update(now);
 
+    const pvp = isPvpPhase(room.state.phase);
     for (const [id, player] of room.state.players) {
       const view = this.players.get(id);
       if (!view) continue;
       const isSelf = id === room.sessionId;
+      // Knocked out of the arena: gone until the next match.
+      view.setVisible(!player.out);
+      if (player.out) {
+        this.labels?.removeName(id);
+        continue;
+      }
       const state = isSelf && sim ? sim : player;
       const x = predict.value(player, "x");
       const y = predict.value(player, "y");
-      this.labels?.name(id, player.name, x, y - 9, isSelf);
+      this.labels?.name(id, player.name, x, y - 9, isSelf, pvp && !isSelf);
       view.update(x, y, { facing: state.facing, dead: state.dead, invuln: player.invuln }, time);
       // Own swings come from prediction (instant feedback); others' from the server.
       if (state.swing !== this.lastSwing.get(id)) {
@@ -545,16 +704,36 @@ export class GameScene extends Phaser.Scene {
       if (image && image.texture.key !== texture) image.setTexture(texture);
     }
 
+    this.watchPhase();
+    this.drawZone();
     if (self) {
       const x = predict.value(self, "x");
       const y = predict.value(self, "y");
-      this.lookAtScreen(x, y, true);
+      // Knocked out: watch someone still in the fight (or the middle of the arena).
+      const watched = self.out ? this.watched(attackPressed) : undefined;
+      const focusX = watched ? predict.value(watched[1], "x") : self.out && this.arena ? this.arena.centerX : x;
+      const focusY = watched ? predict.value(watched[1], "y") : self.out && this.arena ? this.arena.centerY : y;
+      this.updateCamera(focusX, focusY);
+      if (this.minimap) this.minimap.el.hidden = this.cameraMode === "arena";
       this.updateShopCards(x, y);
       this.minimap?.update(x, y, time);
       this.updateBossBar(x, y);
       this.announceArea(x, y);
       this.status?.update(self);
-      if (self.dead && !this.wasDead) this.ctx.ui.toast(this.ctx.t("toast.died"));
+      const { state } = room;
+      const outsideZone =
+        state.phase === MatchPhase.arena &&
+        !self.dead &&
+        this.arena !== undefined &&
+        Math.hypot(x - this.arena.centerX, y - this.arena.centerY) > state.zone;
+      this.match?.update(state, {
+        id: room.sessionId,
+        outsideZone,
+        out: self.out,
+        watching: watched?.[1].name,
+        place: this.place,
+      });
+      if (self.dead && !this.wasDead && !self.out) this.ctx.ui.toast(this.ctx.t("toast.died"));
       this.wasDead = self.dead;
     }
   }

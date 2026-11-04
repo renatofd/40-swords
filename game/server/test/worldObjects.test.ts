@@ -1,5 +1,15 @@
 import { loadMap } from "@core/server";
-import { ENEMIES, OFFER_SLOTS, offerPosition, portalAt, screenOf, TILE_SIZE } from "@game/shared";
+import {
+  ARENA_SPAWN_MIN,
+  arenaRect,
+  ENEMIES,
+  inRect,
+  OFFER_SLOTS,
+  offerPosition,
+  portalAt,
+  screenOf,
+  TILE_SIZE,
+} from "@game/shared";
 import { describe, expect, it } from "vitest";
 import { loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
 
@@ -23,7 +33,8 @@ describe("overworld objects", () => {
     expect(ranks.filter((r) => r === "miniboss")).toHaveLength(4);
   });
 
-  it("every boss, chest and vendor can be reached from the start, walking and through portals", () => {
+  /** Tiles a hero can walk to from the start, through portals too. */
+  function reachableFromStart() {
     const { width, height, tileSize } = map.collision;
     const seen = new Set<number>();
     const queue: [number, number][] = [];
@@ -46,8 +57,11 @@ describe("overworld objects", () => {
       visit(tx, ty + 1);
       visit(tx, ty - 1);
     }
-    const reached = (p: { x: number; y: number }) =>
-      seen.has(Math.floor(p.y / tileSize) * width + Math.floor(p.x / tileSize));
+    return (p: { x: number; y: number }) => seen.has(Math.floor(p.y / tileSize) * width + Math.floor(p.x / tileSize));
+  }
+
+  it("every boss, chest and vendor can be reached from the start, walking and through portals", () => {
+    const reached = reachableFromStart();
     for (const e of objects.enemies) if (ENEMIES[e.kind].rank !== "normal") expect(reached(e)).toBe(true);
     for (const c of objects.chests) expect(reached(c)).toBe(true);
     for (const v of objects.vendors) expect(reached(offerPosition(v, 1))).toBe(true);
@@ -72,5 +86,21 @@ describe("overworld objects", () => {
       }
     const screens = objects.vendors.map((v) => JSON.stringify(screenOf(v.x, v.y)));
     expect(new Set(screens).size).toBe(screens.length);
+  });
+
+  it("has a closed battle royale arena with spawns spread on open floor", () => {
+    const arena = arenaRect(info);
+    if (!arena) throw new Error("no arena");
+    expect(arena.width).toBe(640);
+    expect(arena.height).toBe(352);
+    expect(objects.arenaSpawns.length).toBeGreaterThanOrEqual(ARENA_SPAWN_MIN);
+    const reached = reachableFromStart();
+    for (const spot of objects.arenaSpawns) {
+      expect(inRect(arena, spot.x, spot.y)).toBe(true);
+      expect(solidAt(spot.x, spot.y)).toBe(false);
+      expect(reached(spot)).toBe(false); // only the server's teleport leads there
+      expect(Math.hypot(spot.x - arena.centerX, spot.y - arena.centerY)).toBeGreaterThan(64);
+    }
+    for (const p of objects.portals) expect(inRect(arena, p.toX, p.toY)).toBe(false);
   });
 });

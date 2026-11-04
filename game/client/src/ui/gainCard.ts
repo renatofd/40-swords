@@ -4,7 +4,7 @@ import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "./rel
 
 const SHOW_MS = 3000;
 
-/** Cards announcing what the hero just got (chest or shop); they stack and fade out. */
+/** Cards announcing what the hero just got (chest, shop or taken in battle); they stack and fade out. */
 export class GainCards {
   readonly el = h("div", { className: "sw-gains", role: "status", "aria-live": "polite" });
 
@@ -20,7 +20,7 @@ export class GainCards {
       h(
         "div",
         {},
-        h("div", { className: "sw-muted" }, t(m.source === "chest" ? "gain.chest" : "gain.shop")),
+        h("div", { className: "sw-muted" }, t(`gain.${m.source}`)),
         h("strong", { className: "sw-gain-name" }, itemName(t, m.kind)),
         !potion && h("div", { className: "sw-rarity" }, rarityName(t, m.rarity)),
         h("div", {}, itemEffect(t, m.kind, m.rarity)),

@@ -30,8 +30,8 @@ export type Biome = "G" | "F" | "H" | "M" | "L" | "D" | "W" | "Y" | "B" | "C";
 
 export const OVERWORLD_COLUMNS = 16;
 export const OVERWORLD_ROWS = 8;
-/** Rows of interior screens (dungeons and caves) below the overworld. */
-export const INTERIOR_ROWS = 3;
+/** Rows of interior screens (dungeons, caves and the arena) below the overworld. */
+export const INTERIOR_ROWS = 4;
 
 export interface DungeonDef {
   id: string;
@@ -149,4 +149,37 @@ export const TREASURE_CAVE = [
   "KKKKKKK______KKKKKKK",
   "KKKKKKKKKXKKKKKKKKKK",
   "KKKKKKKKKKKKKKKKKKKK",
+];
+
+/**
+ * The battle royale arena (2x2 screens, top-left screen ARENA_AT inside the
+ * interior band). Nothing leads in or out: at 30 minutes the server teleports
+ * every hero to the "x" spawns.
+ *   N wall   n sand   l painted line (decoration)   u pillar   x arena spawn
+ */
+export const ARENA_AT: [number, number] = [12, 2];
+export const ARENA_SCREENS: [number, number] = [2, 2];
+export const ARENA = [
+  "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+  "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+  "NnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnN",
+  "NnnnnnnnnnnnnnnnnnnuunnnnnnnnnnnnnnnnnnN",
+  "NnnnunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnunnnN",
+  "NnnnnnnnnnnnnnnnnxnnnnxnnnnnnnnnnnnnnnnN",
+  "NnnnnnnnnnnnxnnnnnnnnnnnnnnxnnnnnnnnnnnN",
+  "NnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnN",
+  "NnnnnnnnxnnnnnnnnnllllnnnnnnnnnxnnnnnnnN",
+  "NnnnnnnnnnnnnnnunlnnnnlnunnnnnnnnnnnnnnN",
+  "NnnnnnxnnnnnnnnnlnnnnnnlnnnnnnnnnxnnnnnN",
+  "NnnnnnnnnnnunnnnlnnllnnlnnnnunnnnnnnnnnN",
+  "NnnnnnxnnnnnnnnnlnnnnnnlnnnnnnnnnxnnnnnN",
+  "NnnnnnnnnnnnnnnunlnnnnlnunnnnnnnnnnnnnnN",
+  "NnnnnnnnxnnnnnnnnnllllnnnnnnnnnxnnnnnnnN",
+  "NnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnN",
+  "NnnnnnnnnnnnxnnnnnnnnnnnnnnxnnnnnnnnnnnN",
+  "NnnnnnnnnnnnnnnnnxnnnnxnnnnnnnnnnnnnnnnN",
+  "NnnnunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnunnnN",
+  "NnnnnnnnnnnnnnnnnnnuunnnnnnnnnnnnnnnnnnN",
+  "NnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnN",
+  "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
 ];

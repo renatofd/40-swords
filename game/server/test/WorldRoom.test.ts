@@ -2,34 +2,51 @@ import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import { createGameServer } from "@core/server";
 import { CORE_PROTOCOL_VERSION } from "@core/shared";
 import {
+  ARENA_PREP_SECONDS,
+  arenaRect,
   BOSS_CHEST_RARITY,
   type BossDownMessage,
+  DEFAULT_MATCH_TIMES,
   type EnemyShotMessage,
   type GainMessage,
   INTEREST_RADIUS,
+  inRect,
+  joinLockAt,
+  type KillMessage,
   type LevelUpMessage,
+  MatchPhase,
   Msg,
   offerPosition,
   type Player,
   type PlayerInput,
   POTION_PRICE,
   PROTOCOL_VERSION,
+  RESULTS_SECONDS,
   ROOM_WORLD,
   type ShopMessage,
   type ShotMessage,
   screenOf,
   statsFor,
   TICK_DT,
+  TICK_RATE,
   type WorldState,
   xpToNext,
+  ZONE_DAMAGE_PER_SECOND,
 } from "@game/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rooms } from "../src";
-import { loadWorldObjects } from "../src/world/mapObjects";
+import { loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
+
+// The tests expect the default match timings, whatever the shell exports (runs before the imports).
+vi.hoisted(() => {
+  delete process.env.MATCH_PVP_SECONDS;
+  delete process.env.MATCH_ARENA_SECONDS;
+});
 
 const appConfig = createGameServer({ rooms, protocolVersion: PROTOCOL_VERSION });
 const v = { core: CORE_PROTOCOL_VERSION, game: PROTOCOL_VERSION };
 const objects = loadWorldObjects("overworld");
+const arena = arenaRect(loadWorldInfo("overworld"));
 
 /** Room internals the tests reach into to set up a scene (teleports, timers, gifts). */
 interface Brain {
@@ -40,6 +57,9 @@ interface Brain {
 interface RoomInternals {
   brains: Map<string, Brain>;
   respawnTicks: number;
+  spawnProtectionTicks: number;
+  matchStart: number;
+  fightStart: number;
   map: { pixelWidth: number; pixelHeight: number };
   giveRelic(id: string, player: Player, kind: string, rarity: number, source: string): void;
 }
@@ -58,8 +78,40 @@ describe("WorldRoom", () => {
     await colyseus.cleanup();
   });
 
+  /** A world room. Heroes get no spawn protection here, so tests can hurt them right away. */
   async function createWorld() {
-    return colyseus.createRoom<WorldState>(ROOM_WORLD, {});
+    const room = await colyseus.createRoom<WorldState>(ROOM_WORLD, {});
+    internals(room).spawnProtectionTicks = 0;
+    return room;
+  }
+
+  /** Moves the match clock forward to `seconds` (the phase changes on the next tick). */
+  async function skipTo(room: Awaited<ReturnType<typeof createWorld>>, seconds: number) {
+    const target = Math.max(0, seconds - room.state.clock);
+    internals(room).matchStart -= target * TICK_RATE;
+    await room.waitForNextTimestep();
+    await room.waitForNextTimestep();
+  }
+
+  /** Puts `victim` right in front of `attacker` (south) and has the attacker swing until `until` holds. */
+  async function swingAt(
+    room: Awaited<ReturnType<typeof createWorld>>,
+    attacker: Awaited<ReturnType<typeof joinAs>>,
+    victim: Awaited<ReturnType<typeof joinAs>>,
+    until: () => void,
+  ) {
+    victim.player.x = attacker.player.x;
+    victim.player.y = attacker.player.y + 12;
+    attacker.player.facing = 2;
+    const input = attacker.client.input<PlayerInput>({ mode: "reliable" });
+    input.data.attack = 1;
+    await vi.waitFor(() => {
+      input.send();
+      until();
+    });
+    input.data.attack = 0;
+    input.send();
+    await room.waitForNextTimestep();
   }
 
   /** Joins with a hero picked before joining; the server creates the body right away. */
@@ -435,5 +487,206 @@ describe("WorldRoom", () => {
     await leaving.client.leave();
     await vi.waitFor(() => expect(room.state.players.has(leaving.client.sessionId)).toBe(false));
     expect(room.state.roster.has(leaving.client.sessionId)).toBe(false);
+  });
+  describe("the match", () => {
+    it("starts calm, then turns PvP on: a sword hit hurts another hero", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "barbarian", "A");
+      const b = await joinAs(room, "rogue", "B");
+      expect(room.state.phase).toBe(MatchPhase.calm);
+      expect(room.state.phaseEnds).toBe(DEFAULT_MATCH_TIMES.pvpAfter);
+
+      await skipTo(room, DEFAULT_MATCH_TIMES.pvpAfter);
+      expect(room.state.phase).toBe(MatchPhase.pvp);
+      expect(room.state.phaseEnds).toBe(DEFAULT_MATCH_TIMES.arenaAfter);
+      await swingAt(room, a, b, () => expect(b.player.hp).toBeLessThan(b.player.maxHp));
+      expect(b.player.invuln).toBeGreaterThan(0);
+      expect(b.player.knockY).toBeGreaterThan(0); // pushed away, south
+    });
+
+    it("the winner of a fight takes one relic and every rupee; the loser comes back", async () => {
+      const room = await createWorld();
+      internals(room).respawnTicks = 3;
+      const a = await joinAs(room, "barbarian", "A");
+      const b = await joinAs(room, "rogue", "B");
+      const kills: KillMessage[] = [];
+      const gains: GainMessage[] = [];
+      b.client.onMessage(Msg.kill, (m: KillMessage) => kills.push(m));
+      a.client.onMessage(Msg.gain, (m: GainMessage) => gains.push(m));
+      internals(room).giveRelic(b.client.sessionId, b.player, "boots", 3, "chest");
+      b.player.rupees = 37;
+      a.player.rupees = 5;
+      await skipTo(room, DEFAULT_MATCH_TIMES.pvpAfter);
+
+      b.player.hp = 1;
+      await swingAt(room, a, b, () => expect(b.player.dead).toBe(true));
+      expect(a.player.rupees).toBe(42);
+      expect(b.player.rupees).toBe(0);
+      expect(b.player.relics.length).toBe(0);
+      expect(a.player.relics.map((r) => [r.kind, r.rarity])).toEqual([["boots", 3]]);
+      expect(b.player.speed).toBe(statsFor("rogue", 1).speed); // lost the boots' bonus
+      await vi.waitFor(() => expect(kills).toHaveLength(1));
+      expect(kills[0]).toMatchObject({
+        killer: a.client.sessionId,
+        killerName: "A",
+        victim: b.client.sessionId,
+        victimName: "B",
+        relic: { kind: "boots", rarity: 3 },
+        rupees: 37,
+        place: 0,
+      });
+      await vi.waitFor(() => expect(gains.at(-1)).toEqual({ kind: "boots", rarity: 3, source: "loot" }));
+      // Outside the arena the loser comes back at the centre.
+      await vi.waitFor(() => expect(b.player.dead).toBe(false));
+      expect(screenOf(b.player.x, b.player.y)).toEqual({ col: 8, row: 4 });
+    });
+
+    it("weapon projectiles hurt other heroes once PvP is on", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "knight", "A");
+      const b = await joinAs(room, "rogue", "B");
+      for (let i = 0; i < 2; i++) internals(room).giveRelic(a.client.sessionId, a.player, "dagger", 0, "chest");
+      await skipTo(room, DEFAULT_MATCH_TIMES.pvpAfter);
+      // Out of sword reach, straight south (open floor on the start square).
+      b.player.x = a.player.x;
+      b.player.y = a.player.y + 48;
+      a.player.facing = 2;
+      const input = a.client.input<PlayerInput>({ mode: "reliable" });
+      input.data.attack = 1;
+      input.send();
+      await vi.waitFor(() => expect(b.player.hp).toBeLessThan(b.player.maxHp));
+    });
+
+    it("closes the room to newcomers near the end, then sends everyone to the arena, healed", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "knight", "A");
+      const b = await joinAs(room, "rogue", "B");
+      expect(room.locked).toBe(false);
+      await skipTo(room, joinLockAt(DEFAULT_MATCH_TIMES));
+      expect(room.locked).toBe(true);
+      expect(room.state.phase).toBe(MatchPhase.pvp);
+
+      a.player.hp = 3;
+      b.player.dead = true; // even the fallen are brought back for the finale
+      b.player.hp = 0;
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter);
+      expect(room.state.phase).toBe(MatchPhase.prep);
+      expect(room.state.phaseEnds).toBe(DEFAULT_MATCH_TIMES.arenaAfter + ARENA_PREP_SECONDS);
+      if (!arena) throw new Error("no arena in the map");
+      for (const p of [a.player, b.player]) {
+        expect(inRect(arena, p.x, p.y)).toBe(true);
+        expect(p.dead).toBe(false);
+        expect(p.hp).toBe(p.maxHp);
+      }
+      expect(room.state.alive).toBe(2);
+      expect(room.state.zone).toBeGreaterThan(Math.hypot(arena.width, arena.height) / 2 - 1);
+
+      // No fighting during the countdown.
+      await swingAt(room, a, b, () => expect(a.player.swing).toBeGreaterThan(0));
+      expect(b.player.hp).toBe(b.player.maxHp);
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter + ARENA_PREP_SECONDS);
+      expect(room.state.phase).toBe(MatchPhase.arena);
+      expect(room.state.phaseEnds).toBe(0);
+    });
+
+    it("in the arena the fallen are out; the last hero standing wins, then a new match starts", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "barbarian", "A");
+      const b = await joinAs(room, "rogue", "B");
+      const c = await joinAs(room, "knight", "C");
+      const kills: KillMessage[] = [];
+      a.client.onMessage(Msg.kill, (m: KillMessage) => kills.push(m));
+      internals(room).giveRelic(a.client.sessionId, a.player, "heart", 0, "chest");
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter + ARENA_PREP_SECONDS);
+      expect(room.state.phase).toBe(MatchPhase.arena);
+
+      b.player.hp = 1;
+      await swingAt(room, a, b, () => expect(b.player.out).toBe(true));
+      expect(b.player.dead).toBe(true);
+      expect(room.state.phase).toBe(MatchPhase.arena);
+      await vi.waitFor(() => expect(kills).toHaveLength(1));
+      expect(kills[0]?.place).toBe(3);
+
+      c.player.hp = 1;
+      await swingAt(room, a, c, () => expect(c.player.out).toBe(true));
+      await vi.waitFor(() => expect(room.state.phase).toBe(MatchPhase.ended));
+      expect(room.state.winner).toBe(a.client.sessionId);
+      expect(room.state.winnerName).toBe("A");
+      await vi.waitFor(() => expect(kills).toHaveLength(2));
+      expect(kills[1]?.place).toBe(2);
+      // Knocked-out heroes stay down until the next match.
+      for (let i = 0; i < 5; i++) await room.waitForNextTimestep();
+      expect(b.player.dead).toBe(true);
+
+      await skipTo(room, room.state.phaseEnds);
+      expect(room.state.phase).toBe(MatchPhase.calm);
+      expect(room.state.clock).toBeLessThan(2);
+      expect(room.locked).toBe(false);
+      expect(room.state.winner).toBe("");
+      for (const p of [a.player, b.player, c.player]) {
+        expect(p.out).toBe(false);
+        expect(p.dead).toBe(false);
+        expect(p.level).toBe(1);
+        expect(p.relics.length).toBe(0);
+        expect(p.rupees).toBe(0);
+        expect(p.hp).toBe(p.maxHp);
+        expect(screenOf(p.x, p.y)).toEqual({ col: 8, row: 4 });
+      }
+      expect(a.player.maxHp).toBe(statsFor("barbarian", 1).maxHp);
+      await vi.waitFor(() => expect(room.state.enemies.size).toBe(objects.enemies.length));
+    });
+
+    it("the storm hurts heroes outside the safe zone and can finish them", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "knight", "A");
+      const b = await joinAs(room, "rogue", "B");
+      const kills: KillMessage[] = [];
+      a.client.onMessage(Msg.kill, (m: KillMessage) => kills.push(m));
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter + ARENA_PREP_SECONDS);
+      if (!arena) throw new Error("no arena in the map");
+      // Two minutes into the fight: a small zone around the centre.
+      internals(room).fightStart -= 120 * TICK_RATE;
+      a.player.x = arena.centerX;
+      a.player.y = arena.centerY;
+      b.player.x = arena.x + 40;
+      b.player.y = arena.y + 48;
+      await vi.waitFor(() => expect(room.state.zone).toBeLessThan(Math.hypot(arena.width, arena.height) / 4));
+      const before = b.player.hp;
+      await vi.waitFor(() => expect(b.player.hp).toBeLessThan(before), { timeout: 3000 });
+      expect(before - b.player.hp).toBe(Math.round(b.player.maxHp * ZONE_DAMAGE_PER_SECOND));
+      expect(a.player.hp).toBe(a.player.maxHp);
+
+      b.player.hp = 1;
+      await vi.waitFor(() => expect(b.player.out).toBe(true), { timeout: 3000 });
+      await vi.waitFor(() => expect(kills).toHaveLength(1));
+      expect(kills[0]).toMatchObject({ killer: "", victimName: "B", place: 2 });
+      await vi.waitFor(() => expect(room.state.winnerName).toBe("A"));
+    });
+
+    it("someone who joins after the arena started watches until the next match", async () => {
+      const room = await createWorld();
+      await joinAs(room, "knight", "A");
+      await joinAs(room, "rogue", "B");
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter);
+      expect(room.state.phase).toBe(MatchPhase.prep);
+      await room.unlock(); // a seat reserved just before the doors closed
+      const late = await joinAs(room, "barbarian", "Late");
+      expect(late.player.out).toBe(true);
+      expect(late.player.dead).toBe(true);
+      if (!arena) throw new Error("no arena in the map");
+      expect(inRect(arena, late.player.x, late.player.y)).toBe(true);
+      for (let i = 0; i < 5; i++) await room.waitForNextTimestep();
+      expect(late.player.dead).toBe(true);
+      expect(room.state.alive).toBe(2);
+    });
+
+    it("results stay up for a while after the match ends", async () => {
+      const room = await createWorld();
+      await joinAs(room, "knight", "Solo");
+      await skipTo(room, DEFAULT_MATCH_TIMES.arenaAfter + ARENA_PREP_SECONDS);
+      await vi.waitFor(() => expect(room.state.phase).toBe(MatchPhase.ended));
+      expect(room.state.winnerName).toBe("Solo");
+      expect(room.state.phaseEnds - room.state.clock).toBe(RESULTS_SECONDS);
+    });
   });
 });

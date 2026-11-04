@@ -2,6 +2,7 @@ export * from "./classes";
 export * from "./combat";
 export * from "./constants";
 export * from "./enemies";
+export * from "./match";
 export * from "./net/messages";
 export * from "./net/rooms";
 export * from "./net/schema";

@@ -89,3 +89,19 @@ test("C opens the attributes and relics panel", async ({ page }) => {
   await page.keyboard.press("KeyC");
   await expect(page.locator(".sw-details")).toBeHidden();
 });
+
+test("the map card explains the match, and the match clock counts down", async ({ page }) => {
+  await page.goto("/?lang=en");
+  await page.locator(".ui-input").fill("Duda");
+  await page.locator("button[type=submit]").click();
+  await page.locator('.sw-select [data-class="knight"]').click();
+  await expect(page.locator('.sw-select [data-map="overworld"]')).toContainText(
+    "only monsters for 5 min, then PvP · at 30 min, battle royale in the arena",
+  );
+  await page.locator('.sw-select [data-map="overworld"]').click();
+
+  const clock = page.locator(".sw-match");
+  await expect(clock).toHaveText(/^(PvP in|PvP on · arena in) \d+:\d\d$/);
+  const first = await clock.textContent();
+  await expect.poll(() => clock.textContent(), { timeout: 5000 }).not.toBe(first);
+});
