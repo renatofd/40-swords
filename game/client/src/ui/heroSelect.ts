@@ -1,11 +1,22 @@
-import { h, type Translate } from "@core/client";
-import { CLASS_IDS, CLASSES, type ClassId, MAP_IDS, type MapId, statsFor, TICK_RATE } from "@game/shared";
+import { type BeforeJoinContext, h, type JoinChoice } from "@core/client";
+import {
+  CLASS_IDS,
+  CLASSES,
+  type ClassId,
+  isClassId,
+  MAP_IDS,
+  type MapId,
+  ROOM_BY_MAP,
+  statsFor,
+  TICK_RATE,
+} from "@game/shared";
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const hexColor = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
 
-/** Stat rows shown on a class card (label key → value). */
-function statRows(t: Translate, classId: ClassId): [string, string][] {
+/** Stat rows shown on a class card (label → value). */
+function statRows(ctx: BeforeJoinContext, classId: ClassId): [string, string][] {
+  const { t } = ctx;
   const s = statsFor(classId, 1);
   return [
     [t("stat.hp"), String(s.maxHp)],
@@ -20,72 +31,109 @@ function statRows(t: Translate, classId: ClassId): [string, string][] {
   ];
 }
 
-export interface HeroSelectOptions {
-  t: Translate;
-  onDone: (classId: ClassId, mapId: MapId) => void;
-}
-
 /**
- * Hero and map picker shown when the player arrives in the room, before their
- * character exists. DOM (not Phaser) so every script and RTL work.
+ * Hero and map select, shown by the core between Play and joining
+ * (`GameModule.beforeJoin`). The class travels in the join options (the
+ * server validates it) and the map picks the room. DOM, so every script works.
  */
-export function heroSelect({ t, onDone }: HeroSelectOptions): HTMLElement {
-  const root = h("div", { className: "sw-select", role: "dialog", "aria-modal": "true" });
-  let chosen: ClassId = "knight";
+export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
+  const saved = ctx.storage.get("hero");
+  let hero: ClassId = isClassId(saved) ? saved : "knight";
+  let step: "hero" | "map" = "hero";
 
-  const showClasses = () => {
-    const cards = CLASS_IDS.map((id) =>
-      h(
-        "button",
-        {
-          type: "button",
-          className: "sw-card",
-          "data-class": id,
-          style: `--sw-class: ${hexColor(CLASSES[id].color)}`,
-          onclick: () => {
-            chosen = id;
-            showMaps();
-          },
-        },
-        h("span", { className: "sw-card-swatch", "aria-hidden": "true" }),
-        h("strong", { className: "sw-card-title" }, t(`class.${id}`)),
-        h("span", { className: "sw-card-desc" }, t(`class.${id}.desc`)),
-        h(
-          "dl",
-          { className: "sw-stats" },
-          ...statRows(t, id).flatMap(([label, value]) => [h("dt", {}, label), h("dd", {}, value)]),
-        ),
-      ),
-    );
-    root.replaceChildren(
-      h("h2", { className: "sw-select-title" }, t("select.heroTitle")),
-      h("div", { className: "sw-cards" }, ...cards),
-    );
-    cards[CLASS_IDS.indexOf(chosen)]?.focus({ preventScroll: true });
-  };
+  return new Promise((resolve) => {
+    ctx.signal.addEventListener("abort", () => resolve(null));
+    const done = (mapId: MapId) => {
+      ctx.storage.set("hero", hero);
+      resolve({ roomName: ROOM_BY_MAP[mapId], options: { classId: hero } });
+    };
 
-  const showMaps = () => {
-    const cards = MAP_IDS.map((id) =>
-      h(
-        "button",
-        { type: "button", className: "sw-card sw-map", "data-map": id, onclick: () => onDone(chosen, id) },
-        h("strong", { className: "sw-card-title" }, t(`map.${id}`)),
-        h("span", { className: "sw-card-desc" }, t(`map.${id}.desc`)),
-        h("span", { className: "ui-button primary" }, t("select.enter")),
-      ),
-    );
-    root.replaceChildren(
-      h("h2", { className: "sw-select-title" }, t("select.mapTitle")),
-      h("div", { className: "sw-cards" }, ...cards),
-      h(
+    // Re-rendered by the core when the language changes, so it reads `step` and `hero`.
+    const render = () => {
+      const { t } = ctx;
+      if (step === "hero") {
+        return h(
+          "div",
+          { className: "sw-select" },
+          h("h2", { className: "sw-select-title" }, t("select.heroTitle")),
+          h(
+            "div",
+            { className: "sw-cards" },
+            ...CLASS_IDS.map((id) =>
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "sw-card",
+                  "data-class": id,
+                  style: `--sw-class: ${hexColor(CLASSES[id].color)}`,
+                  autofocus: id === hero,
+                  onclick: () => {
+                    hero = id;
+                    step = "map";
+                    ctx.audio.playSfx("ui");
+                    ctx.show(render);
+                  },
+                },
+                h("span", { className: "sw-card-swatch", "aria-hidden": "true" }),
+                h("strong", { className: "sw-card-title" }, t(`class.${id}`)),
+                h("span", { className: "sw-card-desc" }, t(`class.${id}.desc`)),
+                h(
+                  "dl",
+                  { className: "sw-stats" },
+                  ...statRows(ctx, id).flatMap(([label, value]) => [h("dt", {}, label), h("dd", {}, value)]),
+                ),
+              ),
+            ),
+          ),
+          h(
+            "div",
+            { className: "ui-actions" },
+            h("button", { type: "button", className: "ui-button", onclick: () => resolve(null) }, t("select.back")),
+          ),
+        );
+      }
+      return h(
         "div",
-        { className: "ui-actions" },
-        h("button", { type: "button", className: "ui-button", onclick: showClasses }, t("select.back")),
-      ),
-    );
-    cards[0]?.focus({ preventScroll: true });
-  };
-
-  showClasses();
-  return root;
+        { className: "sw-select" },
+        h("h2", { className: "sw-select-title" }, t("select.mapTitle")),
+        h(
+          "div",
+          { className: "sw-cards" },
+          ...MAP_IDS.map((id, i) =>
+            h(
+              "button",
+              {
+                type: "button",
+                className: "sw-card sw-map",
+                "data-map": id,
+                autofocus: i === 0,
+                onclick: () => done(id),
+              },
+              h("strong", { className: "sw-card-title" }, t(`map.${id}`)),
+              h("span", { className: "sw-card-desc" }, t(`map.${id}.desc`)),
+              h("span", { className: "ui-button primary" }, t("select.enter")),
+            ),
+          ),
+        ),
+        h(
+          "div",
+          { className: "ui-actions" },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "ui-button",
+              onclick: () => {
+                step = "hero";
+                ctx.show(render);
+              },
+            },
+            t("select.back"),
+          ),
+        ),
+      );
+    };
+    ctx.show(render);
+  });
 }

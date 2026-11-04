@@ -15,6 +15,13 @@ export const PlayerInput = schema({
 });
 export type PlayerInput = SchemaType<typeof PlayerInput>;
 
+/** One relic a hero owns. `kind` is a RelicKind, `rarity` an index into RARITIES. */
+export const Relic = schema({
+  kind: t.string().default(""),
+  rarity: t.uint8().default(0),
+});
+export type Relic = SchemaType<typeof Relic>;
+
 export const Player = schema({
   name: t.string().default(""),
   classId: t.string().default(""),
@@ -37,6 +44,24 @@ export const Player = schema({
   rupees: t.uint32().default(0),
   /** Invulnerability ticks left after a hit (client blinks the sprite). */
   invuln: t.uint8().default(0),
+  // Simulation fields set by the server from the hero's attributes (see PlayerSimState).
+  speed: t.uint16().default(0),
+  swingCd: t.uint8().default(0),
+  cdPct: t.uint8().default(100),
+  vseq: t.uint8().default(0),
+  vmask: t.uint8().default(0),
+  warp: t.uint8().default(0),
+  // Weapons: copies owned and cooldown ticks, one pair per WEAPON_IDS entry.
+  daggerN: t.uint16().default(0),
+  daggerCd: t.uint8().default(0),
+  fireballN: t.uint16().default(0),
+  fireballCd: t.uint8().default(0),
+  arrowN: t.uint16().default(0),
+  arrowCd: t.uint8().default(0),
+  novaN: t.uint16().default(0),
+  novaCd: t.uint8().default(0),
+  /** Every relic owned (PvP looting takes from here later). */
+  relics: t.array(Relic),
 });
 export type Player = SchemaType<typeof Player>;
 
@@ -60,6 +85,14 @@ export const Pickup = schema({
 });
 export type Pickup = SchemaType<typeof Pickup>;
 
+/** A chest placed on the map; it reopens a while after someone empties it. */
+export const Chest = schema({
+  x: t.number().default(0),
+  y: t.number().default(0),
+  open: t.boolean().default(false),
+});
+export type Chest = SchemaType<typeof Chest>;
+
 /** Lightweight per-player info everyone receives (scoreboard, player list), unlike the AoI-filtered `players`. */
 export const RosterEntry = schema({
   name: t.string().default(""),
@@ -75,6 +108,7 @@ export const WorldState = schema({
   players: t.map(Player).view(),
   enemies: t.map(Enemy).view(),
   pickups: t.map(Pickup).view(),
+  chests: t.map(Chest).view(),
   /** Everyone in the room who picked a class, by session id. Cheap to send to all. */
   roster: t.map(RosterEntry),
 });

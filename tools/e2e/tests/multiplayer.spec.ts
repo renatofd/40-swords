@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { joinMatch, sessionId } from "./helpers";
+import { joinMatch, pickHero, sessionId } from "./helpers";
 
 test("two players join the same match", async ({ browser }) => {
   const a = await (await browser.newContext()).newPage();
@@ -87,48 +87,13 @@ test("a dropped connection shows the reconnect screen until the room is back", a
   expect(await sessionId(page)).toBe(before);
 });
 
-test("the pre-join step comes before the match; Back and Esc return to the menu", async ({ page }) => {
-  await page.goto("/?lang=en");
-  await page.locator(".ui-menu").waitFor();
-  await page.locator("button[type=submit]").click();
-  await expect(page.getByRole("heading", { name: "Pick your colour" })).toBeVisible();
-  await page.getByRole("button", { name: "Back" }).click();
-  await expect(page.locator(".ui-menu")).toBeVisible();
-
-  await page.locator("button[type=submit]").click();
-  await expect(page.locator(".arena-swatch")).toHaveCount(6);
-  await page.keyboard.press("Escape");
-  await expect(page.locator(".ui-menu")).toBeVisible();
-
-  // The colour picked is the one the server stores, and it is preselected next time.
-  await page.locator("button[type=submit]").click();
-  await page.getByRole("button", { name: "Colour 4" }).click();
-  await page.locator(".ui-hud-inner").waitFor();
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const g = (
-          window as unknown as {
-            __game: { room: { sessionId: string; state: { players: Map<string, { color: number }> } } };
-          }
-        ).__game;
-        return g.room.state.players.get(g.room.sessionId)?.color;
-      }),
-    )
-    .toBe(3);
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Leave match" }).click();
-  await page.locator("button[type=submit]").click();
-  await expect(page.getByRole("button", { name: "Colour 4" })).toBeFocused();
-});
-
 test("connecting can be cancelled back to the menu", async ({ page }) => {
   await page.goto("/?lang=en");
   await page.locator(".ui-menu").waitFor();
   // Matchmaking never answers.
   await page.route("**/matchmake/**", () => {});
   await page.locator("button[type=submit]").click();
-  await page.locator(".arena-swatch").first().click();
+  await pickHero(page, "knight");
   await expect(page.getByText("Connecting")).toBeVisible();
   await page.getByRole("button", { name: "Back to menu" }).click();
   await expect(page.locator(".ui-menu")).toBeVisible();

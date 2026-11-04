@@ -150,6 +150,9 @@ importers:
       '@colyseus/schema':
         specifier: ^5.0.39
         version: 5.0.39(typescript@7.0.2)
+      '@core/maps':
+        specifier: workspace:*
+        version: link:../../packages/core-maps
       '@core/shared':
         specifier: workspace:*
         version: link:../../packages/core-shared

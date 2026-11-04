@@ -2,7 +2,7 @@
  * Bump whenever schemas, inputs or messages in this game change in a way old
  * clients can't handle. Mismatched clients are told to reload.
  */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 /** Simulation rate in Hz. One input advances exactly one fixed step. */
 export const TICK_RATE = 30;
@@ -47,6 +47,15 @@ export const PICKUP_LIFETIME_SECONDS = 30;
 
 /** Distance (px) at which a player collects a pickup. */
 export const PICKUP_RADIUS = 10;
+
+/** Distance (px) at which a player opens a chest or buys an offer by walking onto it. */
+export const TOUCH_RADIUS = 10;
+
+/** Seconds before an emptied chest fills up again. */
+export const CHEST_RESPAWN_SECONDS = 120;
+
+/** Seconds before a vendor offers a player new items. */
+export const SHOP_RESTOCK_SECONDS = 180;
 
 /**
  * Area of interest radius in pixels: entities farther than this are not sent to a client.

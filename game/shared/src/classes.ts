@@ -17,7 +17,7 @@ export interface Stats {
   damage: number;
   /** Walking speed in px/s. */
   speed: number;
-  /** Luck: better drops (stage 1: chance of double rupees; later: relic rarity). */
+  /** Luck: better relic rarities (see relics.ts) and a chance of double rupees. */
   luck: number;
   /** Chance of a critical hit, 0..1. */
   critChance: number;
@@ -27,14 +27,16 @@ export interface Stats {
   lifesteal: number;
   /** Flat damage reduction per hit taken. */
   defense: number;
-  /** Ticks between sword swings. */
+  /** Ticks between sword swings (after `cooldownPct`). */
   attackCooldownTicks: number;
   /** Sword reach in px. */
   reach: number;
+  /** Cooldown of the sword and weapons, percent of normal (100; lower is faster). */
+  cooldownPct: number;
 }
 
 interface ClassDef {
-  base: Stats;
+  base: Omit<Stats, "cooldownPct">;
   /** Added per level above 1. */
   perLevel: Pick<Stats, "maxHp" | "damage" | "defense" | "critChance">;
   /** Placeholder colour of the character (until real sprites exist). */
@@ -101,6 +103,7 @@ export function statsFor(classId: ClassId, level: number): Stats {
   const n = Math.max(0, Math.floor(level) - 1);
   return {
     ...base,
+    cooldownPct: 100,
     maxHp: Math.round(base.maxHp + perLevel.maxHp * n),
     damage: base.damage + perLevel.damage * n,
     defense: base.defense + perLevel.defense * n,

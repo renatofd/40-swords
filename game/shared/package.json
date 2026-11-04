@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@colyseus/schema": "^5.0.39",
+    "@core/maps": "workspace:*",
     "@core/shared": "workspace:*"
   }
 }

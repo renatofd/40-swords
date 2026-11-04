@@ -1,24 +1,32 @@
 /**
  * The overworld, one ASCII block per screen (20x11 tiles each), laid out in a
- * 3x3 grid. An ORIGINAL layout: the structure (screens, regions, entrances)
+ * 3x3 grid, plus a row of cave interiors below it. An ORIGINAL layout: the structure (screens, regions, entrances)
  * follows classic top-down adventures, the content is our own.
  *
  * Legend (see tiles.ts for the tile behind each glyph):
  *   .  ground of the screen   ,  flowers     :  path       s  sand      o  stone floor
  *   m  mud                     =  bridge      T  tree       R  rock      W  water
- *   B  bush                    +  tombstone   P  pillar     C  cave      D  dungeon door
- *   S  player spawn (stone)    e  slime       g  goblin
+ *   B  bush                    +  tombstone   P  pillar     D  dungeon door (sealed)
+ *   S  player spawn (stone)    e  slime       g  goblin     $  chest
+ *   C  cave entrance (portal to the cave named in `links`)
+ * Inside caves:
+ *   _  cave floor   K  cave wall   H  shelf   Q  counter   V  vendor (behind the counter)
+ *   X  cave exit (portal back to the entrance named in `links`)
  *
- * Edge rules (checked by the generator): screens touching left/right are open
- * on rows 4-6; screens touching top/bottom are open on columns 8-11; the outer
- * border of the world is closed.
+ * Edge rules (checked by the generator): overworld screens touching left/right
+ * are open on rows 4-6; touching top/bottom, on columns 8-11; the outer border
+ * of the world and every interior screen are closed (only portals lead in).
  */
 
 export interface ScreenDef {
   /** Region name, for Tiled and future HUD use. */
   name: string;
   /** Tile drawn under "." and under every obstacle. */
-  ground: "grass" | "darkGrass" | "sand" | "mud";
+  ground: "grass" | "darkGrass" | "sand" | "mud" | "caveFloor";
+  /** Interior screens (caves) are closed: reached only through portals. */
+  interior?: boolean;
+  /** Portal glyph → link name. A cave entrance "C" and a cave exit "X" with the same name lead to each other. */
+  links?: Record<string, string>;
   rows: string[];
 }
 
@@ -30,7 +38,7 @@ export const SCREENS: ScreenDef[][] = [
       rows: [
         "RRRRRRRRRRRRRRRRRRRR",
         "RRRRRRRPPDPPRRRRRRRR",
-        "RRRR.....ooo.....RRR",
+        "RRRR$....ooo.....RRR",
         "RR..........::.....R",
         "R....RR.....::......",
         "R...RRR....::....e..",
@@ -46,7 +54,7 @@ export const SCREENS: ScreenDef[][] = [
       ground: "darkGrass",
       rows: [
         "TTTTTTTTTTTTTTTTTTTT",
-        "TT..T....TT....T..TT",
+        "TT$.T....TT....T..TT",
         "T..e...T.....e....TT",
         "T...TT.....TT......T",
         ".......T.......e....",
@@ -61,6 +69,7 @@ export const SCREENS: ScreenDef[][] = [
     {
       name: "Stone Hills",
       ground: "grass",
+      links: { C: "hills" },
       rows: [
         "RRRRRRRRRRRRRRRRRRRR",
         "RRRRCRRRRRRRRRRRRRRR",
@@ -70,7 +79,7 @@ export const SCREENS: ScreenDef[][] = [
         ".....B...g...BB...RR",
         "..........RR.......R",
         "R...g....RRR....RRRR",
-        "RR.......R.....g...R",
+        "RR.......R.....g..$R",
         "RRR...........RRRRRR",
         "RRRRRRRR....RRRRRRRR",
       ],
@@ -90,7 +99,7 @@ export const SCREENS: ScreenDef[][] = [
         "T.......,,..B.......",
         "T..,,.........,,...T",
         "T.e....,,......e...T",
-        "T,,.........,,....,T",
+        "T,,......$..,,....,T",
         "TTTTTTTT....TTTTTTTT",
       ],
     },
@@ -124,7 +133,7 @@ export const SCREENS: ScreenDef[][] = [
         "...WWWWWWWWWWWW....R",
         "R.WWWWWWWWWWWWWW...R",
         "R..WWWWWWWWWWWW..e.R",
-        "R....g.............R",
+        "R....g.........$...R",
         "RRRRRRRR....RRRRRRRR",
       ],
     },
@@ -141,7 +150,7 @@ export const SCREENS: ScreenDef[][] = [
         "T...mm..WWWW...mm...",
         "T.e.....WW.....mm...",
         "T..mmm.......g......",
-        "T....mm..e....mmm..T",
+        "T.$..mm..e....mmm..T",
         "Tmm.....mmm.......mT",
         "TTmm..+...mm..+..TTT",
         "TTTTTTTTTTTTTTTTTTTT",
@@ -156,7 +165,7 @@ export const SCREENS: ScreenDef[][] = [
         "T...........g......T",
         "T.+..+..PoooP..+...T",
         ".......oooooooo.....",
-        "...g...oo+..+oo..g..",
+        "...g...oo+$.+oo..g..",
         ".......oooooooo.....",
         "T.+..+..PoooP..+...T",
         "T.........g........T",
@@ -167,9 +176,10 @@ export const SCREENS: ScreenDef[][] = [
     {
       name: "Amber Dunes",
       ground: "sand",
+      links: { C: "dunes" },
       rows: [
         "RRRRRRRR....RRRRRRRR",
-        "R....ss.......ss...R",
+        "R....ss.......ss..$R",
         "R..RR..ss..g.......R",
         "R....s......RR...RRR",
         ".......ss.......g..R",
@@ -180,6 +190,52 @@ export const SCREENS: ScreenDef[][] = [
         "RR................RR",
         "RRRRRRRRRRRRRRRRRRRR",
       ],
+    },
+  ],
+  [
+    {
+      name: "Hillside Grotto",
+      ground: "caveFloor",
+      interior: true,
+      links: { X: "hills" },
+      rows: [
+        "KKKKKKKKKKKKKKKKKKKK",
+        "KKKKKKKKKKKKKKKKKKKK",
+        "KKKHH__________HHKKK",
+        "KK_____QQVQQ______KK",
+        "KK________________KK",
+        "KK________________KK",
+        "KK________________KK",
+        "KKK______________KKK",
+        "KKKKKKK______KKKKKKK",
+        "KKKKKKKKKXKKKKKKKKKK",
+        "KKKKKKKKKKKKKKKKKKKK",
+      ],
+    },
+    {
+      name: "Dune Hollow",
+      ground: "caveFloor",
+      interior: true,
+      links: { X: "dunes" },
+      rows: [
+        "KKKKKKKKKKKKKKKKKKKK",
+        "KKKKKKKKKKKKKKKKKKKK",
+        "KKK______HH______KKK",
+        "KK_____QQVQQ______KK",
+        "KK________________KK",
+        "KK__H__________H__KK",
+        "KK________________KK",
+        "KKK______________KKK",
+        "KKKKKKK______KKKKKKK",
+        "KKKKKKKKKXKKKKKKKKKK",
+        "KKKKKKKKKKKKKKKKKKKK",
+      ],
+    },
+    {
+      name: "Bedrock (reserved)",
+      ground: "caveFloor",
+      interior: true,
+      rows: Array.from({ length: 11 }, () => "KKKKKKKKKKKKKKKKKKKK"),
     },
   ],
 ];

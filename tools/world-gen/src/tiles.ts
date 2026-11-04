@@ -108,6 +108,35 @@ const cave: Drawer = (x, y, r) => {
   return rock(x, y, r);
 };
 
+const caveFloor: Drawer = speckle("#3a2f28", "#45382f", "#30261f", 0.1, 0.08);
+
+const caveWall: Drawer = (x, y, r) => {
+  if (y > 12) return hex("#1a1412");
+  return r() < 0.12 ? hex("#4a3d35") : y < 3 ? hex("#3d322b") : hex("#2e2520");
+};
+
+const counter: Drawer = (x, y, r) => {
+  if (y < 5) return caveFloor(x, y, r);
+  if (y === 5) return hex("#c08a50");
+  if (y > 13) return hex("#3a2412");
+  return x % 8 === 0 ? hex("#5a3a1e") : hex("#8a5a2e");
+};
+
+const caveExit: Drawer = (x, y) => {
+  if (x >= 3 && x <= 12) return y < 4 ? hex("#2a201a") : hex("#0a0807");
+  return hex("#2e2520");
+};
+
+const shelf: Drawer = (x, y, r) => {
+  if (x === 1 || x === 14) return hex("#4a2e16");
+  if (y === 5 || y === 10 || y === 15) return hex("#6b4523");
+  if (x > 1 && x < 14 && y > 1) {
+    const jar = (x + Math.floor(y / 5) * 3) % 5;
+    if (jar < 2 && y % 5 > 1) return [hex("#7fb0d0"), hex("#d07f7f")][jar] ?? hex("#2e2520");
+  }
+  return caveWall(x, y, r);
+};
+
 const door: Drawer = (x, y) => {
   if (x >= 3 && x <= 12 && y >= 4) return x === 3 || x === 12 || y === 4 ? hex("#3a2a1a") : hex("#120e0c");
   return hex("#77777f");
@@ -135,9 +164,14 @@ export const TILES: TileInfo[] = [
   { key: "bush", draw: bush, collides: true },
   { key: "tomb", draw: tomb, collides: true },
   { key: "pillar", draw: pillar, collides: true },
-  // Cave and dungeon entrances are sealed in stage 1; stage 3 opens them.
-  { key: "cave", draw: cave, collides: true },
+  // Cave entrances are portals (walk in); dungeon doors stay sealed until stage 3.
+  { key: "cave", draw: cave, collides: false },
   { key: "door", draw: door, collides: true },
+  { key: "caveFloor", draw: caveFloor, collides: false },
+  { key: "caveWall", draw: caveWall, collides: true },
+  { key: "counter", draw: counter, collides: true },
+  { key: "caveExit", draw: caveExit, collides: false },
+  { key: "shelf", draw: shelf, collides: true },
 ];
 
 export const tileId = (key: string): number => {
