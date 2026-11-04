@@ -1,4 +1,4 @@
-# Online Game Template
+# 40 Swords
 
 Base para jogos online web: começa como um jogo estilo `.io` e foi organizada para poder crescer até um multiplayer massivo.
 

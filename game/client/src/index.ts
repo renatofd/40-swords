@@ -7,8 +7,8 @@ import "./styles.css";
 
 /** EXAMPLE GAME: everything the template core needs to run this game. */
 export const game: GameModule<ArenaState> = {
-  title: "Arena Demo",
-  id: "arena-demo",
+  title: "40 Swords",
+  id: "40-swords",
   protocolVersion: PROTOCOL_VERSION,
   roomName: ROOM_ARENA,
   rootSchema: ArenaState,
