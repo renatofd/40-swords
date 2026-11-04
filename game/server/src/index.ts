@@ -1,12 +1,12 @@
 import { defineRoom } from "@colyseus/core";
-import { ROOM_ARENA } from "@game/shared";
-import { ArenaRoom } from "./rooms/ArenaRoom";
+import { ROOM_BY_MAP } from "@game/shared";
+import { WorldRoom } from "./rooms/WorldRoom";
 
-export { ArenaRoom } from "./rooms/ArenaRoom";
+export { WorldRoom } from "./rooms/WorldRoom";
 
 /** Every room this game exposes. apps/server registers exactly these. */
 export const rooms = {
   // Options given here override the ones a client sends when it creates the room,
-  // so players can't pick the map.
-  [ROOM_ARENA]: defineRoom(ArenaRoom, { mapId: "arena" }),
+  // so players can't pick an arbitrary map file.
+  [ROOM_BY_MAP.overworld]: defineRoom(WorldRoom, { mapId: "overworld" }),
 };

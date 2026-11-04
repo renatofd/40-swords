@@ -4,37 +4,78 @@ import { type SchemaType, schema, t } from "@colyseus/schema";
  * One input frame, consumed by the server's `defineInput()` buffer.
  * Flat and minimal on purpose: no seq, no dt, no timestamp. The engine's input
  * counter is the sequence and one input advances exactly one fixed step.
- * The int8<-1|0|1> type only narrows TypeScript; the room's `sanitize` clamp
- * is what enforces it against a modified client.
+ * The narrowed int types only help TypeScript; the room's `sanitize` clamp is
+ * what enforces them against a modified client.
  */
-export const MoveInput = schema({
+export const PlayerInput = schema({
   moveX: t.int8<-1 | 0 | 1>(),
   moveY: t.int8<-1 | 0 | 1>(),
+  /** 1 while the attack button is held. */
+  attack: t.uint8<0 | 1>(),
 });
-export type MoveInput = SchemaType<typeof MoveInput>;
+export type PlayerInput = SchemaType<typeof PlayerInput>;
 
 export const Player = schema({
-  name: t.string(),
-  x: t.number(),
-  y: t.number(),
-  vx: t.number(),
-  vy: t.number(),
+  name: t.string().default(""),
+  classId: t.string().default(""),
+  x: t.number().default(0),
+  y: t.number().default(0),
+  vx: t.number().default(0),
+  vy: t.number().default(0),
+  facing: t.uint8().default(0),
+  cooldown: t.uint8().default(0),
+  lock: t.uint8().default(0),
+  swing: t.uint8().default(0),
+  knockX: t.number().default(0),
+  knockY: t.number().default(0),
+  knockTicks: t.uint8().default(0),
+  dead: t.boolean().default(false),
+  hp: t.float32().default(0),
+  maxHp: t.uint16().default(0),
+  level: t.uint8().default(0),
+  xp: t.uint32().default(0),
+  rupees: t.uint32().default(0),
+  /** Invulnerability ticks left after a hit (client blinks the sprite). */
+  invuln: t.uint8().default(0),
 });
 export type Player = SchemaType<typeof Player>;
 
+export const Enemy = schema({
+  kind: t.string().default(""),
+  x: t.number().default(0),
+  y: t.number().default(0),
+  hp: t.float32().default(0),
+  maxHp: t.uint16().default(0),
+  facing: t.uint8().default(0),
+  /** Ticks left of the hurt flash. */
+  hurt: t.uint8().default(0),
+});
+export type Enemy = SchemaType<typeof Enemy>;
+
+export const Pickup = schema({
+  kind: t.string().default(""),
+  value: t.uint16().default(0),
+  x: t.number().default(0),
+  y: t.number().default(0),
+});
+export type Pickup = SchemaType<typeof Pickup>;
+
 /** Lightweight per-player info everyone receives (scoreboard, player list), unlike the AoI-filtered `players`. */
 export const RosterEntry = schema({
-  name: t.string(),
-  score: t.uint32(),
+  name: t.string().default(""),
+  classId: t.string().default(""),
+  level: t.uint8().default(0),
 });
 export type RosterEntry = SchemaType<typeof RosterEntry>;
 
-export const ArenaState = schema({
+export const WorldState = schema({
   /** Map identifier; the client loads the matching .tmj. */
   mapId: t.string(),
-  /** `.view()`: each client only receives the players in its area of interest. */
+  /** `.view()`: each client only receives what is in its area of interest. */
   players: t.map(Player).view(),
-  /** Everyone in the room, by session id. Changes rarely, so it is cheap to send to all. */
+  enemies: t.map(Enemy).view(),
+  pickups: t.map(Pickup).view(),
+  /** Everyone in the room who picked a class, by session id. Cheap to send to all. */
   roster: t.map(RosterEntry),
 });
-export type ArenaState = SchemaType<typeof ArenaState>;
+export type WorldState = SchemaType<typeof WorldState>;

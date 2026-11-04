@@ -5,19 +5,17 @@ Esta pasta é a **fonte única** do conteúdo. O cliente importa daqui (via Vite
 ```text
 content/
 ├── maps/
-│   ├── game.tiled-project   Abra este arquivo no Tiled (define a classe "spawn")
-│   └── arena.tmj            Mapa de exemplo
-├── tilesets/terrain.png     Tileset provisório (16x16, extrudado)
+│   ├── game.tiled-project   Abra este arquivo no Tiled (define as classes "spawn" e "enemy")
+│   └── overworld.tmj        O mundo do 40 Swords (gerado por tools/world-gen, editável no Tiled)
+├── tilesets/overworld.png   Tileset provisório (16x16, extrudado)
 ├── sprites/
-│   ├── src/                 Seus arquivos .aseprite (fonte)
-│   ├── player.png           Folha de sprites exportada
-│   └── player.json          Dados do Aseprite (quadros e animações)
+│   └── src/                 Seus arquivos .aseprite (fonte); heróis e inimigos ainda são desenhados em código
 └── audio/
     ├── music/theme.wav      Música (carregada sozinha, chave "theme")
     └── sfx/join.wav, ui.wav Efeitos (chaves "join", "ui")
 ```
 
-A arte e os sons atuais são **provisórios**, gerados por `pnpm assets:placeholder`. Substitua à vontade. O comando se recusa a rodar quando os arquivos já existem; só com `--force` ele sobrescreve tudo.
+A arte e os sons atuais são **provisórios**: o mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja [`docs/JOGO.md`](../docs/JOGO.md)), os sons de `pnpm assets:placeholder`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
 
 `pnpm content:validate` confere mapas, sprites e áudio. Ele roda na CI e no `pnpm check`.
 
@@ -92,5 +90,5 @@ Na layer `objects`, adicione **pontos** (ou retângulos) com a classe **`spawn`*
 
 1. Crie `content/maps/<id>.tmj` seguindo as convenções acima.
 2. Se ele usar um tileset novo, coloque a imagem em `content/tilesets/`. Mapas e tilesets são carregados sozinhos: o tileset é encontrado pelo **nome do arquivo** da imagem.
-3. Crie a sala com `{ mapId: "<id>" }` (veja `game/server/src/rooms/ArenaRoom.ts`).
+3. Crie a sala com `{ mapId: "<id>" }` (veja `game/server/src/index.ts` e `WorldRoom.ts`).
 4. Rode `pnpm content:validate`.

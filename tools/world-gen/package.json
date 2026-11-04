@@ -1,0 +1,21 @@
+{
+  "name": "@tools/world-gen",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GAME (40 Swords): generates the placeholder tileset and the overworld map from ASCII screens.",
+  "scripts": {
+    "generate": "tsx src/generate.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@core/maps": "workspace:*",
+    "@game/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pngjs": "^6.0.5",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.23.15"
+  }
+}
