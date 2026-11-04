@@ -3,8 +3,6 @@ import type Phaser from "phaser";
 
 /** System fonts so names in any script (Arabic, Devanagari, CJK...) render. */
 const LABEL_FONT = 'system-ui, "Segoe UI", Roboto, "Noto Sans", sans-serif';
-const SELF_TINT = 0x7fe36b;
-const OTHER_TINTS = [0xf2a65a, 0x5ab4f2, 0xe35b8f, 0xb98cf2, 0xf2e35a, 0x5af2c8];
 /** Below this speed (px per frame) the player counts as standing still. */
 const MOVING_EPSILON = 0.05;
 
@@ -19,13 +17,13 @@ export class PlayerView {
     scene: Phaser.Scene,
     private readonly spriteKey: string,
     name: string,
-    sessionId: string,
+    tint: number,
     isSelf: boolean,
   ) {
-    this.sprite = scene.add.sprite(0, 0, spriteKey).setTint(isSelf ? SELF_TINT : tintFor(sessionId));
+    this.sprite = scene.add.sprite(0, 0, spriteKey).setTint(tint);
     this.sprite.play(animKey(spriteKey, "idle"));
     const label = scene.add
-      .text(0, -11, name, { fontFamily: LABEL_FONT, fontSize: "10px", color: "#ffffff" })
+      .text(0, -11, name, { fontFamily: LABEL_FONT, fontSize: "10px", color: isSelf ? "#fff7a8" : "#ffffff" })
       .setOrigin(0.5, 1)
       .setStroke("#000000", 2);
     this.container = scene.add.container(0, 0, [this.sprite, label]).setDepth(isSelf ? 11 : 10);
@@ -47,10 +45,4 @@ export class PlayerView {
   destroy() {
     this.container.destroy();
   }
-}
-
-function tintFor(sessionId: string): number {
-  let h = 0;
-  for (let i = 0; i < sessionId.length; i++) h = (h * 31 + sessionId.charCodeAt(i)) | 0;
-  return OTHER_TINTS[Math.abs(h) % OTHER_TINTS.length] ?? 0xffffff;
 }

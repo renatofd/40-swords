@@ -2,7 +2,15 @@ import { Callbacks, type InputHandle } from "@colyseus/sdk";
 import { Predict } from "@colyseus/sdk/predict";
 import { type GameContext, h } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
-import { type ArenaState, type MoveInput, type Player, type RosterEntry, stepPlayer, TILE_SIZE } from "@game/shared";
+import {
+  type ArenaState,
+  type MoveInput,
+  PLAYER_COLORS,
+  type Player,
+  type RosterEntry,
+  stepPlayer,
+  TILE_SIZE,
+} from "@game/shared";
 import Phaser from "phaser";
 import { MUSIC_THEME, mapKey, SFX_JOIN, SPRITE_PLAYER, tilesetKey } from "../assets";
 import { PlayerView } from "../render/PlayerView";
@@ -136,7 +144,7 @@ export class GameScene extends Phaser.Scene {
   private addPlayer(player: Player, sessionId: string) {
     if (this.views.has(sessionId)) return;
     const isSelf = sessionId === this.ctx.room.sessionId;
-    const view = new PlayerView(this, SPRITE_PLAYER, player.name, sessionId, isSelf);
+    const view = new PlayerView(this, SPRITE_PLAYER, player.name, PLAYER_COLORS[player.color] ?? 0xffffff, isSelf);
     view.setPosition(player.x, player.y);
     this.views.set(sessionId, view);
     if (isSelf) this.cameras.main.startFollow(view.container, true);

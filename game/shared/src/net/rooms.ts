@@ -4,4 +4,7 @@ import type { CoreJoinOptions } from "@core/shared";
 export const ROOM_ARENA = "arena";
 
 /** Options a client sends when joining an arena. Validate everything server-side. */
-export interface ArenaJoinOptions extends CoreJoinOptions {}
+export interface ArenaJoinOptions extends CoreJoinOptions {
+  /** Index into PLAYER_COLORS, picked on the pre-join screen. */
+  color?: number;
+}

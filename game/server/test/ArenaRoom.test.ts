@@ -4,6 +4,7 @@ import { CORE_PROTOCOL_VERSION } from "@core/shared";
 import {
   type ArenaState,
   type MoveInput,
+  PLAYER_COLORS,
   PLAYER_SPEED,
   Player,
   PROTOCOL_VERSION,
@@ -37,6 +38,19 @@ describe("ArenaRoom", () => {
     expect(player).toBeDefined();
     expect(player?.name).toBe("Ana");
     expect(room.state.mapId).toBe("arena");
+  });
+
+  it("uses the colour picked before joining and ignores invalid ones", async () => {
+    const room = await colyseus.createRoom<ArenaState>(ROOM_ARENA, {});
+    const picked = await colyseus.connectTo(room, { v, color: 3 });
+    const tooBig = await colyseus.connectTo(room, { v, color: 99 });
+    const notANumber = await colyseus.connectTo(room, { v, color: "red" });
+    expect(room.state.players.get(picked.sessionId)?.color).toBe(3);
+    for (const c of [tooBig, notANumber]) {
+      const color = room.state.players.get(c.sessionId)?.color ?? -1;
+      expect(color).toBeGreaterThanOrEqual(0);
+      expect(color).toBeLessThan(PLAYER_COLORS.length);
+    }
   });
 
   it("advances a player one fixed step per input", async () => {
@@ -150,7 +164,7 @@ describe("ArenaRoom", () => {
 
     const old = room.state.players.get(a.sessionId);
     if (!old) throw new Error("player missing");
-    room.state.players.set(a.sessionId, new Player({ name: "A2", x: old.x, y: old.y, vx: 0, vy: 0 }));
+    room.state.players.set(a.sessionId, new Player({ name: "A2", color: 0, x: old.x, y: old.y, vx: 0, vy: 0 }));
     await vi.waitFor(() => expect(a.state.players.get(a.sessionId)?.name).toBe("A2"), { timeout: 2000 });
   });
 

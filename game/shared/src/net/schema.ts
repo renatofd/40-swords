@@ -15,6 +15,8 @@ export type MoveInput = SchemaType<typeof MoveInput>;
 
 export const Player = schema({
   name: t.string(),
+  /** Index into PLAYER_COLORS. */
+  color: t.uint8(),
   x: t.number(),
   y: t.number(),
   vx: t.number(),

@@ -30,6 +30,14 @@ export interface GameModule<State = unknown> {
   rootSchema?: SchemaClass<State>;
   /** Extra join options sent to the server (core adds name, locale and versions). */
   joinOptions?: () => Record<string, unknown>;
+  /**
+   * Optional step between the menu's Play button and joining a room: pick a
+   * character, a map, a team... Show your screen with `ctx.show(...)` and resolve
+   * with the room to join and extra join options, or with null to go back to the
+   * menu. Retrying a failed connection reuses the last choice; "Play again" runs
+   * this step again.
+   */
+  beforeJoin?: (ctx: BeforeJoinContext) => Promise<JoinChoice | null>;
 
   /** Logical render size in pixels. The canvas is scaled up by whole numbers. Default 640x360. */
   resolution?: { width: number; height: number };
@@ -58,6 +66,32 @@ export interface GameModule<State = unknown> {
   uiSound?: string;
   /** Show the chat UI (Enter to type). Default true. Set false if your rooms disable chat. */
   chat?: boolean;
+}
+
+/** What the `beforeJoin` step decided. */
+export interface JoinChoice {
+  /** Room type to join instead of `roomName` (e.g. one room per map). */
+  roomName?: string;
+  /** Extra join options, merged over `joinOptions()`. The server must validate them. */
+  options?: Record<string, unknown>;
+}
+
+/** Handed to `GameModule.beforeJoin`. */
+export interface BeforeJoinContext {
+  t: Translate;
+  /** The name the player joins with. */
+  name: string;
+  /**
+   * Shows a full-screen panel in place of the menu (DOM, like every core screen).
+   * `render` runs again when the language changes: keep the step's state outside it.
+   */
+  show(render: () => HTMLElement): void;
+  audio: AudioManager;
+  platform: Platform;
+  /** Saved per game in this browser, e.g. the last character picked. */
+  storage: { get(key: string): string | null; set(key: string, value: string): void };
+  /** Aborted when the player leaves the step another way (Esc goes back to the menu). */
+  signal: AbortSignal;
 }
 
 export interface MatchResult {

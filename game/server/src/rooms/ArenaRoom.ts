@@ -8,6 +8,7 @@ import {
   INTEREST_RADIUS,
   MAX_PLAYERS_PER_ROOM,
   MoveInput,
+  PLAYER_COLORS,
   Player,
   PROTOCOL_VERSION,
   RosterEntry,
@@ -67,14 +68,21 @@ export class ArenaRoom extends GameRoom<{ state: ArenaState; input: MoveInput }>
     this.startSimulation((ctx) => this.step(ctx), TICK_RATE);
   }
 
-  override onJoin(client: Client, _options: ArenaJoinOptions) {
-    const spawn = this.map.spawns[this.spawnCursor++ % this.map.spawns.length] ?? {
+  override onJoin(client: Client, options: ArenaJoinOptions) {
+    const cursor = this.spawnCursor++;
+    const spawn = this.map.spawns[cursor % this.map.spawns.length] ?? {
       x: this.map.pixelWidth / 2,
       y: this.map.pixelHeight / 2,
     };
+    // Join options come from the client: accept only a valid colour index (bots send none).
+    const picked = options?.color;
+    const color =
+      Number.isInteger(picked) && (picked as number) >= 0 && (picked as number) < PLAYER_COLORS.length
+        ? (picked as number)
+        : cursor % PLAYER_COLORS.length;
     this.state.players.set(
       client.sessionId,
-      new Player({ name: this.identity(client).name, x: spawn.x, y: spawn.y, vx: 0, vy: 0 }),
+      new Player({ name: this.identity(client).name, color, x: spawn.x, y: spawn.y, vx: 0, vy: 0 }),
     );
     this.state.roster.set(client.sessionId, new RosterEntry({ name: this.identity(client).name, score: 0 }));
     this.interest.addViewer(client);

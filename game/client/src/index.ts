@@ -3,6 +3,7 @@ import { ArenaState, PROTOCOL_VERSION, ROOM_ARENA } from "@game/shared";
 import { MUSIC_THEME, preloadAssets, SFX_UI } from "./assets";
 import { messages } from "./messages";
 import { GAME_SCENE_KEY, GameScene } from "./scenes/GameScene";
+import { pickColor } from "./ui/pickColor";
 import "./styles.css";
 
 /** EXAMPLE GAME: everything the template core needs to run this game. */
@@ -12,6 +13,8 @@ export const game: GameModule<ArenaState> = {
   protocolVersion: PROTOCOL_VERSION,
   roomName: ROOM_ARENA,
   rootSchema: ArenaState,
+  // Shown between Play and joining; the picked colour goes in the join options.
+  beforeJoin: pickColor,
   resolution: { width: 640, height: 360 },
   orientation: "landscape",
   preload: preloadAssets,

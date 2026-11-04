@@ -13,3 +13,27 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* EXAMPLE pre-join step: colour swatches. */
+.arena-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-block: 12px 4px;
+}
+
+.arena-swatch {
+  inline-size: 44px;
+  block-size: 44px;
+  background: var(--swatch);
+  border: 3px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  cursor: pointer;
+}
+
+.arena-swatch:hover,
+.arena-swatch:focus-visible {
+  border-color: var(--ui-fg);
+  outline: none;
+}
