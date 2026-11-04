@@ -1,23 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MATCH_TIMES,
-  isArenaPhase,
+  isLobbyPhase,
+  isPlayingPhase,
   isPvpPhase,
-  joinLockAt,
   MatchPhase,
   sanitizeMatchTimes,
   ZONE_SHRINK_SECONDS,
   zoneRadius,
 } from "./match";
 
+const ALL = Object.values(MatchPhase);
+
 describe("match rules", () => {
+  it("the waiting room comes first, then the match, then the results", () => {
+    expect(ALL.filter(isLobbyPhase)).toEqual([MatchPhase.lobby, MatchPhase.starting]);
+    expect(ALL.filter(isPlayingPhase)).toEqual([MatchPhase.calm, MatchPhase.pvp, MatchPhase.prep, MatchPhase.arena]);
+    expect(isPlayingPhase(MatchPhase.ended)).toBe(false);
+    expect(isLobbyPhase(MatchPhase.ended)).toBe(false);
+  });
+
   it("PvP is on in the open world after the calm phase and during the arena fight", () => {
-    expect(isPvpPhase(MatchPhase.calm)).toBe(false);
-    expect(isPvpPhase(MatchPhase.pvp)).toBe(true);
-    expect(isPvpPhase(MatchPhase.prep)).toBe(false);
-    expect(isPvpPhase(MatchPhase.arena)).toBe(true);
-    expect(isPvpPhase(MatchPhase.ended)).toBe(false);
-    expect([0, 1, 2, 3, 4].filter(isArenaPhase)).toEqual([MatchPhase.prep, MatchPhase.arena, MatchPhase.ended]);
+    expect(ALL.filter(isPvpPhase)).toEqual([MatchPhase.pvp, MatchPhase.arena]);
   });
 
   it("the safe zone closes linearly to nothing", () => {
@@ -26,11 +30,6 @@ describe("match rules", () => {
     expect(zoneRadius(300, ZONE_SHRINK_SECONDS / 2)).toBe(150);
     expect(zoneRadius(300, ZONE_SHRINK_SECONDS)).toBe(0);
     expect(zoneRadius(300, ZONE_SHRINK_SECONDS * 2)).toBe(0);
-  });
-
-  it("newcomers are turned away during the last sixth before the arena", () => {
-    expect(joinLockAt(DEFAULT_MATCH_TIMES)).toBe(25 * 60);
-    expect(joinLockAt({ pvpAfter: 30, arenaAfter: 120 })).toBe(100);
   });
 
   it("clamps match times from config", () => {

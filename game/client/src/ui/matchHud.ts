@@ -13,17 +13,20 @@ export interface MatchView {
   alive: number;
   winner: string;
   winnerName: string;
+  /** Waiting room: players ready, and in the room. */
+  ready: number;
+  total: number;
 }
 
 export interface MatchSelf {
   id: string;
   /** Outside the arena's safe zone right now. */
   outsideZone: boolean;
-  /** Out of the arena fight (knocked out, or arrived after it started): watching. */
+  /** Out of the match (fell, or arrived after it started): watching. */
   out: boolean;
   /** Name of the hero being watched while out. */
   watching?: string;
-  /** Arena placement once knocked out (0 = not knocked out in this match). */
+  /** Final place once fallen (0 = arrived after the start). */
   place: number;
 }
 
@@ -35,9 +38,9 @@ export const formatClock = (seconds: number): string => {
 
 /**
  * Match HUD (DOM, like the rest of the UI): the phase and its countdown
- * (top corner, above the scoreboard), the kill feed (bottom) and a banner for
- * what matters most right now: the winner, your knock-out (and who you
- * watch), or a warning outside the safe zone.
+ * (top corner, above the scoreboard) with the heroes still standing, the
+ * kill feed (bottom) and a banner for what matters most right now: the
+ * winner, your fall (and who you watch), or a warning outside the safe zone.
  */
 export class MatchHud {
   readonly timer = h("div", { className: "sw-match", role: "status" });
@@ -55,16 +58,23 @@ export class MatchHud {
   update(view: MatchView, self: MatchSelf) {
     const { t } = this;
     const left = formatClock(view.phaseEnds - view.clock);
+    const standing = ` · 👥 ${view.alive}`;
     let text: string;
     switch (view.phase) {
+      case MatchPhase.lobby:
+        text = t("match.lobby", { ready: view.ready, total: view.total });
+        break;
+      case MatchPhase.starting:
+        text = t("match.starting", { time: left });
+        break;
       case MatchPhase.calm:
-        text = t("match.calm", { time: left });
+        text = t("match.calm", { time: left }) + standing;
         break;
       case MatchPhase.pvp:
-        text = t("match.pvp", { time: left });
+        text = t("match.pvp", { time: left }) + standing;
         break;
       case MatchPhase.prep:
-        text = t("match.prep", { time: left });
+        text = t("match.prep", { time: left }) + standing;
         break;
       case MatchPhase.arena:
         text = t("match.arena", { alive: view.alive });
@@ -92,7 +102,7 @@ export class MatchHud {
       if (!won && self.place > 0) sub = t("match.out", { place: self.place });
       kind = won ? "win" : "end";
     } else if (self.out) {
-      // Knocked out, or arrived after the arena started (then the next match is theirs).
+      // Fell, or arrived after the match started (then the next match is theirs).
       title = self.place > 0 ? t("match.out", { place: self.place }) : t("match.next");
       if (self.watching) sub = t("match.watching", { name: self.watching });
       kind = "out";
@@ -110,12 +120,15 @@ export class MatchHud {
     this.banner.dataset.kind = kind;
   }
 
-  /** A line in the kill feed (everyone sees every PvP win and arena knock-out). */
+  /** A line in the kill feed (everyone sees every hero who falls, and why). */
   kill(m: KillMessage) {
     const { t } = this;
-    const text = m.killer
-      ? t("feed.kill", { killer: m.killerName, victim: m.victimName })
-      : t("feed.storm", { victim: m.victimName });
+    const text =
+      m.cause === "hero"
+        ? t("feed.kill", { killer: m.killerName, victim: m.victimName })
+        : m.cause === "storm"
+          ? t("feed.storm", { victim: m.victimName })
+          : t("feed.monster", { victim: m.victimName });
     const line = h("div", { className: "sw-feed-line" }, text);
     this.feed.append(line);
     while (this.feed.childElementCount > FEED_LINES) this.feed.firstElementChild?.remove();

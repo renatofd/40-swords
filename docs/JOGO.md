@@ -1,6 +1,6 @@
 # 40 Swords
 
-RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Cada partida é uma corrida de roguelite: todos começam no nível 1 no centro, ficam mais fortes explorando, depois de 5 minutos podem se enfrentar e aos 30 minutos vão para uma arena de battle royale.
+RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Cada partida é uma corrida de roguelite com **uma vida só**: a partida começa quando todos os jogadores da sala estão prontos, todos começam no nível 1 no centro, ficam mais fortes explorando, depois de 5 minutos podem se enfrentar, e quem cai está fora. Vence o último de pé; se aos 30 minutos ainda houver mais de um, a decisão é numa arena de battle royale.
 
 > Toda a arte atual é **provisória, feita em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
 
@@ -8,20 +8,21 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 
 1. No menu, digite o nome e clique em **Jogar**.
 2. Escolha o **herói** (cada classe mostra os atributos) e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói fica lembrado.
-3. Você nasce na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
-4. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
-5. **Cavernas** (8 espalhadas pelo mundo): entre pela abertura escura. Duas guardam baús; nas outras seis um **vendedor** oferece uma relíquia, uma arma e uma poção. Ande até o item para comprar. Cada jogador vê as próprias ofertas, sorteadas com a sua sorte e renovadas a cada 3 minutos. Para sair, use a passagem no fundo da caverna.
-6. **Masmorras** (4, atrás de portas com pilares): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
-7. **Elites** (dourados e maiores): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
-8. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
-9. Ao subir de nível, os atributos melhoram e a vida enche. Se um monstro te derrotar, você volta à praça em 3 segundos sem perder nada. Se outro herói te derrotar (com o PvP ligado), ele leva **uma relíquia sua, sorteada, e todos os seus rupees**. Ao voltar à praça você fica 3 segundos invulnerável (o sprite pisca).
-10. Veja "A partida" abaixo: PvP aos 5 minutos e a arena aos 30.
+3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida").
+4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
+5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
+6. **Cavernas** (8 espalhadas pelo mundo): entre pela abertura escura. Duas guardam baús; nas outras seis um **vendedor** oferece uma relíquia, uma arma e uma poção. Ande até o item para comprar. Cada jogador vê as próprias ofertas, sorteadas com a sua sorte e renovadas a cada 3 minutos. Para sair, use a passagem no fundo da caverna.
+7. **Masmorras** (4, atrás de portas com pilares): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
+8. **Elites** (dourados e maiores): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
+9. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
+10. Ao subir de nível, os atributos melhoram e a vida enche. **Cuidado: é uma vida só.** Quem cai (para um monstro, outro herói ou a tempestade) está fora da partida e passa a assistir. Se foi outro herói, ele leva **uma relíquia sua, sorteada, e todos os seus rupees**.
 
 | Ação | Teclado | Controle | Toque |
 |---|---|---|---|
 | Mover (8 direções) | WASD / setas | analógico esquerdo | joystick |
 | Espada e armas | Espaço / J | A / X | botão "Espada" |
 | Atributos e relíquias | C | Y | toque no painel de vida |
+| Pronto (sala de espera) | R | Start | botão "Pronto" no painel |
 
 Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um quadro.
 
@@ -29,19 +30,22 @@ Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um qua
 
 ## A partida
 
-O relógio no canto superior direito mostra a fase atual e quanto falta para a próxima. Avisos aparecem 1 minuto antes do PvP e da arena.
+O relógio no canto superior direito mostra a fase atual, quanto falta para a próxima e quantos heróis ainda estão de pé (👥). Avisos aparecem 1 minuto antes do PvP e da arena.
 
 | Fase | Quando | O que acontece |
 |---|---|---|
-| Calmaria | 0 a 5 min | Só monstros: explore, junte relíquias e rupees, compre nas cavernas. Heróis não se ferem. |
-| PvP | 5 a 30 min | Heróis podem se ferir com a espada e com as armas. Os nomes dos rivais ficam vermelhos. Quem vence a luta leva **uma relíquia sorteada e todos os rupees** do derrotado, que volta à praça. Todos veem no feed (embaixo, no centro) quem derrotou quem. |
-| Arena | aos 30 min | Todos (inclusive quem estava caído) vão para a **arena**, com a vida cheia, espalhados num anel. Contagem de 5 s sem dano, e então: **battle royale**, sem volta. A câmera acompanha o herói. |
+| Sala de espera | antes da partida | Os jogadores entram e andam à vontade; monstros parados, nada fere, baús e lojas fechados. Cada um aperta **Pronto**. Com **todos** prontos: contagem de 5 s (se alguém cancelar ou um jogador novo entrar, a contagem para). |
+| Calmaria | 0 a 5 min | A sala **fecha**: ninguém mais entra. Todos começam na praça, no nível 1. Só monstros: explore, junte relíquias e rupees, compre nas cavernas. Heróis não se ferem. |
+| PvP | 5 a 30 min | Heróis podem se ferir com a espada e com as armas; os nomes dos rivais ficam vermelhos. Quem vence a luta leva **uma relíquia sorteada e todos os rupees** do derrotado. |
+| Arena | aos 30 min, se ainda houver mais de um | Os heróis ainda de pé vão para a **arena**, com a vida cheia, espalhados num anel. Contagem de 5 s sem dano, e então: battle royale. A câmera acompanha o herói. |
 | Tempestade | durante a luta na arena | A zona segura (o círculo) fecha dos cantos até o centro em 2 min 30 s. Fora dela, o herói perde 10% da vida máxima por segundo (ignora defesa). |
-| Resultado | quando sobra 1 (ou ninguém) | Quem ficar de pé vence. O resultado fica 15 s na tela e então começa uma **nova partida**: todos voltam ao nível 1, sem relíquias nem rupees, na praça; o mundo se renova (inimigos, baús, lojas). |
+| Resultado | quando sobra 1 (a qualquer momento) | O último de pé vence (se os últimos caírem juntos, ninguém vence). O resultado fica 15 s na tela e todos voltam para a **sala de espera**: nível 1, sem relíquias nem rupees, mundo renovado (inimigos, baús, lojas), e a sala volta a aceitar jogadores. |
 
-- Na arena, quem cai está **fora** até a próxima partida: assiste à luta (o botão de ataque troca o herói acompanhado) e vê a própria posição.
-- A sala para de aceitar novos jogadores aos 25 minutos (quem chegasse no nível 1 logo antes da arena não teria chance); quem tentar entrar vai para outra sala, numa partida nova. A sala volta a aceitar jogadores quando a próxima partida começa. Se alguém ainda conseguir entrar com a arena já começada, assiste à luta e joga na partida seguinte.
-- O saque também vale na arena: derrotar alguém lá também tira dele uma relíquia (e os rupees).
+- **Uma vida só:** quem cai (monstro, herói ou tempestade) está fora até a próxima partida. Todos veem no feed (embaixo, no centro) quem caiu e para quê. Quem caiu vê a própria posição e **assiste** a partida, primeiro quem o derrotou; o botão de ataque troca o herói acompanhado.
+- A partida também pode terminar antes da arena: se só sobrar um, ele vence na hora.
+- Quem tentar entrar com a partida em andamento vai para outra sala (a sala fecha quando a partida começa). Se alguém ainda conseguir entrar no último instante, assiste e joga na partida seguinte.
+- Quem cai da conexão tem 20 s para voltar. Na sala de espera, ele aparece como ausente (⏳) e não segura o início; se a partida começar sem ele, ao voltar ele assiste.
+- Partida sozinho (para testar): começa quando você aperta Pronto e só termina se você cair ou chegar à arena (aí você vence).
 
 **Testar a partida mais rápido:** os tempos vêm de variáveis de ambiente do servidor (validadas ao iniciar):
 
@@ -52,7 +56,7 @@ O relógio no canto superior direito mostra a fase atual e quanto falta para a p
 
 Exemplo: `MATCH_PVP_SECONDS=30 MATCH_ARENA_SECONDS=120 pnpm dev` (no Windows, `set MATCH_PVP_SECONDS=30` e `set MATCH_ARENA_SECONDS=120` antes de `pnpm dev`). O jogador nunca controla esses tempos: só o servidor.
 
-As durações fixas (contagem da arena, tempestade, dano da tempestade, tempo do resultado, proteção ao renascer) ficam em `game/shared/src/match.ts`.
+As durações fixas (contagem da sala de espera e da arena, tempestade, dano da tempestade, tempo do resultado) ficam em `game/shared/src/match.ts`.
 
 ## Classes
 
@@ -193,13 +197,14 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Fórmulas de dano, crítico, roubo de vida | `game/shared/src/combat.ts` |
 | Objetos do mapa (inimigos, baús, vendedores, portais) | `game/shared/src/worldObjects.ts` |
 | Inimigos, elites, minichefes, chefes e a escala por nível | `game/shared/src/enemies.ts` |
-| Regras da partida (fases, tempestade, proteção ao renascer) | `game/shared/src/match.ts` |
+| Regras da partida (fases, sala de espera, tempestade) | `game/shared/src/match.ts` |
 | Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
-| Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, fases da partida, arena) | `game/server/src/rooms/WorldRoom.ts` |
+| Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, sala de espera, fases da partida, eliminação e espectadores, arena) | `game/server/src/rooms/WorldRoom.ts` |
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
 | Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
 | Relógio da partida, feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
+| Painel da sala de espera (Pronto) | `game/client/src/ui/lobby.ts` |
 | Escolha de herói e mapa (antes de entrar) | `game/client/src/ui/heroSelect.ts` |
 | HUD: vida, relíquias, atributos, avisos | `game/client/src/ui/` |
 | Textos (14 idiomas) | `game/client/src/messages.ts` |
@@ -209,4 +214,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 1. ✅ **Base:** escolha de herói (3 classes), mapa, movimento em 8 direções, espada, inimigos com XP e rupees, níveis.
 2. ✅ **Relíquias e lojas:** relíquias com raridade (sorte), armas com recarga e multiplicação de projéteis, baús, vendedores em cavernas.
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
-4. ✅ **Partida:** PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, arena battle royale aos 30 minutos com tempestade, vencedor e nova partida.
+4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.

@@ -62,8 +62,14 @@ export const Player = schema({
   novaCd: t.uint8().default(0),
   /** Every relic owned (the winner of a PvP fight takes one of them). */
   relics: t.array(Relic),
-  /** Knocked out of the arena: watches until the next match (always `dead` too). */
+  /** Out of this match (fell, or arrived after it started): watches until the next one. Always `dead` too. */
   out: t.boolean().default(false),
+  /** Final place once out (2 = runner-up); 0 while in the match. */
+  place: t.uint8().default(0),
+  /** While out: session id of the hero being watched (the server keeps this hero next to it). */
+  watch: t.string().default(""),
+  /** Waiting room: ready for the next match. */
+  ready: t.boolean().default(false),
 });
 export type Player = SchemaType<typeof Player>;
 
@@ -102,6 +108,12 @@ export const RosterEntry = schema({
   name: t.string().default(""),
   classId: t.string().default(""),
   level: t.uint8().default(0),
+  /** Waiting room: ready for the next match. */
+  ready: t.boolean().default(false),
+  /** Out of the current match. */
+  out: t.boolean().default(false),
+  /** Connection dropped: the seat is held for a while, but the waiting room doesn't wait for them. */
+  away: t.boolean().default(false),
 });
 export type RosterEntry = SchemaType<typeof RosterEntry>;
 
@@ -118,13 +130,13 @@ export const WorldState = schema({
   // ─── The match (see match.ts) ───
   /** MatchPhase. */
   phase: t.uint8().default(0),
-  /** Seconds since the match started. */
+  /** Seconds since the match started (in the waiting room: since it opened). */
   clock: t.uint16().default(0),
-  /** Value of `clock` when the current phase ends; 0 while the arena fight lasts. */
+  /** Value of `clock` when the current phase ends; 0 when it has no set end (waiting room, arena fight). */
   phaseEnds: t.uint16().default(0),
   /** Safe zone radius (px) around the arena centre during prep and the fight. */
   zone: t.uint16().default(0),
-  /** Heroes still standing in the arena. */
+  /** Heroes still in the match. */
   alive: t.uint8().default(0),
   /** Session id and name of the winner once the match ended (empty: nobody survived). */
   winner: t.string().default(""),

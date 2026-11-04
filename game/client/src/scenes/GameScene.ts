@@ -13,9 +13,9 @@ import {
   type EnemyShotMessage,
   type GainMessage,
   inRect,
-  isArenaPhase,
   isClassId,
   isEnemyKind,
+  isLobbyPhase,
   isPvpPhase,
   type KillMessage,
   type LevelUpMessage,
@@ -32,6 +32,7 @@ import {
   type ProjectileEndMessage,
   parseWorldInfo,
   parseWorldObjects,
+  type ReadyMessage,
   type RosterEntry,
   SCREEN_HEIGHT,
   SCREEN_WIDTH,
@@ -65,6 +66,7 @@ import {
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
 import { GainCards } from "../ui/gainCard";
+import { type LobbyEntry, LobbyPanel } from "../ui/lobby";
 import { MatchHud } from "../ui/matchHud";
 import { Minimap } from "../ui/minimap";
 import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
@@ -73,6 +75,8 @@ import { StatusHud } from "../ui/statusHud";
 export const GAME_SCENE_KEY = "game";
 export const ACTION_ATTACK = "attack";
 export const ACTION_STATS = "stats";
+/** Ready / not ready in the waiting room (the panel also has a button). */
+export const ACTION_READY = "ready";
 
 /** Analog input beyond this (per axis) counts as a full step in that direction. */
 const AXIS_THRESHOLD = 0.38;
@@ -149,10 +153,7 @@ export class GameScene extends Phaser.Scene {
   private lastPhase = -1;
   /** Countdown warnings already shown in this match. */
   private warned = new Set<number>();
-  /** Arena placement once knocked out (0 = still in). */
-  private place = 0;
-  /** Hero followed by the camera after a knock-out. */
-  private watchId = "";
+  private lobby?: LobbyPanel;
   private portals: readonly Portal[] = [];
   /** Cave or dungeon the hero is in (to announce dungeons on entry). */
   private areaId = "";
@@ -160,7 +161,6 @@ export class GameScene extends Phaser.Scene {
   private shops = new Map<string, OfferMessage[]>();
   private pedestals: Phaser.GameObjects.Image[] = [];
   private screenKey = "";
-  private wasDead = false;
   /** An attack press waiting for the next simulation step (so quick taps are never lost). */
   private attackQueued = false;
   private lastVolley = 0;
@@ -181,14 +181,11 @@ export class GameScene extends Phaser.Scene {
     this.predicted = undefined;
     this.screenKey = "";
     this.areaId = "";
-    this.wasDead = false;
     this.attackQueued = false;
     this.cameraMode = "screens";
     this.zoneDrawn = -1;
     this.lastPhase = -1;
     this.warned = new Set();
-    this.place = 0;
-    this.watchId = "";
   }
 
   create() {
@@ -246,7 +243,6 @@ export class GameScene extends Phaser.Scene {
       this.match?.kill(m);
       const loot = this.match?.lootText(m, room.sessionId);
       if (loot) this.ctx.ui.toast(loot, 4000);
-      if (m.victim === room.sessionId && m.place > 0) this.place = m.place;
       if (m.killer === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.2 });
       else if (m.victim === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 0.6 });
     });
@@ -258,7 +254,9 @@ export class GameScene extends Phaser.Scene {
     this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
     this.status.addWidget(this.minimap.el);
     this.match = new MatchHud(t);
+    this.lobby = new LobbyPanel(t, () => this.toggleReady());
     hud.append(
+      this.lobby.el,
       this.labels.el,
       this.status.el,
       this.gains.el,
@@ -553,15 +551,16 @@ export class GameScene extends Phaser.Scene {
     if (phase !== this.lastPhase) {
       const was = this.lastPhase;
       this.lastPhase = phase;
-      if (phase === MatchPhase.pvp) ui.toast(t("toast.pvpOn"), 6000);
+      if (phase === MatchPhase.calm) {
+        ui.toast(t("toast.matchStart"), 5000);
+        this.warned.clear();
+      } else if (phase === MatchPhase.pvp) ui.toast(t("toast.pvpOn"), 6000);
       else if (phase === MatchPhase.prep) ui.toast(t("toast.arena"), 4000);
       else if (phase === MatchPhase.arena) ui.toast(t("toast.fight"), 2000);
-      else if (phase === MatchPhase.calm && was === MatchPhase.ended) {
-        ui.toast(t("toast.newMatch"), 5000);
-        this.place = 0;
-        this.warned.clear();
-      }
-      if (was >= 0) audio.playSfx(SFX_UI, { rate: phase === MatchPhase.ended ? 0.7 : 1 });
+      else if (phase === MatchPhase.lobby && was === MatchPhase.ended) ui.toast(t("toast.lobby"), 5000);
+      // No sound for a countdown that got cancelled or started.
+      if (was >= 0 && phase !== MatchPhase.lobby && phase !== MatchPhase.starting)
+        audio.playSfx(SFX_UI, { rate: phase === MatchPhase.ended ? 0.7 : 1 });
     }
     if (
       (phase === MatchPhase.calm || phase === MatchPhase.pvp) &&
@@ -573,19 +572,24 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** The hero the camera follows after a knock-out; the attack button switches to the next one. */
-  private watched(next: boolean): [string, Player] | undefined {
+  /** Waiting room: ready / not ready (button, R key or Start). */
+  private toggleReady() {
     const { room } = this.ctx;
-    const standing = [...room.state.players.entries()]
-      .filter(([id, p]) => id !== room.sessionId && !p.out)
-      .sort(([a], [b]) => (a < b ? -1 : 1));
-    if (standing.length === 0) return undefined;
-    let i = standing.findIndex(([id]) => id === this.watchId);
-    if (i < 0) i = 0;
-    else if (next) i = (i + 1) % standing.length;
-    const entry = standing[i];
-    this.watchId = entry?.[0] ?? "";
-    return entry;
+    const self = room.state.players.get(room.sessionId);
+    if (!self || !isLobbyPhase(room.state.phase)) return;
+    const message: ReadyMessage = { ready: !self.ready };
+    room.send(Msg.ready, message);
+    this.ctx.audio.playSfx(SFX_UI);
+  }
+
+  /** Who is in the waiting room, and who is ready (the roster reaches everyone, unlike the AoI-filtered players). */
+  private lobbyEntries(): LobbyEntry[] {
+    return [...this.ctx.room.state.roster.entries()].map(([id, r]) => ({
+      id,
+      name: r.name,
+      ready: r.ready,
+      away: r.away,
+    }));
   }
 
   /** The storm: a red tint outside the safe zone, redrawn only when the radius changes. */
@@ -593,7 +597,10 @@ export class GameScene extends Phaser.Scene {
     const g = this.zone;
     const { arena } = this;
     const { phase, zone } = this.ctx.room.state;
-    const show = Boolean(arena) && isArenaPhase(phase);
+    // During the countdown and the fight, and on the results of a match decided in the arena.
+    const show =
+      Boolean(arena) &&
+      (phase === MatchPhase.prep || phase === MatchPhase.arena || (phase === MatchPhase.ended && zone > 0));
     const key = show ? zone : -1;
     if (!g || key === this.zoneDrawn) return;
     this.zoneDrawn = key;
@@ -636,6 +643,7 @@ export class GameScene extends Phaser.Scene {
     // A tap shorter than a frame still swings: it waits for the next simulation step.
     const attackPressed = input.wasPressed(ACTION_ATTACK);
     if (attackPressed) this.attackQueued = true;
+    if (input.wasPressed(ACTION_READY)) this.toggleReady();
 
     // Drives prediction, interpolation and reconciliation, and returns how many
     // fixed steps came due, so we send exactly one input per simulation step.
@@ -675,7 +683,7 @@ export class GameScene extends Phaser.Scene {
       const view = this.players.get(id);
       if (!view) continue;
       const isSelf = id === room.sessionId;
-      // Knocked out of the arena: gone until the next match.
+      // Out of the match: gone until the next one.
       view.setVisible(!player.out);
       if (player.out) {
         this.labels?.removeName(id);
@@ -706,13 +714,17 @@ export class GameScene extends Phaser.Scene {
 
     this.watchPhase();
     this.drawZone();
+    const { state } = room;
+    const entries = this.lobbyEntries();
+    this.lobby?.update(isLobbyPhase(state.phase), entries, room.sessionId);
     if (self) {
       const x = predict.value(self, "x");
       const y = predict.value(self, "y");
-      // Knocked out: watch someone still in the fight (or the middle of the arena).
-      const watched = self.out ? this.watched(attackPressed) : undefined;
-      const focusX = watched ? predict.value(watched[1], "x") : self.out && this.arena ? this.arena.centerX : x;
-      const focusY = watched ? predict.value(watched[1], "y") : self.out && this.arena ? this.arena.centerY : y;
+      // Out of the match: the server keeps us next to the hero we watch; attack switches to the next one.
+      const watched = self.out ? state.players.get(self.watch) : undefined;
+      if (self.out && attackPressed) room.send(Msg.watchNext);
+      const focusX = watched ? predict.value(watched, "x") : x;
+      const focusY = watched ? predict.value(watched, "y") : y;
       this.updateCamera(focusX, focusY);
       if (this.minimap) this.minimap.el.hidden = this.cameraMode === "arena";
       this.updateShopCards(x, y);
@@ -720,21 +732,25 @@ export class GameScene extends Phaser.Scene {
       this.updateBossBar(x, y);
       this.announceArea(x, y);
       this.status?.update(self);
-      const { state } = room;
       const outsideZone =
         state.phase === MatchPhase.arena &&
         !self.dead &&
         this.arena !== undefined &&
         Math.hypot(x - this.arena.centerX, y - this.arena.centerY) > state.zone;
-      this.match?.update(state, {
-        id: room.sessionId,
-        outsideZone,
-        out: self.out,
-        watching: watched?.[1].name,
-        place: this.place,
-      });
-      if (self.dead && !this.wasDead && !self.out) this.ctx.ui.toast(this.ctx.t("toast.died"));
-      this.wasDead = self.dead;
+      this.match?.update(
+        {
+          phase: state.phase,
+          clock: state.clock,
+          phaseEnds: state.phaseEnds,
+          alive: state.alive,
+          winner: state.winner,
+          winnerName: state.winnerName,
+          // Like the server: players whose connection dropped aren't waited for.
+          ready: entries.filter((e) => e.ready && !e.away).length,
+          total: entries.filter((e) => !e.away).length,
+        },
+        { id: room.sessionId, outsideZone, out: self.out, watching: watched?.name, place: self.place },
+      );
     }
   }
 }

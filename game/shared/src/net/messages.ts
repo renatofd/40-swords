@@ -21,8 +21,12 @@ export const Msg = {
   enemyShot: "eshot",
   /** server → everyone: a boss or mini-boss was defeated. */
   bossDown: "boss",
-  /** server → everyone: a hero was defeated by another hero or by the storm (kill feed). */
+  /** server → everyone: a hero is out of the match (kill feed). */
   kill: "kill",
+  /** client → server: ready (or not) in the waiting room. */
+  ready: "ready",
+  /** client → server: while out, watch the next hero still in the match. */
+  watchNext: "watch",
 } as const;
 
 export interface DamageMessage {
@@ -98,17 +102,22 @@ export interface BossDownMessage {
   by: string;
 }
 
-/** A hero went down in PvP or in the arena storm. */
+/** A hero fell and is out of the match. */
 export interface KillMessage {
-  /** Session id and name of the hero who won the fight; empty when the storm did it. */
+  cause: "hero" | "monster" | "storm";
+  /** Session id and name of the hero who won the fight (cause "hero"). */
   killer: string;
   killerName: string;
   victim: string;
   victimName: string;
-  /** The relic the winner took (none when the loser had none, or the storm did it). */
+  /** The relic the winner took (none when the loser had none, or no hero did it). */
   relic?: { kind: RelicKind; rarity: number };
   /** Rupees the winner took. */
   rupees: number;
-  /** Arena placement of the loser (2 = runner-up); 0 outside the arena. */
+  /** Final place of the loser (2 = runner-up). */
   place: number;
+}
+
+export interface ReadyMessage {
+  ready: boolean;
 }
