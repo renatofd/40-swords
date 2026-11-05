@@ -137,6 +137,36 @@ const shelf: Drawer = (x, y, r) => {
   return caveWall(x, y, r);
 };
 
+const dungeonFloor: Drawer = (x, y, r) => {
+  if (x % 8 === 0 || y % 8 === 0) return hex("#2a2733");
+  return r() < 0.08 ? hex("#3d3948") : hex("#35313f");
+};
+
+const dungeonWall: Drawer = (x, y) => {
+  const row = Math.floor(y / 4);
+  const offset = row % 2 === 0 ? 0 : 4;
+  if (y % 4 === 3 || (x + offset) % 8 === 7) return hex("#14121a");
+  return y < 4 ? hex("#4a4558") : hex("#3a3546");
+};
+
+const statue: Drawer = (x, y, r) => {
+  if (x >= 3 && x <= 12 && y >= 1) {
+    if (y > 12) return hex("#5a5566");
+    if (x === 3 || x === 12) return hex("#4a4558");
+    return y < 6 ? hex("#8a8598") : hex("#6e6a7c");
+  }
+  return dungeonFloor(x, y, r);
+};
+
+const cactus: Drawer = (x, y, r) => {
+  const trunk = x >= 6 && x <= 9 && y >= 2;
+  const leftArm = x >= 2 && x <= 4 && y >= 5 && y <= 9;
+  const rightArm = x >= 11 && x <= 13 && y >= 3 && y <= 7;
+  const joints = (y === 9 && x >= 2 && x <= 6) || (y === 7 && x >= 9 && x <= 13);
+  if (trunk || leftArm || rightArm || joints) return (x + y) % 4 === 0 ? hex("#3e8a3a") : hex("#2f6e2c");
+  return sand(x, y, r);
+};
+
 const door: Drawer = (x, y) => {
   if (x >= 3 && x <= 12 && y >= 4) return x === 3 || x === 12 || y === 4 ? hex("#3a2a1a") : hex("#120e0c");
   return hex("#77777f");
@@ -164,14 +194,18 @@ export const TILES: TileInfo[] = [
   { key: "bush", draw: bush, collides: true },
   { key: "tomb", draw: tomb, collides: true },
   { key: "pillar", draw: pillar, collides: true },
-  // Cave entrances are portals (walk in); dungeon doors stay sealed until stage 3.
+  // Cave entrances and dungeon doors are portals: walk in.
   { key: "cave", draw: cave, collides: false },
-  { key: "door", draw: door, collides: true },
+  { key: "door", draw: door, collides: false },
   { key: "caveFloor", draw: caveFloor, collides: false },
   { key: "caveWall", draw: caveWall, collides: true },
   { key: "counter", draw: counter, collides: true },
   { key: "caveExit", draw: caveExit, collides: false },
   { key: "shelf", draw: shelf, collides: true },
+  { key: "dungeonFloor", draw: dungeonFloor, collides: false },
+  { key: "dungeonWall", draw: dungeonWall, collides: true },
+  { key: "statue", draw: statue, collides: true },
+  { key: "cactus", draw: cactus, collides: true },
 ];
 
 export const tileId = (key: string): number => {

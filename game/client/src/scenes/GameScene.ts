@@ -3,11 +3,16 @@ import { Predict } from "@colyseus/sdk/predict";
 import { type GameContext, h } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
 import {
+  areaAt,
+  type BossDownMessage,
   type Chest,
   type DamageMessage,
+  ENEMIES,
   type Enemy,
+  type EnemyShotMessage,
   type GainMessage,
   isClassId,
+  isEnemyKind,
   type LevelUpMessage,
   Msg,
   OFFER_SLOTS,
@@ -17,7 +22,9 @@ import {
   type Player,
   type PlayerInput,
   type PlayerSimState,
+  type Portal,
   type ProjectileEndMessage,
+  parseWorldInfo,
   parseWorldObjects,
   type RosterEntry,
   SCREEN_HEIGHT,
@@ -32,6 +39,7 @@ import {
   TILE_SIZE,
   WEAPON_IDS,
   WEAPONS,
+  type WorldInfo,
   type WorldState,
   weaponCountKey,
 } from "@game/shared";
@@ -49,7 +57,9 @@ import {
   TEX_PEDESTAL,
 } from "../render/placeholderArt";
 import { WorldLabels } from "../render/WorldLabels";
+import { BossBar } from "../ui/bossBar";
 import { GainCards } from "../ui/gainCard";
+import { Minimap } from "../ui/minimap";
 import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
 import { StatusHud } from "../ui/statusHud";
 
@@ -117,6 +127,12 @@ export class GameScene extends Phaser.Scene {
   private status?: StatusHud;
   private labels?: WorldLabels;
   private gains?: GainCards;
+  private bossBar?: BossBar;
+  private minimap?: Minimap;
+  private info!: WorldInfo;
+  private portals: readonly Portal[] = [];
+  /** Cave or dungeon the hero is in (to announce dungeons on entry). */
+  private areaId = "";
   /** The last vendor offers received, by vendor id (only this player's). */
   private shops = new Map<string, OfferMessage[]>();
   private pedestals: Phaser.GameObjects.Image[] = [];
@@ -141,6 +157,7 @@ export class GameScene extends Phaser.Scene {
     this.pedestals = [];
     this.predicted = undefined;
     this.screenKey = "";
+    this.areaId = "";
     this.wasDead = false;
     this.attackQueued = false;
   }
@@ -177,6 +194,11 @@ export class GameScene extends Phaser.Scene {
       this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.3 });
     });
     room.onMessage(Msg.shot, (m: ShotMessage) => this.projectiles?.spawnVolley(m, this.time.now));
+    room.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => this.projectiles?.spawnHostile(m, this.time.now));
+    room.onMessage(Msg.bossDown, (m: BossDownMessage) => {
+      this.ctx.ui.toast(t("toast.bossDown", { boss: t(`enemy.${m.kind}`), name: m.by }), 4000);
+      this.ctx.audio.playSfx(SFX_JOIN, { rate: 0.7 });
+    });
     room.onMessage(Msg.projectileEnd, (m: ProjectileEndMessage) => {
       for (const key of m.keys) this.projectiles?.end(key);
     });
@@ -193,7 +215,10 @@ export class GameScene extends Phaser.Scene {
     this.labels = new WorldLabels(this);
     this.status = new StatusHud(t);
     this.gains = new GainCards(t);
-    hud.append(this.labels.el, this.status.el, this.gains.el);
+    this.bossBar = new BossBar();
+    this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
+    this.status.addWidget(this.minimap.el);
+    hud.append(this.labels.el, this.status.el, this.gains.el, this.bossBar.el);
     this.ctx.audio.playMusic(MUSIC_THEME);
     this.watchRoster();
     this.showControlsHint();
@@ -232,6 +257,8 @@ export class GameScene extends Phaser.Scene {
     const objects = parseWorldObjects(raw);
     this.world = { grid: this.gameMap.collision, portals: objects.portals };
     this.vendors = objects.vendors;
+    this.portals = objects.portals;
+    this.info = parseWorldInfo(raw);
   }
 
   /** A hint that fades after a few seconds. */
@@ -276,7 +303,8 @@ export class GameScene extends Phaser.Scene {
 
   private addEnemy(enemy: Enemy, id: string) {
     if (this.enemies.has(id)) return;
-    this.enemies.set(id, new EnemyView(this, enemy.kind));
+    const boss = isEnemyKind(enemy.kind) && ENEMIES[enemy.kind].rank !== "normal";
+    this.enemies.set(id, new EnemyView(this, enemy.kind, enemy.elite, boss));
   }
 
   private removeEnemy(id: string) {
@@ -412,6 +440,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // ─── Bosses and areas ─────────────────────────────────────────────────────
+
+  /** Health of the boss or mini-boss on the hero's screen, if any. */
+  private updateBossBar(x: number, y: number) {
+    const { col, row } = screenOf(x, y);
+    let found: Enemy | undefined;
+    for (const enemy of this.ctx.room.state.enemies.values()) {
+      if (!isEnemyKind(enemy.kind) || ENEMIES[enemy.kind].rank === "normal") continue;
+      const at = screenOf(enemy.x, enemy.y);
+      if (at.col === col && at.row === row) found = enemy;
+    }
+    this.bossBar?.update(
+      found && isEnemyKind(found.kind)
+        ? {
+            name: this.ctx.t(`enemy.${found.kind}`),
+            hp: found.hp,
+            maxHp: found.maxHp,
+            mini: ENEMIES[found.kind].rank === "miniboss",
+          }
+        : undefined,
+    );
+  }
+
+  /** Names a dungeon when the hero walks in. */
+  private announceArea(x: number, y: number) {
+    const { col, row } = screenOf(x, y);
+    const area = areaAt(this.info.areas, col, row);
+    const id = area?.id ?? "";
+    if (id === this.areaId) return;
+    this.areaId = id;
+    if (area?.kind === "dungeon") this.ctx.ui.toast(this.ctx.t(`dungeon.${area.id}`), 3000);
+  }
+
   // ─── Frame ────────────────────────────────────────────────────────────────
 
   override update(time: number) {
@@ -489,6 +550,9 @@ export class GameScene extends Phaser.Scene {
       const y = predict.value(self, "y");
       this.lookAtScreen(x, y, true);
       this.updateShopCards(x, y);
+      this.minimap?.update(x, y, time);
+      this.updateBossBar(x, y);
+      this.announceArea(x, y);
       this.status?.update(self);
       if (self.dead && !this.wasDead) this.ctx.ui.toast(this.ctx.t("toast.died"));
       this.wasDead = self.dead;

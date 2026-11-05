@@ -1,3 +1,4 @@
+import type { EnemyKind, ShotStyle } from "../enemies";
 import type { OfferItem } from "../relics";
 
 /** Message types between client and server (besides per-tick inputs and the state). */
@@ -16,6 +17,10 @@ export const Msg = {
   shop: "shop",
   /** server → one client: a purchase failed. */
   shopFail: "nobuy",
+  /** server → nearby clients: an enemy fired projectiles. */
+  enemyShot: "eshot",
+  /** server → everyone: a boss or mini-boss was defeated. */
+  bossDown: "boss",
 } as const;
 
 export interface DamageMessage {
@@ -70,4 +75,22 @@ export interface ShopMessage {
 
 export interface ShopFailMessage {
   reason: "rupees";
+}
+
+/** Enemy projectiles fired together; projectile i has key `${key}:${i}` (see ProjectileEndMessage). */
+export interface EnemyShotMessage {
+  key: string;
+  x: number;
+  y: number;
+  /** Direction of each projectile, radians. */
+  angles: number[];
+  speed: number;
+  range: number;
+  style: ShotStyle;
+}
+
+export interface BossDownMessage {
+  kind: EnemyKind;
+  /** Name of the hero who landed the final blow. */
+  by: string;
 }

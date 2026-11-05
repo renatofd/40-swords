@@ -453,3 +453,54 @@
     translate: 0 -28px;
   }
 }
+
+/* ─── Boss bar and minimap ─────────────────────────────────────────── */
+
+.sw-bossbar {
+  position: absolute;
+  inset-block-start: max(60px, calc(var(--ui-safe-top) + 52px));
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: min(360px, 60vw);
+  padding: 4px 10px 6px;
+  text-align: center;
+  background: rgb(16 16 24 / 0.75);
+  border: 2px solid #a03030;
+  border-radius: var(--ui-radius);
+  pointer-events: none;
+}
+
+.sw-bossbar-name {
+  margin-block-end: 3px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #ffb0a0;
+  text-shadow: 0 1px 0 #000;
+}
+
+.sw-bossbar .sw-bar {
+  block-size: 10px;
+}
+
+.sw-bossbar .sw-bar-fill {
+  background: linear-gradient(#ff6a50, #c02020);
+}
+
+.sw-bossbar-mini {
+  inline-size: min(260px, 50vw);
+  border-color: #a06a30;
+}
+
+.sw-bossbar-mini .sw-bar-fill {
+  background: linear-gradient(#ffb050, #c06a20);
+}
+
+.sw-minimap {
+  display: block;
+  inline-size: 100%;
+  margin-block-start: 6px;
+  image-rendering: pixelated;
+  border: 1px solid var(--ui-border);
+  border-radius: 2px;
+  background: #101018;
+}

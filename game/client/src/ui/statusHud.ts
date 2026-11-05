@@ -72,6 +72,11 @@ export class StatusHud {
     );
   }
 
+  /** Adds a widget under the bars (above the details panel), e.g. the minimap. */
+  addWidget(el: HTMLElement) {
+    this.details.before(el);
+  }
+
   get open(): boolean {
     return !this.details.hidden;
   }
