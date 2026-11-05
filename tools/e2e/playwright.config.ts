@@ -10,6 +10,10 @@ export default defineConfig({
   testDir: "tests",
   timeout: 60_000,
   fullyParallel: false,
+  // One test at a time: every test joins the same public room type (joinOrCreate), and a
+  // 40 Swords match only starts once everyone in the room is ready, so tests running side by
+  // side would land in each other's rooms and hold up each other's countdown.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
