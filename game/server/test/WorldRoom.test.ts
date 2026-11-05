@@ -100,12 +100,23 @@ describe("WorldRoom", () => {
     await room.waitForNextTimestep();
   }
 
-  /** Everyone in the room presses Ready; after the countdown the match starts (everyone at the centre). */
+  /**
+   * Everyone in the room presses Ready; after the countdown the match starts
+   * (everyone at the centre). Without bots: these tests set up their own scenes
+   * (bots are tested in bots.test.ts).
+   */
   async function play(room: World, ...heroes: Hero[]) {
+    if (heroes[0]) await noBots(room, heroes[0]);
     for (const hero of heroes) hero.client.send(Msg.ready, { ready: true });
     await vi.waitFor(() => expect(room.state.phase).toBe(MatchPhase.starting));
     await skipTo(room, room.state.phaseEnds);
     expect(room.state.phase).toBe(MatchPhase.calm);
+  }
+
+  /** Switches bots off for the next match (the waiting room switch). */
+  async function noBots(room: World, hero: Hero) {
+    hero.client.send(Msg.bots, { on: false });
+    await vi.waitFor(() => expect(room.state.bots).toBe(false));
   }
 
   /** Puts `victim` right in front of `attacker` (south) and has the attacker swing until `until` holds. */
@@ -483,6 +494,7 @@ describe("WorldRoom", () => {
       const a = await joinAs(room, "knight", "A");
       const b = await joinAs(room, "rogue", "B");
       expect(room.state.phase).toBe(MatchPhase.lobby);
+      await noBots(room, a);
 
       a.client.send(Msg.ready, { ready: true });
       await vi.waitFor(() => expect(room.state.roster.get(a.client.sessionId)?.ready).toBe(true));
@@ -532,6 +544,7 @@ describe("WorldRoom", () => {
       await b.client.leave(false); // dropped, not left: the seat is held for a while
       await vi.waitFor(() => expect(room.state.roster.get(b.client.sessionId)?.away).toBe(true));
       expect(room.state.players.has(b.client.sessionId)).toBe(true);
+      await noBots(room, a);
 
       a.client.send(Msg.ready, { ready: true });
       await vi.waitFor(() => expect(room.state.phase).toBe(MatchPhase.starting));

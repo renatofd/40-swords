@@ -109,6 +109,16 @@ test("the waiting room starts the match once everyone is ready", async ({ page }
   await expect(lobby.locator(".sw-lobby-self")).toHaveText("…Duda");
   await expect(clock).toHaveText("Waiting room · 0/1 ready");
 
+  // Bots fill the match (on by default); anyone in the room can switch them off and on again.
+  const bots = lobby.locator(".sw-lobby-bots");
+  await expect(bots).toHaveText("🤖 Bots: on");
+  await expect(lobby).toContainText("Bots fill the match up to 40 heroes.");
+  await bots.click();
+  await expect(bots).toHaveText("🤖 Bots: off");
+  await expect(lobby).toContainText("Players only: no bots.");
+  await bots.click();
+  await expect(bots).toHaveText("🤖 Bots: on");
+
   // Ready, then changing your mind (R), then ready again with the button.
   await page.getByRole("button", { name: "Ready" }).click();
   await expect(clock).toHaveText(/^The match starts in 0:0\d$/);
@@ -117,7 +127,11 @@ test("the waiting room starts the match once everyone is ready", async ({ page }
   await expect(clock).toHaveText("Waiting room · 0/1 ready");
   await page.getByRole("button", { name: "Ready" }).click();
 
-  // After the countdown the match is on: the panel goes away and the PvP clock runs.
-  await expect(clock).toHaveText(/^PvP in \d+:\d\d · 👥 1$/, { timeout: 10_000 });
+  // After the countdown the match is on, with bots up to 40 heroes: the panel goes away and the PvP clock runs.
+  await expect(clock).toHaveText(/^PvP in \d+:\d\d · 👥 40$/, { timeout: 10_000 });
   await expect(lobby).toBeHidden();
+  // Bots are listed with the players (Tab), marked as bots.
+  await page.keyboard.down("Tab");
+  await expect(page.locator(".ui-playerlist")).toContainText("🤖");
+  await page.keyboard.up("Tab");
 });

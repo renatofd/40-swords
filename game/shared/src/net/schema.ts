@@ -114,6 +114,8 @@ export const RosterEntry = schema({
   out: t.boolean().default(false),
   /** Connection dropped: the seat is held for a while, but the waiting room doesn't wait for them. */
   away: t.boolean().default(false),
+  /** A bot the server plays (it fills the match up to MAX_PLAYERS_PER_ROOM). */
+  bot: t.boolean().default(false),
 });
 export type RosterEntry = SchemaType<typeof RosterEntry>;
 
@@ -141,5 +143,7 @@ export const WorldState = schema({
   /** Session id and name of the winner once the match ended (empty: nobody survived). */
   winner: t.string().default(""),
   winnerName: t.string().default(""),
+  /** Bots fill the next match up to MAX_PLAYERS_PER_ROOM heroes (switched in the waiting room). */
+  bots: t.boolean().default(true),
 });
 export type WorldState = SchemaType<typeof WorldState>;

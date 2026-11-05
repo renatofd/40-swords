@@ -9,8 +9,10 @@ import {
   arenaRect,
   BOSS_CHEST_RARITY,
   type BossDownMessage,
+  type BotsMessage,
   CHEST_RESPAWN_SECONDS,
   Chest,
+  CLASS_IDS,
   computeStats,
   createRng,
   type DamageMessage,
@@ -63,6 +65,7 @@ import {
   PLAYER_KNOCK_TICKS,
   Player,
   PlayerInput,
+  type PlayerInputLike,
   PROTOCOL_VERSION,
   type ProjectileEndMessage,
   projectileKey,
@@ -112,6 +115,9 @@ import {
   ZONE_DAMAGE_PER_SECOND,
   zoneRadius,
 } from "@game/shared";
+import { BotBrain, type BotEnemy, type BotView, enemyDanger, rollPersonality, THINK_TICKS } from "../bots/BotBrain";
+import { botName } from "../bots/names";
+import { type Navigation, navigationFor } from "../bots/navigation";
 import { loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
 
 export interface WorldCreateOptions {
@@ -126,6 +132,8 @@ interface EnemyBrain {
   kind: EnemyKind;
   def: EnemyDef;
   stats: EnemyStats;
+  /** Difficulty tier it was made with (see enemyStats). */
+  tier: number;
   spawner?: SpawnerState;
   /** Minions this enemy summoned (they vanish with it). */
   minions: Set<string>;
@@ -210,6 +218,8 @@ const pick = <T>(items: readonly T[], rng: Rng): T => items[Math.floor(rng() * i
  * life each: PvE first, PvP after a few minutes (the winner of a fight takes
  * one relic and every rupee of the loser), the battle royale arena at 30
  * minutes. Whoever falls watches; the last hero standing wins, at any moment.
+ * Bots (bots/BotBrain.ts) fill each match up to MAX_PLAYERS_PER_ROOM heroes
+ * unless the waiting room switched them off.
  */
 export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput }> {
   protected readonly protocolVersion = PROTOCOL_VERSION;
@@ -269,6 +279,11 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private arenaSpawns: { x: number; y: number }[] = [];
   /** One manager for every `.view()` collection; ids are prefixed per collection. */
   private interest = new InterestManager<PositionedEntity>({ radius: INTEREST_RADIUS });
+  /** Heroes the server plays, by id (`bot:N`, never a session id); they leave when the match ends. */
+  private bots = new Map<string, BotBrain>();
+  private botSerial = 0;
+  private nav!: Navigation;
+  private botView!: BotView;
 
   override onCreate(options: WorldCreateOptions = {}) {
     const mapId = typeof options.mapId === "string" ? options.mapId : "overworld";
@@ -295,12 +310,21 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       this.chestMeta.set(c.id, { floor, dropped: false, at: 0 });
     }
     for (const v of this.objects.vendors) this.vendorByScreen.set(this.screenIndexAt(v.x, v.y), v);
+    // How hard each screen is for the bots: its strongest monster.
+    const danger = new Map<number, number>();
+    for (const s of this.spawners) {
+      const screen = this.screenIndexAt(s.x, s.y);
+      danger.set(screen, Math.max(danger.get(screen) ?? 0, enemyDanger(ENEMIES[s.kind].rank, s.tier, false)));
+    }
+    this.nav = navigationFor(mapId, this.map.collision, this.objects.portals, danger);
+    this.botView = this.createBotView();
     // The room opens as a waiting room (phase "lobby").
     this.onMessage(Msg.ready, (client: Client, message: unknown) => this.setReady(client.sessionId, message));
     this.onMessage(Msg.watchNext, (client: Client) => {
       const player = this.state.players.get(client.sessionId);
       if (player?.out) this.pickWatch(client.sessionId, player);
     });
+    this.onMessage(Msg.bots, (_client: Client, message: unknown) => this.setBots(message));
     this.startSimulation((ctx) => this.step(ctx), TICK_RATE);
   }
 
@@ -325,8 +349,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   }
 
   override onLeave(client: Client, _code: CloseCode) {
-    const id = client.sessionId;
     this.interest.removeViewer(client);
+    this.forget(client.sessionId);
+  }
+
+  /** Drops everything the room keeps about a hero (a player who left, or a bot at the end of the match). */
+  private forget(id: string) {
     this.state.players.delete(id);
     this.state.roster.delete(id);
     this.stats.delete(id);
@@ -336,6 +364,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.screenOfPlayer.delete(id);
     this.touching.delete(id);
     this.inputBudget.delete(id);
+    this.bots.delete(id);
   }
 
   /** A dropped connection keeps its seat for a while (GameRoom); meanwhile the waiting room doesn't wait for it. */
@@ -400,6 +429,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     // Outside a match (waiting room, results) the world is frozen: nothing hurts, nothing can be taken.
     const playing = isPlayingPhase(this.state.phase);
     this.updateActive();
+    const view = this.botView;
+    view.tick = this.tick;
+    view.phase = this.state.phase;
+    view.zone = this.state.zone;
     for (const [id, player] of this.state.players) this.stepPlayerTick(id, player, ctx.dt);
     this.stepProjectiles(ctx.dt);
     this.stepHostiles(ctx.dt);
@@ -418,7 +451,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   /** Marks the screens around each hero as active and buckets the enemies on them. */
   private updateActive() {
     this.active.clear();
+    // Heroes out of the match don't count: players who are out stand next to the hero they watch.
     for (const p of this.state.players.values()) {
+      if (p.out) continue;
       const col = Math.floor(p.x / SCREEN_WIDTH);
       const row = Math.floor(p.y / SCREEN_HEIGHT);
       this.active.add(this.screenIndex(col, row));
@@ -446,24 +481,32 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private stepPlayerTick(id: string, player: Player, dt: number) {
     if (player.invuln > 0) player.invuln--;
 
+    // A bot: one input per tick from its brain, like a player with a perfect connection.
+    const bot = this.bots.get(id);
+    if (bot) {
+      this.applyInput(id, player, bot.think(this.botView, player), dt);
+      return;
+    }
     const channel = this.inputs.get(id);
     const inputs = channel ? channel.take(this.inputBudget.refill(id)) : [];
     this.inputBudget.spend(id, inputs.length);
-    for (const input of inputs) {
-      stepPlayer(player, input, dt, this.world);
-      if (player.swing !== this.lastSwing.get(id)) {
-        this.lastSwing.set(id, player.swing);
-        this.resolveSwing(id, player);
-      }
-      if (player.vseq !== this.lastVolley.get(id)) {
-        this.lastVolley.set(id, player.vseq);
-        this.fireVolley(id, player);
-      }
-    }
+    for (const input of inputs) this.applyInput(id, player, input, dt);
     // No input this tick (tab hidden, connection dropped): the player stands still.
     if (inputs.length === 0) {
       player.vx = 0;
       player.vy = 0;
+    }
+  }
+
+  private applyInput(id: string, player: Player, input: PlayerInputLike, dt: number) {
+    stepPlayer(player, input, dt, this.world);
+    if (player.swing !== this.lastSwing.get(id)) {
+      this.lastSwing.set(id, player.swing);
+      this.resolveSwing(id, player);
+    }
+    if (player.vseq !== this.lastVolley.get(id)) {
+      this.lastVolley.set(id, player.vseq);
+      this.fireVolley(id, player);
     }
   }
 
@@ -756,7 +799,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const entry = this.state.roster.get(id);
     if (entry) entry.out = true;
     player.watch = "";
-    this.pickWatch(id, player, watch);
+    // Bots have nobody to show the match to: they stay where they fell (hidden).
+    if (!this.bots.has(id)) this.pickWatch(id, player, watch);
   }
 
   /** Who an out hero watches: `preferred` if still in, else the next hero still in the match. */
@@ -772,7 +816,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   /** Out heroes move with the hero they watch, so they see (and are sent) what is around it. */
   private stepWatchers() {
     for (const [id, player] of this.state.players) {
-      if (!player.out) continue;
+      if (!player.out || this.bots.has(id)) continue;
       let target = this.state.players.get(player.watch);
       if (!target || target.out) {
         this.pickWatch(id, player);
@@ -845,6 +889,79 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     if (entry) entry.ready = ready;
   }
 
+  /** Waiting room: whether bots fill the next match (anyone in the room can switch it). */
+  private setBots(message: unknown) {
+    const on = (message as Partial<BotsMessage> | null)?.on;
+    if (isLobbyPhase(this.state.phase) && typeof on === "boolean") this.state.bots = on;
+  }
+
+  /** A hero the server plays (bots/BotBrain.ts), at the start like everyone. */
+  private addBot() {
+    const serial = ++this.botSerial;
+    const id = `bot:${serial}`;
+    const name = botName(this.rng, new Set([...this.state.players.values()].map((p) => p.name)));
+    const classId = pick(CLASS_IDS, this.rng);
+    const spawn = this.nextSpawn();
+    const player = new Player({ name, classId, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
+    this.state.players.set(id, player);
+    this.state.roster.set(id, new RosterEntry({ name, classId, level: 1, bot: true }));
+    this.applyStats(id, player);
+    player.hp = player.maxHp;
+    this.lastSwing.set(id, player.swing);
+    this.lastVolley.set(id, player.vseq);
+    const seed = Math.floor(this.rng() * 2 ** 32);
+    this.bots.set(id, new BotBrain(id, createRng(seed), rollPersonality(this.rng), serial % THINK_TICKS));
+  }
+
+  /** What bots see (refreshed every tick in `step`). */
+  private createBotView(): BotView {
+    const { state } = this;
+    const onScreen = <T extends { x: number; y: number }>(items: Iterable<[string, T]>, screen: number) => {
+      const found: { id: string; x: number; y: number }[] = [];
+      for (const [id, item] of items)
+        if (this.screenIndexAt(item.x, item.y) === screen) found.push({ id, x: item.x, y: item.y });
+      return found;
+    };
+    return {
+      tick: 0,
+      phase: 0,
+      zone: 0,
+      nav: this.nav,
+      arena: this.arena,
+      vendorScreens: [...this.vendorByScreen.keys()],
+      hero: (id) => {
+        const p = state.players.get(id);
+        return p && !p.out ? p : undefined;
+      },
+      heroes: () => this.standing(),
+      enemy: (id) => this.botEnemy(id),
+      enemiesOn: (screen) => (this.buckets.get(screen) ?? []).flatMap((id) => this.botEnemy(id) ?? []),
+      chestsOn: (screen) =>
+        onScreen(
+          [...state.chests].filter(([, c]) => !c.open),
+          screen,
+        ),
+      pickupsOn: (screen) => onScreen(state.pickups, screen),
+      vendorOn: (screen) => this.vendorByScreen.get(screen),
+      offers: (id, vendor) => this.shops.get(id)?.get(vendor.id)?.offers,
+      stats: (id) => this.statsOf(id),
+    };
+  }
+
+  /** Heroes still in the match. */
+  private *standing(): Iterable<[string, Player]> {
+    for (const entry of this.state.players) if (!entry[1].out) yield entry;
+  }
+
+  private botEnemy(id: string): BotEnemy | undefined {
+    const enemy = this.state.enemies.get(id);
+    const brain = this.brains.get(id);
+    if (!enemy || !brain) return undefined;
+    const { half, defense, damage } = brain.stats;
+    const danger = enemyDanger(brain.def.rank, brain.tier, enemy.elite);
+    return { id, x: enemy.x, y: enemy.y, hp: enemy.hp, half, defense, damage, danger };
+  }
+
   /** Everyone was ready: the room closes and the match starts, everyone at the centre. */
   private startMatch() {
     void this.lock();
@@ -865,7 +982,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       if (entry) entry.ready = false;
     }
     for (const [id, player] of absent) this.knockOut(id, player);
-    this.startedWith = this.state.players.size - absent.length;
+    const playing = this.state.players.size - absent.length;
+    if (this.state.bots) for (let n = playing; n < MAX_PLAYERS_PER_ROOM; n++) this.addBot();
+    this.startedWith = playing + this.bots.size;
     this.matchStart = this.tick;
     this.state.clock = 0;
     this.state.alive = this.startedWith;
@@ -956,6 +1075,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     s.winner = "";
     s.winnerName = "";
     this.startedWith = 0;
+    for (const id of [...this.bots.keys()]) this.forget(id);
 
     for (const id of [...s.enemies.keys()]) this.removeEnemy(id);
     for (const spawner of this.spawners) {
@@ -1151,6 +1271,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       kind,
       def,
       stats,
+      tier,
       spawner,
       minions: new Set(),
       dirX: 0,
@@ -1436,7 +1557,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   }
 
   private anyPlayerNear(x: number, y: number, radius: number) {
-    for (const p of this.state.players.values()) if ((p.x - x) ** 2 + (p.y - y) ** 2 < radius * radius) return true;
+    for (const p of this.state.players.values())
+      if (!p.out && (p.x - x) ** 2 + (p.y - y) ** 2 < radius * radius) return true;
     return false;
   }
 

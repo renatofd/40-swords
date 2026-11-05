@@ -6,6 +6,7 @@ import {
   areaAt,
   arenaRect,
   type BossDownMessage,
+  type BotsMessage,
   type Chest,
   type DamageMessage,
   ENEMIES,
@@ -254,7 +255,11 @@ export class GameScene extends Phaser.Scene {
     this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
     this.status.addWidget(this.minimap.el);
     this.match = new MatchHud(t);
-    this.lobby = new LobbyPanel(t, () => this.toggleReady());
+    this.lobby = new LobbyPanel(
+      t,
+      () => this.toggleReady(),
+      () => this.toggleBots(),
+    );
     hud.append(
       this.lobby.el,
       this.labels.el,
@@ -455,7 +460,8 @@ export class GameScene extends Phaser.Scene {
     callbacks.onAdd("roster", (entry: RosterEntry, id: string) => {
       if (known.has(id)) return;
       known.add(id);
-      if (id !== room.sessionId) {
+      // Bots all arrive when the match starts and leave when it ends: no toast for each one.
+      if (id !== room.sessionId && !entry.bot) {
         ui.toast(t("toast.joined", { name: entry.name }));
         audio.playSfx(SFX_JOIN, { rate: 0.95 + Math.random() * 0.1 });
       }
@@ -463,7 +469,7 @@ export class GameScene extends Phaser.Scene {
     });
     callbacks.onRemove("roster", (entry: RosterEntry, id: string) => {
       known.delete(id);
-      if (id !== room.sessionId) ui.toast(t("toast.left", { name: entry.name }));
+      if (id !== room.sessionId && !entry.bot) ui.toast(t("toast.left", { name: entry.name }));
       refresh();
     });
   }
@@ -582,14 +588,25 @@ export class GameScene extends Phaser.Scene {
     this.ctx.audio.playSfx(SFX_UI);
   }
 
+  /** Waiting room: whether bots fill the next match (anyone can switch it; everyone sees the change). */
+  private toggleBots() {
+    const { room } = this.ctx;
+    if (!isLobbyPhase(room.state.phase)) return;
+    const message: BotsMessage = { on: !room.state.bots };
+    room.send(Msg.bots, message);
+    this.ctx.audio.playSfx(SFX_UI);
+  }
+
   /** Who is in the waiting room, and who is ready (the roster reaches everyone, unlike the AoI-filtered players). */
   private lobbyEntries(): LobbyEntry[] {
-    return [...this.ctx.room.state.roster.entries()].map(([id, r]) => ({
-      id,
-      name: r.name,
-      ready: r.ready,
-      away: r.away,
-    }));
+    return [...this.ctx.room.state.roster.entries()]
+      .filter(([, r]) => !r.bot)
+      .map(([id, r]) => ({
+        id,
+        name: r.name,
+        ready: r.ready,
+        away: r.away,
+      }));
   }
 
   /** The storm: a red tint outside the safe zone, redrawn only when the radius changes. */
@@ -716,7 +733,7 @@ export class GameScene extends Phaser.Scene {
     this.drawZone();
     const { state } = room;
     const entries = this.lobbyEntries();
-    this.lobby?.update(isLobbyPhase(state.phase), entries, room.sessionId);
+    this.lobby?.update(isLobbyPhase(state.phase), entries, room.sessionId, state.bots);
     if (self) {
       const x = predict.value(self, "x");
       const y = predict.value(self, "y");
