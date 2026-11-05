@@ -35,6 +35,56 @@
             "useAs": [
                 "object"
             ]
+        },
+        {
+            "color": "#ffe8c050",
+            "drawFill": true,
+            "id": 3,
+            "members": [],
+            "name": "chest",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
+        },
+        {
+            "color": "#ff8a5cff",
+            "drawFill": true,
+            "id": 4,
+            "members": [],
+            "name": "vendor",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
+        },
+        {
+            "color": "#ff4a9eff",
+            "drawFill": true,
+            "id": 5,
+            "members": [
+                {
+                    "name": "target",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "portal",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
+        },
+        {
+            "color": "#ff4ad1c8",
+            "drawFill": true,
+            "id": 6,
+            "members": [],
+            "name": "dest",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
         }
     ]
 }

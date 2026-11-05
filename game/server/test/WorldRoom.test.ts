@@ -4,13 +4,18 @@ import { CORE_PROTOCOL_VERSION } from "@core/shared";
 import {
   ENEMIES,
   type EnemyKind,
+  type GainMessage,
   INTEREST_RADIUS,
   type LevelUpMessage,
   Msg,
+  offerPosition,
   type Player,
   type PlayerInput,
+  POTION_PRICE,
   PROTOCOL_VERSION,
   ROOM_WORLD,
+  type ShopMessage,
+  type ShotMessage,
   screenOf,
   statsFor,
   TICK_DT,
@@ -19,15 +24,18 @@ import {
 } from "@game/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rooms } from "../src";
+import { loadWorldObjects } from "../src/world/mapObjects";
 
 const appConfig = createGameServer({ rooms, protocolVersion: PROTOCOL_VERSION });
 const v = { core: CORE_PROTOCOL_VERSION, game: PROTOCOL_VERSION };
+const objects = loadWorldObjects("overworld");
 
-/** Room internals the tests reach into to set up a scene (teleports, timers). */
+/** Room internals the tests reach into to set up a scene (teleports, timers, gifts). */
 interface RoomInternals {
   brains: Map<string, { home: { x: number; y: number; width: number; height: number }; def: { speed: number } }>;
   respawnTicks: number;
   map: { pixelWidth: number; pixelHeight: number };
+  giveRelic(id: string, player: Player, kind: string, rarity: number, source: string): void;
 }
 const internals = (room: unknown) => room as RoomInternals;
 
@@ -48,18 +56,16 @@ describe("WorldRoom", () => {
     return colyseus.createRoom<WorldState>(ROOM_WORLD, {});
   }
 
-  /** Joins and picks a class; resolves once the server created the player. */
+  /** Joins with a hero picked before joining; the server creates the body right away. */
   async function joinAs(room: Awaited<ReturnType<typeof createWorld>>, classId: string, name = "P") {
-    const client = await colyseus.connectTo(room, { v, name });
-    client.send(Msg.spawn, { classId });
-    await vi.waitFor(() => expect(room.state.players.has(client.sessionId)).toBe(true));
+    const client = await colyseus.connectTo(room, { v, name, classId });
     const player = room.state.players.get(client.sessionId) as Player;
     return { client, player };
   }
 
   /** Moves an enemy next to a point and keeps it there (no wandering off, no leash). */
-  function pinEnemy(room: unknown, state: WorldState, x: number, y: number) {
-    const [id, enemy] = [...state.enemies.entries()][0] ?? [];
+  function pinEnemy(room: unknown, state: WorldState, x: number, y: number, which = 0) {
+    const [id, enemy] = [...state.enemies.entries()][which] ?? [];
     if (!id || !enemy) throw new Error("no enemies");
     const brain = internals(room).brains.get(id);
     if (!brain) throw new Error("no brain");
@@ -71,66 +77,62 @@ describe("WorldRoom", () => {
     return { id, enemy };
   }
 
-  it("lets players in without a body until they pick a class", async () => {
+  it("creates the hero picked before joining, with a sanitized name", async () => {
     const room = await createWorld();
-    const client = await colyseus.connectTo(room, { v, name: "  Ana\u0007  " });
-    expect(room.state.players.has(client.sessionId)).toBe(false);
-
-    client.send(Msg.spawn, { classId: "wizard" });
-    await room.waitForNextMessage();
-    expect(room.state.players.has(client.sessionId)).toBe(false);
-
-    client.send(Msg.spawn, { classId: "rogue" });
-    await vi.waitFor(() => expect(room.state.players.has(client.sessionId)).toBe(true));
-    const player = room.state.players.get(client.sessionId);
-    expect(player?.name).toBe("Ana");
-    expect(player?.classId).toBe("rogue");
-    expect(player?.maxHp).toBe(statsFor("rogue", 1).maxHp);
+    const { client, player } = await joinAs(room, "rogue", "  Ana\u0007  ");
+    expect(player.name).toBe("Ana");
+    expect(player.classId).toBe("rogue");
+    expect(player.maxHp).toBe(statsFor("rogue", 1).maxHp);
+    expect(player.hp).toBe(player.maxHp);
+    expect(player.speed).toBe(statsFor("rogue", 1).speed);
     expect(room.state.roster.get(client.sessionId)?.level).toBe(1);
+  });
 
-    // Picking again does nothing.
-    client.send(Msg.spawn, { classId: "knight" });
-    await room.waitForNextMessage();
-    expect(room.state.players.get(client.sessionId)?.classId).toBe("rogue");
+  it("turns an unknown or missing class into a knight", async () => {
+    const room = await createWorld();
+    const { player } = await joinAs(room, "wizard");
+    const bot = await colyseus.connectTo(room, { v });
+    expect(player.classId).toBe("knight");
+    expect(room.state.players.get(bot.sessionId)?.classId).toBe("knight");
   });
 
   it("moves a player one fixed step per input at its class speed", async () => {
     const room = await createWorld();
     const { client, player } = await joinAs(room, "rogue");
-    const startX = player.x;
+    const startY = player.y;
 
     const input = client.input<PlayerInput>({ mode: "reliable" });
-    input.data.moveX = 1;
+    input.data.moveY = 1;
     input.send();
-    await vi.waitFor(() => expect(player.x).toBeGreaterThan(startX));
-    expect(player.x).toBeCloseTo(startX + statsFor("rogue", 1).speed * TICK_DT);
+    await vi.waitFor(() => expect(player.y).toBeGreaterThan(startY));
+    expect(player.y).toBeCloseTo(startY + statsFor("rogue", 1).speed * TICK_DT);
   });
 
   it("clamps out-of-range input from a modified client", async () => {
     const room = await createWorld();
     const { client, player } = await joinAs(room, "knight");
-    const startX = player.x;
+    const startY = player.y;
 
     const input = client.input<PlayerInput>({ mode: "reliable" });
-    input.data.moveX = 100 as unknown as 1;
+    input.data.moveY = 100 as unknown as 1;
     input.send();
-    await vi.waitFor(() => expect(player.x).toBeGreaterThan(startX));
-    expect(player.x).toBeCloseTo(startX + statsFor("knight", 1).speed * TICK_DT);
+    await vi.waitFor(() => expect(player.y).toBeGreaterThan(startY));
+    expect(player.y).toBeCloseTo(startY + statsFor("knight", 1).speed * TICK_DT);
   });
 
   it("applies at most a few inputs per tick, so sending faster doesn't move faster", async () => {
     const room = await createWorld();
     const { client, player } = await joinAs(room, "rogue");
-    const startX = player.x;
+    const startY = player.y;
     const stepPx = statsFor("rogue", 1).speed * TICK_DT;
 
     const input = client.input<PlayerInput>({ mode: "reliable" });
-    input.data.moveX = 1;
+    input.data.moveY = 1;
     for (let i = 0; i < 40; i++) input.send();
     await room.waitForNextMessage();
     for (let t = 0; t < 10; t++) await room.waitForNextTimestep();
 
-    const steps = Math.round((player.x - startX) / stepPx);
+    const steps = Math.round((player.y - startY) / stepPx);
     expect(steps).toBeGreaterThanOrEqual(1);
     expect(steps).toBeLessThanOrEqual(4 + 10 + 1);
   });
@@ -140,12 +142,13 @@ describe("WorldRoom", () => {
     expect(room.state.mapId).toBe("overworld");
   });
 
-  it("fills the world with enemies from the map", async () => {
+  it("fills the world with enemies and chests from the map", async () => {
     const room = await createWorld();
     await room.waitForNextTimestep();
-    expect(room.state.enemies.size).toBeGreaterThan(10);
+    expect(room.state.enemies.size).toBe(objects.enemies.length);
     const kinds = new Set([...room.state.enemies.values()].map((e) => e.kind));
     expect(kinds).toEqual(new Set(["slime", "goblin"]));
+    expect(room.state.chests.size).toBe(objects.chests.length);
   });
 
   it("a sword kill gives XP, levels up and drops rupees the player can collect", async () => {
@@ -155,10 +158,10 @@ describe("WorldRoom", () => {
     const levelUps: LevelUpMessage[] = [];
     client.onMessage(Msg.levelUp, (m: LevelUpMessage) => levelUps.push(m));
 
-    // An enemy right in front of the player (facing east), one hit from death.
-    const { id, enemy } = pinEnemy(room, room.state, player.x + 12, player.y);
+    // An enemy right in front of the player (facing south), one hit from death.
+    const { id, enemy } = pinEnemy(room, room.state, player.x, player.y + 12);
     enemy.hp = 1;
-    player.facing = 0;
+    player.facing = 2;
     player.xp = xpToNext(1) - 1;
 
     const input = client.input<PlayerInput>({ mode: "reliable" });
@@ -175,11 +178,11 @@ describe("WorldRoom", () => {
     // The drop lies where the enemy died; walk onto it.
     const drop = [...room.state.pickups.values()][0];
     expect(drop?.kind).toBe("rupee");
-    expect(drop?.value).toBeGreaterThanOrEqual(1);
     const value = drop?.value ?? 0;
+    expect(value).toBeGreaterThanOrEqual(1);
     input.data.attack = 0;
-    input.data.moveX = 1;
-    for (let i = 0; i < 6; i++) {
+    input.data.moveY = 1;
+    for (let i = 0; i < 8; i++) {
       input.send();
       await room.waitForNextTimestep();
     }
@@ -215,13 +218,114 @@ describe("WorldRoom", () => {
     expect(screenOf(player.x, player.y)).toEqual({ col: 1, row: 1 });
   });
 
+  it("weapons fire with the attack button; every copy adds a projectile, and they hurt enemies", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const shooter = await joinAs(room, "knight", "S");
+    const watcher = await joinAs(room, "rogue", "W");
+    const seenByWatcher: ShotMessage[] = [];
+    const seenByShooter: ShotMessage[] = [];
+    watcher.client.onMessage(Msg.shot, (m: ShotMessage) => seenByWatcher.push(m));
+    shooter.client.onMessage(Msg.shot, (m: ShotMessage) => seenByShooter.push(m));
+
+    for (let i = 0; i < 3; i++)
+      internals(room).giveRelic(shooter.client.sessionId, shooter.player, "dagger", 0, "chest");
+    expect(shooter.player.daggerN).toBe(3);
+
+    // A sturdy enemy straight south, out of sword reach but within dagger range.
+    const { enemy } = pinEnemy(room, room.state, shooter.player.x, shooter.player.y + 48);
+    enemy.hp = 500;
+    shooter.player.facing = 2;
+    const input = shooter.client.input<PlayerInput>({ mode: "reliable" });
+    input.data.attack = 1;
+    input.send();
+
+    await vi.waitFor(() => expect(seenByWatcher.length).toBe(1));
+    expect(seenByWatcher[0]?.counts[0]).toBe(3);
+    expect(seenByWatcher[0]?.owner).toBe(shooter.client.sessionId);
+    await vi.waitFor(() => expect(enemy.hp).toBeLessThan(500));
+    // The shooter predicts its own volleys; the server doesn't echo them back.
+    expect(seenByShooter).toEqual([]);
+  });
+
+  it("walking onto a chest opens it and gives a relic", async () => {
+    const room = await createWorld();
+    const { client, player } = await joinAs(room, "rogue");
+    const gains: GainMessage[] = [];
+    client.onMessage(Msg.gain, (m: GainMessage) => gains.push(m));
+    const [chestId, chest] = [...room.state.chests.entries()][0] ?? [];
+    if (!chestId || !chest) throw new Error("no chest");
+    player.x = chest.x;
+    player.y = chest.y;
+    await vi.waitFor(() => expect(chest.open).toBe(true));
+    expect(player.relics.length).toBe(1);
+    await vi.waitFor(() => expect(gains).toHaveLength(1));
+    expect(gains[0]?.source).toBe("chest");
+    expect(gains[0]?.kind).toBe(player.relics[0]?.kind);
+  });
+
+  it("vendors sell by walking onto an offer, and refuse when rupees are short", async () => {
+    const room = await createWorld();
+    const { client, player } = await joinAs(room, "knight");
+    const shops: ShopMessage[] = [];
+    const fails: unknown[] = [];
+    client.onMessage(Msg.shop, (m: ShopMessage) => shops.push(m));
+    client.onMessage(Msg.shopFail, (m: unknown) => fails.push(m));
+    const vendor = objects.vendors[0];
+    if (!vendor) throw new Error("no vendor");
+
+    // Into the cave, away from the counter: the vendor shows this player's offers.
+    player.x = vendor.x;
+    player.y = vendor.y + 80;
+    await vi.waitFor(() => expect(shops).toHaveLength(1));
+    const potionSlot = shops[0]?.offers.findIndex((o) => o.kind === "potion") ?? -1;
+    expect(potionSlot).toBeGreaterThanOrEqual(0);
+    const spot = offerPosition(vendor, potionSlot);
+
+    player.hp = 1;
+    player.rupees = 0;
+    player.x = spot.x;
+    player.y = spot.y;
+    await vi.waitFor(() => expect(fails).toHaveLength(1));
+    expect(player.hp).toBe(1);
+
+    // Step off and back on with enough rupees.
+    player.rupees = 50;
+    player.y = vendor.y + 80;
+    await room.waitForNextTimestep();
+    await room.waitForNextTimestep();
+    player.x = spot.x;
+    player.y = spot.y;
+    await vi.waitFor(() => expect(player.rupees).toBe(50 - POTION_PRICE));
+    expect(player.hp).toBe(player.maxHp);
+    await vi.waitFor(() => expect(shops.at(-1)?.offers[potionSlot]?.sold).toBe(true));
+  });
+
+  it("cave entrances lead into the cave and back out", async () => {
+    const room = await createWorld();
+    const { client, player } = await joinAs(room, "rogue");
+    // The first portal is a cave entrance in the overworld; stand just below it and walk up.
+    const entrance = objects.portals.find((p) => screenOf(p.x, p.y).row < 3);
+    if (!entrance) throw new Error("no cave entrance");
+    player.x = entrance.x + entrance.width / 2;
+    player.y = entrance.y + entrance.height + 8;
+    const input = client.input<PlayerInput>({ mode: "reliable" });
+    input.data.moveY = -1;
+    for (let i = 0; i < 20 && player.warp === 0; i++) {
+      input.send();
+      await room.waitForNextTimestep();
+    }
+    await vi.waitFor(() => expect(player.warp).toBe(1));
+    expect(screenOf(player.x, player.y).row).toBe(3);
+  });
+
   it("players can't hurt each other while PvP is off", async () => {
     const room = await createWorld();
     const a = await joinAs(room, "barbarian", "A");
     const b = await joinAs(room, "rogue", "B");
-    b.player.x = a.player.x + 12;
-    b.player.y = a.player.y;
-    a.player.facing = 0;
+    b.player.x = a.player.x;
+    b.player.y = a.player.y + 12;
+    a.player.facing = 2;
     const input = a.client.input<PlayerInput>({ mode: "reliable" });
     input.data.attack = 1;
     input.send();

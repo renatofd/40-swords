@@ -12,6 +12,11 @@ import Phaser from "phaser";
 export const TEX_SWING = "fx:swing";
 export const TEX_FACING = "fx:facing";
 export const TEX_SHADOW = "fx:shadow";
+export const TEX_CHEST = "prop:chest";
+export const TEX_CHEST_OPEN = "prop:chest-open";
+export const TEX_MERCHANT = "npc:merchant";
+export const TEX_PEDESTAL = "prop:pedestal";
+export const projectileTexture = (weapon: string) => `shot:${weapon}`;
 export const rupeeTexture = (value: number) => (value >= 5 ? "pickup:rupee-blue" : "pickup:rupee-green");
 
 const darken = (color: number, f: number) => {
@@ -95,6 +100,56 @@ export function createPlaceholderArt(scene: Phaser.Scene) {
   g.clear();
   g.fillStyle(0x000000, 0.3).fillEllipse(6, 2, 12, 4);
   g.generateTexture(TEX_SHADOW, 12, 4);
+
+  // Chest, closed and open.
+  g.clear();
+  g.fillStyle(0x3a2412).fillRect(0, 3, 14, 10);
+  g.fillStyle(0x8a5a2e).fillRect(1, 4, 12, 8);
+  g.fillStyle(0x6b4523).fillRect(1, 7, 12, 1);
+  g.fillStyle(0xe8c050).fillRect(6, 6, 2, 3).fillRect(0, 3, 14, 1);
+  g.generateTexture(TEX_CHEST, 14, 13);
+  g.clear();
+  g.fillStyle(0x3a2412).fillRect(0, 0, 14, 4).fillRect(0, 5, 14, 8);
+  g.fillStyle(0x8a5a2e).fillRect(1, 1, 12, 2).fillRect(1, 9, 12, 3);
+  g.fillStyle(0x140c06).fillRect(1, 6, 12, 3);
+  g.fillStyle(0xe8c050).fillRect(0, 3, 14, 1);
+  g.generateTexture(TEX_CHEST_OPEN, 14, 13);
+
+  // Merchant: a hooded traveller with a huge pack and a lantern.
+  g.clear();
+  g.fillStyle(0x5a3a1e).fillRoundedRect(8, 2, 8, 11, 2); // pack
+  g.fillStyle(0x3c2a5a).fillRoundedRect(2, 6, 10, 10, 3); // robe
+  g.fillStyle(0x2a1d40).fillTriangle(2, 8, 12, 8, 7, 0); // hood
+  g.fillStyle(0xe8c9a0).fillCircle(7, 6, 2.5);
+  g.fillStyle(0x221a14).fillRect(6, 6, 1, 1).fillRect(8, 6, 1, 1);
+  g.fillStyle(0xffd860).fillCircle(2, 12, 2); // lantern
+  g.generateTexture(TEX_MERCHANT, 17, 16);
+
+  // Pedestal under vendor offers.
+  g.clear();
+  g.fillStyle(0x55555f).fillRect(1, 2, 12, 6);
+  g.fillStyle(0x9a9aa6).fillRect(0, 0, 14, 3);
+  g.generateTexture(TEX_PEDESTAL, 14, 8);
+
+  // Weapon projectiles, pointing east (rotated at runtime).
+  g.clear();
+  g.fillStyle(0xd8dce8).fillTriangle(2, 0, 9, 2, 2, 4);
+  g.fillStyle(0x6b4523).fillRect(0, 1, 3, 2);
+  g.generateTexture(projectileTexture("dagger"), 9, 4);
+  g.clear();
+  g.fillStyle(0xff6a1a, 0.6).fillCircle(5, 5, 5);
+  g.fillStyle(0xffb030).fillCircle(5, 5, 3.5);
+  g.fillStyle(0xfff0a0).fillCircle(5, 5, 1.8);
+  g.generateTexture(projectileTexture("fireball"), 10, 10);
+  g.clear();
+  g.fillStyle(0x8a5a2e).fillRect(0, 1, 9, 1);
+  g.fillStyle(0xd0d4e0).fillTriangle(8, 0, 11, 1.5, 8, 3);
+  g.fillStyle(0xf0f0f0).fillRect(0, 0, 2, 1).fillRect(0, 2, 2, 1);
+  g.generateTexture(projectileTexture("arrow"), 11, 3);
+  g.clear();
+  g.fillStyle(0x9fe8ff).fillTriangle(0, 2.5, 3, 0, 3, 5).fillTriangle(6, 2.5, 3, 0, 3, 5);
+  g.fillStyle(0xffffff).fillRect(2, 2, 2, 1);
+  g.generateTexture(projectileTexture("nova"), 6, 5);
 
   g.destroy();
 }

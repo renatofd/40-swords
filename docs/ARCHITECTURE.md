@@ -67,13 +67,18 @@ O jogo exporta um `GameModule` (`game/client/src/index.ts`) e salas que estendem
 export const game: GameModule<ArenaState> = {
   title, id, protocolVersion, roomName, rootSchema,
   resolution, orientation, preload, scenes, gameSceneKey,
-  actions,   // ações extras: teclas, botão de gamepad e botão de toque
-  messages,  // textos do jogo nos 14 idiomas
+  actions,     // ações extras: teclas, botão de gamepad e botão de toque
+  messages,    // textos do jogo nos 14 idiomas
+  beforeJoin,  // opcional: tela entre "Jogar" e a entrada na sala (personagem, mapa...)
 };
+
+// beforeJoin(ctx): mostra a tela do jogo e diz em qual sala entrar
+ctx.show(() => elemento)   // tela cheia, como os menus do núcleo (refeita ao trocar o idioma)
+return { roomName, options }   // sala (opcional) e opções de entrada; ou null para voltar ao menu
 
 // a cena do jogo recebe o contexto em init(ctx: GameContext)
 ctx.room       // sala Colyseus já conectada, com o primeiro estado recebido
-ctx.input      // move {x,y} e isDown("acao")
+ctx.input      // move {x,y}, isDown("acao") (segurando) e wasPressed("acao") (apertou desde o último quadro)
 ctx.t          // tradução
 ctx.hud        // elemento DOM para widgets de HUD do jogo
 ctx.audio      // playMusic("theme"), playSfx("join"): volumes do jogador já aplicados
@@ -114,7 +119,8 @@ Queda de conexão: o SDK tenta reconectar sozinho e a tela mostra "Reconectando�
 |---|---|
 | Nova regra de jogo (dash, dano) | `game/shared` (pura, com testes) + aplicar em `ArenaRoom.step` |
 | Novo campo sincronizado | `game/shared/src/net/schema.ts` + aumentar `PROTOCOL_VERSION` |
-| Nova ação (botão) | `actions` no GameModule + `ctx.input.isDown("id")` + campo no input schema |
+| Nova ação (botão) | `actions` no GameModule + `ctx.input.isDown("id")` (segurar) ou `ctx.input.wasPressed("id")` (toque único, não perde toques rápidos) + campo no input schema |
+| Escolher personagem/mapa antes de entrar | `beforeJoin` no GameModule: a escolha vai nas opções de entrada (`options`) e na sala (`roomName`); valide no `onJoin` do servidor (veja `game/client/src/ui/pickColor.ts`) |
 | Texto novo | `game/client/src/messages.ts` (14 idiomas; o teste acusa os que faltam) |
 | Fim de partida | `ctx.endMatch({ title, rows })` na cena |
 | HUD do jogo (placar) | Elementos DOM em `ctx.hud`, estilos em `game/client/src/styles.css` |

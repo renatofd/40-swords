@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { joinMatch, sessionId } from "./helpers";
+import { joinMatch, pickHero, sessionId } from "./helpers";
 
 test("two players join the same match", async ({ browser }) => {
   const a = await (await browser.newContext()).newPage();
@@ -93,6 +93,7 @@ test("connecting can be cancelled back to the menu", async ({ page }) => {
   // Matchmaking never answers.
   await page.route("**/matchmake/**", () => {});
   await page.locator("button[type=submit]").click();
+  await pickHero(page, "knight");
   await expect(page.getByText("Connecting")).toBeVisible();
   await page.getByRole("button", { name: "Back to menu" }).click();
   await expect(page.locator(".ui-menu")).toBeVisible();

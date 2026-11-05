@@ -1,6 +1,7 @@
 import type { Translate } from "../i18n";
 import { GamepadSource } from "./GamepadSource";
 import { KeyboardSource } from "./KeyboardSource";
+import { PressTracker } from "./PressTracker";
 import { TouchControls } from "./TouchControls";
 import type { ActionBinding, Vec2 } from "./types";
 
@@ -18,8 +19,9 @@ export function isTouchDevice(): boolean {
  * Unified input: keyboard + gamepad + touch, merged into one movement vector and
  * a set of named actions. Games read this instead of any specific device.
  *
- *   const { x, y } = ctx.input.move;   // -1..1 each, length <= 1
- *   if (ctx.input.isDown("dash")) ...
+ *   const { x, y } = ctx.input.move;      // -1..1 each, length <= 1
+ *   if (ctx.input.isDown("shield")) ...   // held right now
+ *   if (ctx.input.wasPressed("dash")) ... // pressed since the last frame (even a quick tap)
  */
 export class InputManager {
   private keyboard: KeyboardSource;
@@ -28,13 +30,17 @@ export class InputManager {
   private actions: Map<string, ActionBinding>;
   private current: Vec2 = { x: 0, y: 0 };
   private active = false;
+  private presses = new PressTracker();
+  /** Actions whose gamepad button was down at the last poll (gamepads are polled, not evented). */
+  private padDown = new Set<string>();
   /** Whether touch controls are shown while playing. Switches on at the first touch. */
   private touchMode = isTouchDevice();
 
   constructor(uiRoot: HTMLElement, actions: ActionBinding[], t: Translate) {
     this.actions = new Map(actions.map((a) => [a.id, a]));
-    this.keyboard = new KeyboardSource(actions);
-    this.touch = new TouchControls(uiRoot, actions, t);
+    const onPress = (id: string) => this.presses.press(id);
+    this.keyboard = new KeyboardSource(actions, onPress);
+    this.touch = new TouchControls(uiRoot, actions, t, onPress);
     window.addEventListener("touchstart", this.onFirstTouch, { passive: true, once: true });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.reset();
@@ -46,10 +52,20 @@ export class InputManager {
     return this.current;
   }
 
+  /** True while the action is held. A tap shorter than a frame can be missed: use `wasPressed` for one-shot actions. */
   isDown(actionId: string): boolean {
     const action = this.actions.get(actionId);
     if (!action || !this.active) return false;
     return this.keyboard.isDown(action) || this.gamepad.isDown(action) || this.touch.isDown(action);
+  }
+
+  /**
+   * True during the frame after the action was pressed, even if it was released
+   * again before that frame (a quick tap). Use it for one-shot actions (attack,
+   * jump, open a panel). Each press counts once; holding doesn't repeat.
+   */
+  wasPressed(actionId: string): boolean {
+    return this.active && this.presses.wasPressed(actionId);
   }
 
   /** Enables capture while a match is running; disabled in menus so typing works normally. */
@@ -69,9 +85,17 @@ export class InputManager {
   update() {
     if (!this.active) {
       this.current = { x: 0, y: 0 };
+      this.presses.clear();
       return;
     }
     this.gamepad.poll();
+    for (const action of this.actions.values()) {
+      const down = this.gamepad.isDown(action);
+      if (down && !this.padDown.has(action.id)) this.presses.press(action.id);
+      if (down) this.padDown.add(action.id);
+      else this.padDown.delete(action.id);
+    }
+    this.presses.update();
     const sources = [this.keyboard.move(), this.gamepad.move(), this.touch.move()];
     let x = 0;
     let y = 0;
@@ -86,6 +110,7 @@ export class InputManager {
   reset() {
     this.keyboard.reset();
     this.touch.reset();
+    this.presses.clear();
     this.current = { x: 0, y: 0 };
   }
 

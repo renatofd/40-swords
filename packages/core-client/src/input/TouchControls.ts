@@ -22,10 +22,12 @@ export class TouchControls {
   private pressed = new Set<string>();
   private buttons: { action: ActionBinding; el: HTMLButtonElement }[] = [];
 
+  /** @param onPress called when an action button is pressed. */
   constructor(
     parent: HTMLElement,
     actions: ActionBinding[],
     private readonly t: Translate,
+    private readonly onPress: (actionId: string) => void = () => {},
   ) {
     this.root = el("div", "touch-controls");
     this.zone = el("div", "touch-stick-zone");
@@ -125,6 +127,7 @@ export class TouchControls {
     button.addEventListener("pointerdown", (e) => {
       button.setPointerCapture(e.pointerId);
       this.pressed.add(id);
+      this.onPress(id);
       button.classList.add("pressed");
     });
     button.addEventListener("pointerup", release);

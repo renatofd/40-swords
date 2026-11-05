@@ -5,7 +5,7 @@ Esta pasta é a **fonte única** do conteúdo. O cliente importa daqui (via Vite
 ```text
 content/
 ├── maps/
-│   ├── game.tiled-project   Abra este arquivo no Tiled (define as classes "spawn" e "enemy")
+│   ├── game.tiled-project   Abra este arquivo no Tiled (classes spawn, enemy, chest, vendor, portal, dest)
 │   └── overworld.tmj        O mundo do 40 Swords (gerado por tools/world-gen, editável no Tiled)
 ├── tilesets/overworld.png   Tileset provisório (16x16, extrudado)
 ├── sprites/

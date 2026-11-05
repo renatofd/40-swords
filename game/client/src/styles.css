@@ -8,6 +8,9 @@
 
 .sw-status {
   position: absolute;
+  /* Above the touch joystick zone (z-index 1), like the core HUD buttons: it is tapped to open the details. */
+  z-index: 2;
+  pointer-events: auto;
   inset-block-start: max(56px, calc(var(--ui-safe-top) + 48px));
   inset-inline-start: max(8px, var(--ui-safe-inline-start));
   display: grid;
@@ -79,27 +82,20 @@
   font-weight: bold;
 }
 
-/* ─── Hero and map select ─────────────────────────────────────────────── */
+/* ─── Hero and map select (shown by the core before joining) ──────────── */
 
 .sw-select {
-  position: absolute;
-  /* Starts below the core HUD bar (menu, chat), which stays usable; covers the touch controls. */
-  inset: max(56px, calc(var(--ui-safe-top) + 48px)) 0 0;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 12px;
-  padding: 8px 16px 16px;
-  overflow: auto;
-  background: rgb(8 8 14 / 0.82);
-  pointer-events: auto;
+  inline-size: min(760px, 100%);
 }
 
 .sw-select-title {
   margin: 0;
   font-size: 22px;
+  text-shadow: 0 2px 0 #000;
 }
 
 .sw-cards {
@@ -107,7 +103,6 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  max-inline-size: 760px;
 }
 
 .sw-card {
@@ -179,6 +174,203 @@
   text-align: center;
 }
 
+@media (max-height: 420px) {
+  .sw-card {
+    inline-size: 190px;
+    padding: 8px;
+  }
+  .sw-stats {
+    font-size: 11px;
+  }
+}
+
+/* ─── Relics: bar, details panel, "found" cards ─────────────────────── */
+
+.sw-status-main {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.sw-relic-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-inline-start: 6px;
+}
+
+.sw-relic {
+  --sw-rarity: #ccc;
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 20px;
+  font-size: 12px;
+  background: rgb(0 0 0 / 0.4);
+  border: 2px solid var(--sw-rarity);
+  border-radius: 4px;
+}
+
+.sw-relic-count {
+  position: absolute;
+  inset-block-end: -5px;
+  inset-inline-end: -5px;
+  min-inline-size: 12px;
+  padding-inline: 2px;
+  font-size: 9px;
+  font-weight: bold;
+  line-height: 12px;
+  text-align: center;
+  color: #000;
+  background: var(--sw-rarity);
+  border-radius: 6px;
+}
+
+.sw-details {
+  max-block-size: min(60vh, 420px);
+  margin-block-start: 6px;
+  padding-block-start: 6px;
+  overflow-y: auto;
+  border-block-start: 1px solid var(--ui-border);
+}
+
+.sw-details h3 {
+  margin: 6px 0 4px;
+  font-size: 12px;
+  color: var(--ui-accent);
+  text-transform: uppercase;
+}
+
+.sw-relic-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.sw-relic-list li {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-inline-start: 4px;
+  border-inline-start: 3px solid var(--sw-rarity);
+}
+
+.sw-relic-icon {
+  font-size: 16px;
+}
+
+.sw-rarity {
+  color: var(--sw-rarity, #ccc);
+  font-weight: bold;
+}
+
+.sw-muted {
+  color: var(--ui-muted);
+}
+
+/* Beside the play area (under the scoreboard), so they never hide a vendor or an enemy. */
+.sw-gains {
+  position: absolute;
+  inset-block-start: max(170px, calc(var(--ui-safe-top) + 162px));
+  inset-inline-end: max(8px, var(--ui-safe-inline-end));
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.sw-gain {
+  --sw-rarity: #ccc;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  inline-size: 200px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--ui-bg);
+  border: 2px solid var(--sw-rarity);
+  border-radius: var(--ui-radius);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--sw-rarity) 60%, transparent);
+  animation: sw-pop 0.25s ease-out;
+  transition: opacity 0.4s;
+}
+
+.sw-gain-out {
+  opacity: 0;
+}
+
+.sw-gain-icon {
+  font-size: 24px;
+}
+
+.sw-gain-name {
+  color: var(--sw-rarity);
+  font-size: 15px;
+}
+
+@keyframes sw-pop {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* ─── Vendor offers (anchored over their pedestals) ─────────────────── */
+
+.sw-offer {
+  --sw-rarity: #ccc;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  font-size: max(10px, calc(var(--sw-px, 4px) * 2.6));
+  text-shadow: 0 1px 0 #000;
+}
+
+.sw-offer-icon {
+  font-size: max(14px, calc(var(--sw-px, 4px) * 4.5));
+  filter: drop-shadow(0 0 3px var(--sw-rarity));
+}
+
+.sw-offer-price {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  font-weight: bold;
+}
+
+.sw-offer-sold {
+  opacity: 0.5;
+}
+
+.sw-offer-details {
+  display: none;
+  inline-size: max-content;
+  max-inline-size: 180px;
+  padding: 4px 8px;
+  text-align: center;
+  background: var(--ui-bg);
+  border: 2px solid var(--sw-rarity);
+  border-radius: var(--ui-radius);
+}
+
+.sw-offer-details > * {
+  display: block;
+}
+
+.sw-offer-near .sw-offer-details {
+  display: block;
+}
+
 /* ─── Hint ────────────────────────────────────────────────────────────── */
 
 .sw-hint {
@@ -196,19 +388,6 @@
   text-align: center;
 }
 
-@media (max-height: 420px) {
-  .sw-select {
-    justify-content: flex-start;
-  }
-  .sw-card {
-    inline-size: 190px;
-    padding: 8px;
-  }
-  .sw-stats {
-    font-size: 11px;
-  }
-}
-
 /* ─── World labels (names, damage numbers) ───────────────────────────── */
 
 .sw-labels {
@@ -219,20 +398,22 @@
 }
 
 /* Positioned with a physical translate from the canvas, so these anchor at left/top in any direction. */
-.sw-name,
-.sw-dmg {
+.sw-anchor {
   position: absolute;
   left: 0;
   top: 0;
   will-change: transform;
 }
 
-.sw-name > span,
-.sw-dmg > span {
+.sw-anchor > * {
   position: absolute;
   bottom: 0;
   transform: translateX(-50%);
   white-space: nowrap;
+}
+
+.sw-name,
+.sw-dmg {
   font-size: 12px;
   font-weight: 600;
   color: #fff;
@@ -243,22 +424,22 @@
     0 -1px 0 #000;
 }
 
-.sw-name-self > span {
+.sw-name-self {
   color: #fff7a8;
 }
 
-.sw-dmg > span {
+.sw-dmg {
   font-size: 14px;
   font-weight: bold;
   animation: sw-float 0.7s ease-out forwards;
 }
 
-.sw-dmg-crit > span {
+.sw-dmg-crit {
   font-size: 19px;
   color: #ffe04a;
 }
 
-.sw-dmg-player > span {
+.sw-dmg-player {
   color: #ff5a5a;
 }
 

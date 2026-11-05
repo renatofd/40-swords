@@ -1,6 +1,8 @@
 import type { Stats } from "./classes";
+import { clampRarity, RARITY_WEAPON_POWER } from "./relics";
 import type { Rng } from "./rng";
 import { facingVector } from "./simulation/facing";
+import { WEAPONS, type WeaponId } from "./weapons";
 
 /** Circle the sword covers on the swing tick. */
 export interface Hitbox {
@@ -27,13 +29,29 @@ export interface HitResult {
   heal: number;
 }
 
-/** Damage of one sword hit, after crits and the target's flat defense (min 1). */
-export function rollHit(attacker: Stats, targetDefense: number, rng: Rng): HitResult {
+/** Applies the attacker's crit and life steal to a raw hit, then the target's flat defense (min 1). */
+function rollDamage(raw: number, attacker: Stats, targetDefense: number, rng: Rng): HitResult {
   const crit = rng() < attacker.critChance;
-  const raw = attacker.damage * (crit ? attacker.critDamage : 1);
-  const amount = Math.max(1, Math.round(raw - targetDefense));
+  const amount = Math.max(1, Math.round(raw * (crit ? attacker.critDamage : 1) - targetDefense));
   return { amount, crit, heal: amount * attacker.lifesteal };
 }
+
+/** Damage of one sword hit. */
+export const rollHit = (attacker: Stats, targetDefense: number, rng: Rng): HitResult =>
+  rollDamage(attacker.damage, attacker, targetDefense, rng);
+
+/** Damage of a weapon projectile before crits: its rarity plus a share of the hero's strength. */
+export const projectileDamage = (weapon: WeaponId, rarity: number, attacker: Stats): number =>
+  WEAPONS[weapon].damage * (RARITY_WEAPON_POWER[clampRarity(rarity)] ?? 1) + attacker.damage * WEAPONS[weapon].scaling;
+
+/** Damage of one weapon projectile hit. */
+export const rollProjectileHit = (
+  weapon: WeaponId,
+  rarity: number,
+  attacker: Stats,
+  targetDefense: number,
+  rng: Rng,
+): HitResult => rollDamage(projectileDamage(weapon, rarity, attacker), attacker, targetDefense, rng);
 
 /** Damage taken from a raw hit, after flat defense (min 1). */
 export const mitigate = (raw: number, defense: number): number => Math.max(1, Math.round(raw - defense));
