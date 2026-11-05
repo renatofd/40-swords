@@ -1,4 +1,5 @@
 import type { EnemyKind, ShotStyle } from "../enemies";
+import type { MatchSummary } from "../progress";
 import type { OfferItem, RelicKind } from "../relics";
 
 /** Message types between client and server (besides per-tick inputs and the state). */
@@ -31,6 +32,8 @@ export const Msg = {
   bots: "bots",
   /** server → one client: you picked up a rupee or a heart. */
   picked: "pick",
+  /** server → one client: your match is over (you fell, or it ended): how it went. */
+  summary: "sum",
 } as const;
 
 /** What monsters drop: rupees (`value` = how many) and hearts (heal HEART_HEAL of max health). */
@@ -138,3 +141,6 @@ export interface PickedMessage {
   /** Rupees gained, or health restored. */
   value: number;
 }
+
+/** Sent once per match to each player, when their hero falls or when the match ends with it standing. */
+export type SummaryMessage = MatchSummary;

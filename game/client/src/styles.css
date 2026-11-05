@@ -706,3 +706,135 @@
 .sw-lobby-bots-hint {
   margin: 4px 0 0;
 }
+
+/* ─── Progression: end-of-match summary, hero colours, room wins ─────────── */
+
+.sw-summary {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: 26%;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: min(340px, 90vw);
+  max-block-size: calc(100% - 30% - 16px);
+  overflow-y: auto;
+  padding: 10px 14px 12px;
+  text-align: center;
+  background: rgb(16 16 24 / 0.92);
+  border: 2px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  pointer-events: auto;
+}
+
+.sw-summary[data-won="true"] {
+  border-color: #e0b840;
+}
+
+.sw-summary-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  text-shadow: 0 2px 0 #000;
+}
+
+.sw-summary[data-won="true"] .sw-summary-title {
+  color: #ffe68a;
+}
+
+.sw-summary-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-align: start;
+}
+
+.sw-summary-stats dt {
+  color: var(--ui-muted);
+}
+
+.sw-summary-stats dd {
+  margin: 0;
+  font-weight: bold;
+  text-align: end;
+}
+
+.sw-summary-career {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.sw-summary-unlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #ffe68a;
+}
+
+.sw-swatch {
+  display: inline-block;
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: 50%;
+  background: var(--sw-swatch);
+  border: 1px solid rgb(255 255 255 / 0.5);
+}
+
+.sw-colours {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sw-colours-label {
+  font-size: 13px;
+  color: var(--ui-muted);
+}
+
+.sw-colours-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sw-colour {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
+  font-size: 13px;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.25);
+  background: var(--sw-swatch);
+  cursor: pointer;
+}
+
+.sw-colour:focus-visible,
+.sw-colour-on {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--ui-accent, #f0c040);
+}
+
+.sw-colour-locked {
+  filter: grayscale(0.85) brightness(0.6);
+  cursor: help;
+}
+
+.sw-colours-note,
+.sw-career {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.sw-lobby-wins {
+  margin-inline-start: 2px;
+  color: #ffe68a;
+}

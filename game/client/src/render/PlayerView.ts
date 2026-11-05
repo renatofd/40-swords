@@ -1,5 +1,5 @@
 import { animKey } from "@core/client";
-import { facingVector } from "@game/shared";
+import { facingVector, PALETTES } from "@game/shared";
 import type Phaser from "phaser";
 import { artFor, heroTexture, TEX_FACING, TEX_SHADOW, TEX_SWING } from "./placeholderArt";
 
@@ -27,12 +27,17 @@ export class PlayerView {
     private readonly scene: Phaser.Scene,
     classId: string,
     isSelf: boolean,
+    /** Hero colour (PALETTES index). */
+    palette = 0,
   ) {
-    const art = artFor(scene, classId, heroTexture(classId));
+    const art = artFor(scene, classId, heroTexture(classId, palette));
     this.animated = art.animated;
     const shadow = scene.add.image(0, 7, TEX_SHADOW);
     this.body = scene.add.sprite(0, 0, art.texture);
     if (this.animated) this.body.play(animKey(art.texture, "idle"));
+    // Real sprites (content/sprites) are tinted with the colour instead.
+    const color = PALETTES[palette]?.color;
+    if (this.animated && color !== undefined) this.body.setTint(color);
     this.marker = scene.add.image(0, 0, TEX_FACING);
     this.swing = scene.add.image(0, 0, TEX_SWING).setVisible(false).setOrigin(0.2, 0.5);
     this.container = scene.add.container(0, 0, [shadow, this.body, this.marker, this.swing]).setDepth(isSelf ? 11 : 10);

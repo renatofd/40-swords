@@ -7,6 +7,8 @@ export interface LobbyEntry {
   ready: boolean;
   /** Connection dropped (may come back): not waited for. */
   away: boolean;
+  /** Matches won in this room. */
+  wins: number;
 }
 
 /**
@@ -59,6 +61,9 @@ export class LobbyPanel {
           },
           h("span", { "aria-hidden": "true" }, e.away ? "⏳" : e.ready ? "✔" : "…"),
           e.name,
+          e.wins > 0
+            ? h("span", { className: "sw-lobby-wins", title: t("lobby.wins", { wins: e.wins }) }, `🏆${e.wins}`)
+            : null,
         ),
       ),
     );

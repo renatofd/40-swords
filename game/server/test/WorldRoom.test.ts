@@ -17,6 +17,7 @@ import {
   MatchPhase,
   Msg,
   offerPosition,
+  PALETTES,
   type PickedMessage,
   type Player,
   type PlayerInput,
@@ -27,6 +28,7 @@ import {
   type ShopMessage,
   type ShotMessage,
   START_COUNTDOWN_SECONDS,
+  type SummaryMessage,
   screenOf,
   statsFor,
   TICK_DT,
@@ -170,6 +172,14 @@ describe("WorldRoom", () => {
     expect(player.hp).toBe(player.maxHp);
     expect(player.speed).toBe(statsFor("rogue", 1).speed);
     expect(room.state.roster.get(client.sessionId)?.level).toBe(1);
+  });
+
+  it("takes the hero colour from the join options, if it is a known one", async () => {
+    const room = await createWorld();
+    const gold = await colyseus.connectTo(room, { v, name: "G", classId: "knight", palette: PALETTES.length - 1 });
+    const odd = await colyseus.connectTo(room, { v, name: "O", classId: "knight", palette: 99 });
+    expect(room.state.players.get(gold.sessionId)?.palette).toBe(PALETTES.length - 1);
+    expect(room.state.players.get(odd.sessionId)?.palette).toBe(0);
   });
 
   it("turns an unknown or missing class into a knight", async () => {
@@ -744,6 +754,55 @@ describe("WorldRoom", () => {
       input.data.attack = 1;
       input.send();
       await vi.waitFor(() => expect(b.player.hp).toBeLessThan(b.player.maxHp));
+    });
+
+    it("each player gets a summary of their match; wins and heroes defeated carry over in the room", async () => {
+      const room = await createWorld();
+      const a = await joinAs(room, "barbarian", "A");
+      const b = await joinAs(room, "rogue", "B");
+      await play(room, a, b);
+      const summaries = new Map<string, SummaryMessage[]>();
+      for (const hero of [a, b]) {
+        const list: SummaryMessage[] = [];
+        summaries.set(hero.client.sessionId, list);
+        hero.client.onMessage(Msg.summary, (m: SummaryMessage) => list.push(m));
+      }
+
+      // B slays a monster and opens a chest, then falls to A once PvP is on.
+      const { id, enemy } = pinEnemy(room, room.state, b.player.x, b.player.y + 12, { kind: "slime" });
+      enemy.hp = 1;
+      b.player.facing = 2;
+      const input = b.client.input<PlayerInput>({ mode: "reliable" });
+      input.data.attack = 1;
+      input.send();
+      await vi.waitFor(() => expect(room.state.enemies.has(id)).toBe(false));
+      input.data.attack = 0;
+      input.send();
+      const [, chest] = [...room.state.chests.entries()].find(([, c]) => !c.open) ?? [];
+      if (!chest) throw new Error("no chest");
+      b.player.x = chest.x;
+      b.player.y = chest.y;
+      await vi.waitFor(() => expect(chest.open).toBe(true));
+      await skipTo(room, DEFAULT_MATCH_TIMES.pvpAfter + 30);
+      b.player.hp = 1;
+      await swingAt(room, a, b, () => expect(b.player.out).toBe(true));
+
+      await vi.waitFor(() => expect(summaries.get(b.client.sessionId)).toHaveLength(1));
+      const fallen = summaries.get(b.client.sessionId)?.[0];
+      expect(fallen).toMatchObject({ place: 2, heroes: 2, kills: 0, monsters: 1, bosses: 0, chests: 1 });
+      expect(fallen?.level).toBe(b.player.level);
+      expect(fallen?.seconds).toBeGreaterThanOrEqual(DEFAULT_MATCH_TIMES.pvpAfter + 30);
+
+      // A is the last one standing: the winner's summary, and the room remembers.
+      await vi.waitFor(() => expect(summaries.get(a.client.sessionId)).toHaveLength(1));
+      expect(summaries.get(a.client.sessionId)?.[0]).toMatchObject({ place: 1, heroes: 2, kills: 1, monsters: 0 });
+      expect(room.state.roster.get(a.client.sessionId)).toMatchObject({ wins: 1, kills: 1 });
+      expect(room.state.roster.get(b.client.sessionId)).toMatchObject({ wins: 0, kills: 0 });
+      await skipTo(room, room.state.phaseEnds);
+      expect(room.state.phase).toBe(MatchPhase.lobby);
+      expect(room.state.roster.get(a.client.sessionId)).toMatchObject({ wins: 1, kills: 1 });
+      // One summary per match.
+      expect(summaries.get(b.client.sessionId)).toHaveLength(1);
     });
 
     it("the last hero standing wins at any moment; then everyone goes back to the waiting room", async () => {
