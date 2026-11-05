@@ -85,6 +85,17 @@
             "useAs": [
                 "object"
             ]
+        },
+        {
+            "color": "#ffe0a040",
+            "drawFill": true,
+            "id": 7,
+            "members": [],
+            "name": "arenaSpawn",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
         }
     ]
 }

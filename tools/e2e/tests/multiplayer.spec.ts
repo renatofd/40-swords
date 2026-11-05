@@ -45,8 +45,13 @@ test("chat messages reach other players, in any script", async ({ browser }) => 
   await a.keyboard.press("Enter");
 
   await expect(b.locator(".ui-chat-line").last()).toContainText("Eve: Olá! مرحبا 👋");
-  // The scoreboard lists other players too (the roster is not limited by area of interest).
-  await expect(b.locator(".ui-scoreboard")).toContainText("Eve");
+  // The player list (Tab) has everyone in the room: the roster is not limited by area of interest.
+  // (Not the scoreboard: it only shows the top five, and heroes of earlier tests may still be
+  // in the room for a few seconds, waiting to reconnect.)
+  await b.keyboard.down("Tab");
+  await expect(b.locator(".ui-playerlist")).toContainText("Eve");
+  await expect(b.locator(".ui-playerlist")).toContainText("Frank");
+  await b.keyboard.up("Tab");
   await expect(b.locator(".ui-scoreboard")).toContainText("Frank");
   await a.context().close();
   await b.context().close();

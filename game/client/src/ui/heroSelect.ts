@@ -3,6 +3,7 @@ import {
   CLASS_IDS,
   CLASSES,
   type ClassId,
+  DEFAULT_MATCH_TIMES,
   isClassId,
   MAP_IDS,
   type MapId,
@@ -112,6 +113,14 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
               },
               h("strong", { className: "sw-card-title" }, t(`map.${id}`)),
               h("span", { className: "sw-card-desc" }, t(`map.${id}.desc`)),
+              h(
+                "span",
+                { className: "sw-card-desc sw-card-rules" },
+                t("map.rules", {
+                  pvp: DEFAULT_MATCH_TIMES.pvpAfter / 60,
+                  arena: DEFAULT_MATCH_TIMES.arenaAfter / 60,
+                }),
+              ),
               h("span", { className: "ui-button primary" }, t("select.enter")),
             ),
           ),

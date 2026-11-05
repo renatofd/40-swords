@@ -2,7 +2,7 @@ import type { GameModule } from "@core/client";
 import { PROTOCOL_VERSION, ROOM_WORLD, SCREEN_HEIGHT, SCREEN_WIDTH, WorldState } from "@game/shared";
 import { MUSIC_THEME, preloadAssets, SFX_UI } from "./assets";
 import { messages } from "./messages";
-import { ACTION_ATTACK, ACTION_STATS, GAME_SCENE_KEY, GameScene } from "./scenes/GameScene";
+import { ACTION_ATTACK, ACTION_READY, ACTION_STATS, GAME_SCENE_KEY, GameScene } from "./scenes/GameScene";
 import { chooseHero } from "./ui/heroSelect";
 import "./styles.css";
 
@@ -26,6 +26,8 @@ export const game: GameModule<WorldState> = {
     { id: ACTION_ATTACK, keys: ["Space", "KeyJ"], gamepadButtons: [0, 2], touchLabel: "action.attack" },
     // Attributes panel; on touch screens, tap the status panel instead.
     { id: ACTION_STATS, keys: ["KeyC"], gamepadButtons: [3] },
+    // Waiting room: ready / not ready; on touch screens, tap the panel's button.
+    { id: ACTION_READY, keys: ["KeyR"], gamepadButtons: [9] },
   ],
   messages,
   menuMusic: MUSIC_THEME,

@@ -4,7 +4,16 @@
  */
 import { ColyseusSDK } from "@colyseus/sdk";
 import { CORE_PROTOCOL_VERSION } from "@core/shared";
-import { CLASS_IDS, type PlayerInput, PROTOCOL_VERSION, ROOM_WORLD, TICK_RATE, WorldState } from "@game/shared";
+import {
+  CLASS_IDS,
+  Msg,
+  type PlayerInput,
+  PROTOCOL_VERSION,
+  type ReadyMessage,
+  ROOM_WORLD,
+  TICK_RATE,
+  WorldState,
+} from "@game/shared";
 
 type Axis = -1 | 0 | 1;
 const randomAxis = (): Axis => (Math.floor(Math.random() * 3) - 1) as Axis;
@@ -18,7 +27,11 @@ export interface BotOptions {
   name: string;
 }
 
-/** Joins, picks a random hero and wanders swinging its sword, one input per server tick. Returns a stop function. */
+/**
+ * Joins, picks a random hero, says it is ready (the match starts once every
+ * player in the room is) and wanders swinging its sword, one input per server
+ * tick. Returns a stop function.
+ */
 export async function runBot(options: BotOptions): Promise<() => void> {
   const client = new ColyseusSDK(options.endpoint);
   const classId = CLASS_IDS[Math.floor(Math.random() * CLASS_IDS.length)] ?? "knight";
@@ -28,6 +41,8 @@ export async function runBot(options: BotOptions): Promise<() => void> {
     WorldState,
   );
 
+  const ready: ReadyMessage = { ready: true };
+  room.send(Msg.ready, ready);
   const input = room.input<PlayerInput>({ mode: "reliable" });
   let ticksUntilTurn = 0;
   const timer = setInterval(() => {

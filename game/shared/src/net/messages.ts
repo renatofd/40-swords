@@ -1,5 +1,5 @@
 import type { EnemyKind, ShotStyle } from "../enemies";
-import type { OfferItem } from "../relics";
+import type { OfferItem, RelicKind } from "../relics";
 
 /** Message types between client and server (besides per-tick inputs and the state). */
 export const Msg = {
@@ -21,6 +21,12 @@ export const Msg = {
   enemyShot: "eshot",
   /** server → everyone: a boss or mini-boss was defeated. */
   bossDown: "boss",
+  /** server → everyone: a hero is out of the match (kill feed). */
+  kill: "kill",
+  /** client → server: ready (or not) in the waiting room. */
+  ready: "ready",
+  /** client → server: while out, watch the next hero still in the match. */
+  watchNext: "watch",
 } as const;
 
 export interface DamageMessage {
@@ -58,7 +64,8 @@ export interface ProjectileEndMessage {
 export interface GainMessage {
   kind: OfferItem;
   rarity: number;
-  source: "chest" | "shop";
+  /** "loot": taken from a hero you defeated. */
+  source: "chest" | "shop" | "loot";
 }
 
 export interface OfferMessage {
@@ -93,4 +100,24 @@ export interface BossDownMessage {
   kind: EnemyKind;
   /** Name of the hero who landed the final blow. */
   by: string;
+}
+
+/** A hero fell and is out of the match. */
+export interface KillMessage {
+  cause: "hero" | "monster" | "storm";
+  /** Session id and name of the hero who won the fight (cause "hero"). */
+  killer: string;
+  killerName: string;
+  victim: string;
+  victimName: string;
+  /** The relic the winner took (none when the loser had none, or no hero did it). */
+  relic?: { kind: RelicKind; rarity: number };
+  /** Rupees the winner took. */
+  rupees: number;
+  /** Final place of the loser (2 = runner-up). */
+  place: number;
+}
+
+export interface ReadyMessage {
+  ready: boolean;
 }

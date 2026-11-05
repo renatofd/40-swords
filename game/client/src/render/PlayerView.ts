@@ -57,6 +57,10 @@ export class PlayerView {
     this.marker.setVisible(!look.dead);
   }
 
+  setVisible(visible: boolean) {
+    if (this.container.visible !== visible) this.container.setVisible(visible);
+  }
+
   /** Shows the sword arc in the given facing. */
   playSwing(facing: number, reach: number) {
     const [fx, fy] = facingVector(facing);

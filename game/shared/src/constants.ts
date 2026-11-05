@@ -2,7 +2,7 @@
  * Bump whenever schemas, inputs or messages in this game change in a way old
  * clients can't handle. Mismatched clients are told to reload.
  */
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 8;
 
 /** Simulation rate in Hz. One input advances exactly one fixed step. */
 export const TICK_RATE = 30;

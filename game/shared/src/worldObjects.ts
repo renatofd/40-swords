@@ -1,5 +1,6 @@
 import { flattenLayers, getProperty, type TiledMap, type TiledObject, type TiledObjectLayer } from "@core/maps";
 import { type EnemyKind, isEnemyKind } from "./enemies";
+import { screenRect } from "./world";
 
 /**
  * The game's own Tiled object classes (the core only reads "spawn"):
@@ -9,6 +10,7 @@ import { type EnemyKind, isEnemyKind } from "./enemies";
  *  - "vendor" point: a merchant; its offers lie two tiles in front (see offerPosition)
  *  - "portal" rectangle, string property `target`: walking in moves the hero to
  *             the object named `target` (cave entrances and exits)
+ *  - "arenaSpawn" point: where heroes appear in the battle royale arena
  *
  * Pure: the server parses the .tmj for its rules and the client parses the
  * same file for prediction (portals) and visuals (vendors).
@@ -43,6 +45,7 @@ export interface WorldObjects {
   chests: Spot[];
   vendors: Spot[];
   portals: Portal[];
+  arenaSpawns: { x: number; y: number }[];
 }
 
 const classOf = (obj: TiledObject) => obj.type ?? obj.class ?? "";
@@ -54,7 +57,7 @@ export function parseWorldObjects(map: TiledMap): WorldObjects {
     .flatMap((l) => l.objects);
   const byName = new Map(objects.filter((o) => o.name).map((o) => [o.name, o]));
 
-  const result: WorldObjects = { enemies: [], chests: [], vendors: [], portals: [] };
+  const result: WorldObjects = { enemies: [], chests: [], vendors: [], portals: [], arenaSpawns: [] };
   for (const obj of objects) {
     switch (classOf(obj)) {
       case "enemy": {
@@ -69,6 +72,9 @@ export function parseWorldObjects(map: TiledMap): WorldObjects {
         break;
       case "vendor":
         result.vendors.push({ id: `v${obj.id}`, ...centre(obj) });
+        break;
+      case "arenaSpawn":
+        result.arenaSpawns.push(centre(obj));
         break;
       case "portal": {
         const target = byName.get(getProperty<string>(obj.properties, "target") ?? "");
@@ -87,10 +93,10 @@ export function portalAt(portals: readonly Portal[], x: number, y: number): Port
   return portals.find((p) => x >= p.x && x < p.x + p.width && y >= p.y && y < p.y + p.height);
 }
 
-/** A group of screens with a name: a dungeon or a cave (from the map property `areas`). */
+/** A group of screens with a name: a dungeon, a cave or the arena (from the map property `areas`). */
 export interface Area {
   id: string;
-  kind: "dungeon" | "cave";
+  kind: "dungeon" | "cave" | "arena";
   /** Screen rectangle. */
   col: number;
   row: number;
@@ -125,3 +131,17 @@ export function parseWorldInfo(map: TiledMap): WorldInfo {
 /** The area containing screen (col, row), if any. */
 export const areaAt = (areas: readonly Area[], col: number, row: number): Area | undefined =>
   areas.find((a) => col >= a.col && col < a.col + a.width && row >= a.row && row < a.row + a.height);
+
+/** The battle royale arena (an area of kind "arena"), in pixels, with its centre. */
+export function arenaRect(info: WorldInfo) {
+  const area = info.areas.find((a) => a.kind === "arena");
+  if (!area) return undefined;
+  const rect = screenRect(area.col, area.row);
+  const width = area.width * rect.width;
+  const height = area.height * rect.height;
+  return { x: rect.x, y: rect.y, width, height, centerX: rect.x + width / 2, centerY: rect.y + height / 2 };
+}
+
+/** Whether (x, y) lies inside a rectangle. */
+export const inRect = (r: { x: number; y: number; width: number; height: number }, x: number, y: number) =>
+  x >= r.x && y >= r.y && x < r.x + r.width && y < r.y + r.height;

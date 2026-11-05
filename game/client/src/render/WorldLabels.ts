@@ -84,9 +84,13 @@ export class WorldLabels {
     for (const id of [...this.anchored.keys()]) if (id.startsWith(prefix)) this.remove(id);
   }
 
-  /** Name tag of a player. */
-  name(id: string, text: string, x: number, y: number, self: boolean) {
-    this.anchor(`name:${id}`, x, y, () => h("span", { className: self ? "sw-name sw-name-self" : "sw-name" }, text));
+  /** Name tag of a player; `foe` (PvP on) shows it in red. */
+  name(id: string, text: string, x: number, y: number, self: boolean, foe = false) {
+    const el = this.anchor(`name:${id}`, x, y, () =>
+      h("span", { className: self ? "sw-name sw-name-self" : "sw-name" }, text),
+    );
+    const tag = el.firstElementChild;
+    if (tag && tag.classList.contains("sw-name-foe") !== foe) tag.classList.toggle("sw-name-foe", foe);
   }
 
   removeName(id: string) {

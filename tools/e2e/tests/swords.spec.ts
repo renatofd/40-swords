@@ -89,3 +89,35 @@ test("C opens the attributes and relics panel", async ({ page }) => {
   await page.keyboard.press("KeyC");
   await expect(page.locator(".sw-details")).toBeHidden();
 });
+
+test("the waiting room starts the match once everyone is ready", async ({ page }) => {
+  await page.goto("/?lang=en");
+  await page.locator(".ui-input").fill("Duda");
+  await page.locator("button[type=submit]").click();
+  await page.locator('.sw-select [data-class="knight"]').click();
+  await expect(page.locator('.sw-select [data-map="overworld"]')).toContainText(
+    "One life per match · only monsters for 5 min, then PvP · at 30 min, battle royale in the arena",
+  );
+  await page.locator('.sw-select [data-map="overworld"]').click();
+
+  // Joining lands in the waiting room: nothing starts until everyone is ready.
+  const lobby = page.locator(".sw-lobby");
+  const clock = page.locator(".sw-match");
+  await expect(lobby).toBeVisible();
+  await expect(lobby).toContainText("Waiting room");
+  // (Heroes of earlier tests may still be listed for a few seconds, waiting to reconnect: they don't count.)
+  await expect(lobby.locator(".sw-lobby-self")).toHaveText("…Duda");
+  await expect(clock).toHaveText("Waiting room · 0/1 ready");
+
+  // Ready, then changing your mind (R), then ready again with the button.
+  await page.getByRole("button", { name: "Ready" }).click();
+  await expect(clock).toHaveText(/^The match starts in 0:0\d$/);
+  await expect(lobby.locator(".sw-lobby-self")).toHaveText("✔Duda");
+  await page.keyboard.press("KeyR");
+  await expect(clock).toHaveText("Waiting room · 0/1 ready");
+  await page.getByRole("button", { name: "Ready" }).click();
+
+  // After the countdown the match is on: the panel goes away and the PvP clock runs.
+  await expect(clock).toHaveText(/^PvP in \d+:\d\d · 👥 1$/, { timeout: 10_000 });
+  await expect(lobby).toBeHidden();
+});

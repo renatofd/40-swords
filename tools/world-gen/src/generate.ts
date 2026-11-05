@@ -12,6 +12,7 @@
  *   S  player spawn   $  chest   C  cave entrance   D  dungeon door   X  way out (caves, dungeons)
  *   _  cave floor   K  cave wall   H  shelf   Q  counter   V  vendor (behind the counter)
  *   ;  dungeon floor   #  dungeon wall   I  statue
+ *   n  arena sand   l  arena line   N  arena wall   u  arena pillar   x  arena spawn
  *   enemies: e slime  g goblin  b bat  k skeleton  z scorpion  w wolf  f lurker
  *            1 the dungeon's mini-boss   2 the dungeon's boss
  */
@@ -23,6 +24,9 @@ import { PNG } from "pngjs";
 import { buildDungeonRoom, buildOverworld, dungeonLayout, type Openings, rngFor } from "./build";
 import { buildTileset, COLUMNS, MARGIN, SPACING, TILES, tileId } from "./tiles";
 import {
+  ARENA,
+  ARENA_AT,
+  ARENA_SCREENS,
   BIOMES,
   type Biome,
   CAVES,
@@ -77,6 +81,11 @@ const GLYPHS: Record<string, Glyph> = {
   ";": { ground: "dungeonFloor" },
   "#": { wall: "dungeonWall" },
   I: { ground: "dungeonFloor", wall: "statue" },
+  n: { ground: "arenaSand" },
+  l: { ground: "arenaLine" },
+  N: { wall: "arenaWall" },
+  u: { ground: "arenaSand", wall: "arenaPillar" },
+  x: { ground: "arenaSand", object: "arenaSpawn" },
   e: { enemy: "slime" },
   g: { enemy: "goblin" },
   b: { enemy: "bat" },
@@ -226,6 +235,27 @@ CAVES.forEach((cave, i) => {
   (plans[r] as Plan[])[c] = { name: `cave${i}`, ground: "caveFloor", tier: 0, rows };
 });
 
+// The arena: one big room split into screens (its inner edges are open, see the edge rules).
+const [arenaCols, arenaRows] = ARENA_SCREENS;
+const arenaCol = ARENA_AT[0];
+const arenaRow = OVERWORLD_ROWS + ARENA_AT[1];
+if (ARENA.length !== arenaRows * SCREEN_TILES_Y) errors.push(`arena: ${ARENA.length} rows`);
+for (let sr = 0; sr < arenaRows; sr++)
+  for (let sc = 0; sc < arenaCols; sc++)
+    (plans[arenaRow + sr] as Plan[])[arenaCol + sc] = {
+      name: `arena ${sc},${sr}`,
+      ground: "arenaSand",
+      tier: 0,
+      rows: ARENA.slice(sr * SCREEN_TILES_Y, (sr + 1) * SCREEN_TILES_Y).map((line) =>
+        line.slice(sc * SCREEN_TILES_X, (sc + 1) * SCREEN_TILES_X),
+      ),
+    };
+const inArena = (x: number, y: number) => {
+  const sc = Math.floor(x / SCREEN_TILES_X) - arenaCol;
+  const sr = Math.floor(y / SCREEN_TILES_Y) - arenaRow;
+  return sc >= 0 && sr >= 0 && sc < arenaCols && sr < arenaRows;
+};
+
 // ─── Glyph grid ─────────────────────────────────────────────────────────────
 const glyphAt: string[][] = Array.from({ length: height }, () => Array(width).fill("K"));
 const planAt = (x: number, y: number) => plans[Math.floor(y / SCREEN_TILES_Y)]?.[Math.floor(x / SCREEN_TILES_X)];
@@ -257,12 +287,12 @@ for (let y = 0; y < height; y++)
     }
     const sc = Math.floor(x / SCREEN_TILES_X);
     const sr = Math.floor(y / SCREEN_TILES_Y);
-    if (lx === SCREEN_TILES_X - 1) {
+    if (lx === SCREEN_TILES_X - 1 && !(inArena(x, y) && inArena(x + 1, y))) {
       const open = isConnected([sc, sr], [sc + 1, sr]) && ly >= 4 && ly <= 6;
       if (isSolid(x, y) === open || isSolid(x + 1, y) === open)
         errors.push(`edge at tile (${x}|${x + 1}, ${y}) must be ${open ? "open" : "closed"}`);
     }
-    if (ly === SCREEN_TILES_Y - 1) {
+    if (ly === SCREEN_TILES_Y - 1 && !(inArena(x, y) && inArena(x, y + 1))) {
       const open = isConnected([sc, sr], [sc, sr + 1]) && lx >= 8 && lx <= 11;
       if (isSolid(x, y) === open || isSolid(x, y + 1) === open)
         errors.push(`edge at tile (${x}, ${y}|${y + 1}) must be ${open ? "open" : "closed"}`);
@@ -357,9 +387,39 @@ for (let y = 0; y < height; y++)
         if (!seen.has(Math.floor(at.y / TILE_SIZE) * width + Math.floor(at.x / TILE_SIZE)))
           errors.push(`offer ${slot} of the vendor at (${x}, ${y}) is not reachable`);
       }
+    } else if (g.object === "arenaSpawn") {
+      if (seen.has(y * width + x)) errors.push(`arena spawn at (${x}, ${y}) can be walked to from the world`);
     } else if ((g.object || g.enemy) && !seen.has(y * width + x))
       errors.push(`"${glyphAt[y]?.[x]}" at tile (${x}, ${y}) is unreachable`);
   }
+
+// ─── The arena: closed off, every spawn reachable from the others ───────────
+{
+  const spawns: [number, number][] = [];
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) if (glyph(x, y).object === "arenaSpawn") spawns.push([x, y]);
+  if (spawns.length < 8) errors.push(`the arena needs at least 8 spawns (x), found ${spawns.length}`);
+  for (const [x, y] of spawns) if (!inArena(x, y)) errors.push(`arena spawn at (${x}, ${y}) is outside the arena`);
+  const inside = new Set<number>();
+  const todo = spawns.slice(0, 1);
+  for (const [x, y] of todo) inside.add(y * width + x);
+  while (todo.length > 0) {
+    const [x, y] = todo.pop() as [number, number];
+    for (const [nx, ny] of [
+      [x + 1, y],
+      [x - 1, y],
+      [x, y + 1],
+      [x, y - 1],
+    ] as [number, number][]) {
+      const k = ny * width + nx;
+      if (isSolid(nx, ny) || inside.has(k)) continue;
+      if (!inArena(nx, ny)) errors.push(`the arena leaks at tile (${nx}, ${ny})`);
+      inside.add(k);
+      todo.push([nx, ny]);
+    }
+  }
+  for (const [x, y] of spawns) if (!inside.has(y * width + x)) errors.push(`arena spawn at (${x}, ${y}) is cut off`);
+}
 
 if (errors.length > 0) {
   console.error(`✗ world layout:\n  - ${errors.slice(0, 40).join("\n  - ")}`);
@@ -439,6 +499,7 @@ const areas = [
     width: 1,
     height: 1,
   })),
+  { id: "arena", kind: "arena", col: arenaCol, row: arenaRow, width: arenaCols, height: arenaRows },
 ];
 
 const tileset = buildTileset();
@@ -521,5 +582,5 @@ writeFileSync(resolve(ROOT, `content/maps/${MAP_ID}.tmj`), `${json}\n`);
 const count = (type: string) => objects.filter((o) => (o as { type: string }).type === type).length;
 console.log(
   `✓ content/maps/${MAP_ID}.tmj (${width}x${height} tiles, ${COLS}x${ROWS} screens: ${count("enemy")} enemies, ` +
-    `${count("chest")} chests, ${count("vendor")} vendors, ${count("portal")} portals)`,
+    `${count("chest")} chests, ${count("vendor")} vendors, ${count("portal")} portals, ${count("arenaSpawn")} arena spawns)`,
 );

@@ -3,8 +3,10 @@ import type { GameMap } from "@core/maps";
 import { GameRoom, InputBudget, InterestManager, loadMap, type PositionedEntity } from "@core/server";
 import { moveAxis } from "@core/shared";
 import {
+  ARENA_PREP_SECONDS,
   type AttackDef,
   areaAt,
+  arenaRect,
   BOSS_CHEST_RARITY,
   type BossDownMessage,
   CHEST_RESPAWN_SECONDS,
@@ -35,9 +37,15 @@ import {
   INTEREST_EVERY_TICKS,
   INTEREST_RADIUS,
   isClassId,
+  isLobbyPhase,
+  isPlayingPhase,
+  isPvpPhase,
+  type KillMessage,
   type LevelUpMessage,
   MAX_LEVEL,
   MAX_PLAYERS_PER_ROOM,
+  MatchPhase,
+  type MatchTimes,
   MINIBOSS_CHEST_RARITY,
   Msg,
   mitigate,
@@ -59,7 +67,8 @@ import {
   type ProjectileEndMessage,
   projectileKey,
   RELIC_IDS,
-  RESPAWN_SECONDS,
+  RESULTS_SECONDS,
+  type ReadyMessage,
   Relic,
   type RelicKind,
   type Rng,
@@ -77,7 +86,9 @@ import {
   type ShotStyle,
   type SimWorld,
   type Spot,
+  START_COUNTDOWN_SECONDS,
   type Stats,
+  sanitizeMatchTimes,
   screenOf,
   screenRect,
   stepPlayer,
@@ -98,12 +109,16 @@ import {
   weaponCopies,
   weaponCountKey,
   xpToNext,
+  ZONE_DAMAGE_PER_SECOND,
+  zoneRadius,
 } from "@game/shared";
 import { loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
 
 export interface WorldCreateOptions {
   /** Set by the server in defineRoom (game/server/src/index.ts), never by clients. */
   mapId?: string;
+  /** Match timings, also set by the server (from the environment, see config.ts). */
+  match?: Partial<MatchTimes>;
 }
 
 /** Server-only enemy data (AI, attacks, knockback); the synced part lives in `Enemy`. */
@@ -191,7 +206,10 @@ const pick = <T>(items: readonly T[], rng: Rng): T => items[Math.floor(rng() * i
  * frames; the server runs the shared `stepPlayer` once per received input,
  * then projectiles, enemies (only on screens near a hero), chests, shops and drops.
  *
- * PvE only for now (players never hurt each other).
+ * The match (see match.ts): a waiting room until everyone is ready, then one
+ * life each: PvE first, PvP after a few minutes (the winner of a fight takes
+ * one relic and every rupee of the loser), the battle royale arena at 30
+ * minutes. Whoever falls watches; the last hero standing wins, at any moment.
  */
 export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput }> {
   protected readonly protocolVersion = PROTOCOL_VERSION;
@@ -206,8 +224,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
 
   /** Combat and drop randomness. Seeded so tests can make it reproducible. */
   protected rng: Rng = createRng(Math.floor(Math.random() * 2 ** 32));
-  /** Ticks a dead player waits before coming back. */
-  protected respawnTicks = RESPAWN_SECONDS * TICK_RATE;
+  /** When PvP and the arena start (from defineRoom options; never from clients). */
+  protected times: MatchTimes = sanitizeMatchTimes(undefined);
 
   private map!: GameMap;
   private objects!: WorldObjects;
@@ -231,8 +249,6 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   /** Last swing / volley counters seen per player: a change means a new swing or volley to resolve. */
   private lastSwing = new Map<string, number>();
   private lastVolley = new Map<string, number>();
-  /** Tick at which a dead player comes back. */
-  private respawnAt = new Map<string, number>();
   private chestMeta = new Map<string, ChestMeta>();
   /** Vendor on each screen. */
   private vendorByScreen = new Map<number, Spot>();
@@ -241,6 +257,16 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private screenOfPlayer = new Map<string, number>();
   private touching = new Map<string, Set<number>>();
   private inputBudget = new InputBudget();
+  /** Tick the current match (or waiting room) started at, and the arena fight. */
+  private matchStart = 0;
+  private fightStart = 0;
+  /** Heroes at the start of the match (a match started alone ends only when that hero falls or wins the arena). */
+  private startedWith = 0;
+  /** Radius of the safe zone when the fight starts (reaches the arena corners). */
+  private zoneStart = 0;
+  private arena?: NonNullable<ReturnType<typeof arenaRect>>;
+  /** Arena spawns sorted around the centre, so heroes start spread out. */
+  private arenaSpawns: { x: number; y: number }[] = [];
   /** One manager for every `.view()` collection; ids are prefixed per collection. */
   private interest = new InterestManager<PositionedEntity>({ radius: INTEREST_RADIUS });
 
@@ -249,6 +275,14 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.map = loadMap(mapId, { tileSize: TILE_SIZE });
     this.objects = loadWorldObjects(mapId);
     this.info = loadWorldInfo(mapId);
+    this.times = sanitizeMatchTimes(options.match);
+    this.arena = arenaRect(this.info);
+    const arena = this.arena;
+    if (arena) {
+      const angle = (p: { x: number; y: number }) => Math.atan2(p.y - arena.centerY, p.x - arena.centerX);
+      this.arenaSpawns = [...this.objects.arenaSpawns].sort((a, b) => angle(a) - angle(b));
+      this.zoneStart = Math.ceil(Math.hypot(arena.width, arena.height) / 2);
+    }
     this.world = { grid: this.map.collision, portals: this.objects.portals };
     this.screenColumns = Math.max(1, Math.ceil(this.map.pixelWidth / SCREEN_WIDTH));
     this.state.mapId = mapId;
@@ -261,6 +295,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       this.chestMeta.set(c.id, { floor, dropped: false, at: 0 });
     }
     for (const v of this.objects.vendors) this.vendorByScreen.set(this.screenIndexAt(v.x, v.y), v);
+    // The room opens as a waiting room (phase "lobby").
+    this.onMessage(Msg.ready, (client: Client, message: unknown) => this.setReady(client.sessionId, message));
+    this.onMessage(Msg.watchNext, (client: Client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (player?.out) this.pickWatch(client.sessionId, player);
+    });
     this.startSimulation((ctx) => this.step(ctx), TICK_RATE);
   }
 
@@ -272,9 +312,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const name = this.identity(client).name;
     const player = new Player({ name, classId, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
     this.state.players.set(id, player);
+    this.state.roster.set(id, new RosterEntry({ name, classId, level: 1 }));
     this.applyStats(id, player);
     player.hp = player.maxHp;
-    this.state.roster.set(id, new RosterEntry({ name, classId, level: 1 }));
+    // The room closes when a match starts, but a seat reserved just before can still land
+    // here: too late for this match, watch until the next one.
+    if (!isLobbyPhase(this.state.phase)) this.knockOut(id, player);
     this.lastSwing.set(id, player.swing);
     this.lastVolley.set(id, player.vseq);
     this.interest.addViewer(client);
@@ -289,11 +332,29 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.stats.delete(id);
     this.lastSwing.delete(id);
     this.lastVolley.delete(id);
-    this.respawnAt.delete(id);
     this.shops.delete(id);
     this.screenOfPlayer.delete(id);
     this.touching.delete(id);
     this.inputBudget.delete(id);
+  }
+
+  /** A dropped connection keeps its seat for a while (GameRoom); meanwhile the waiting room doesn't wait for it. */
+  override onDrop(client: Client, code?: CloseCode) {
+    super.onDrop(client, code);
+    this.setAway(client.sessionId, true);
+  }
+
+  override onReconnect(client: Client) {
+    this.setAway(client.sessionId, false);
+  }
+
+  private setAway(id: string, away: boolean) {
+    const entry = this.state.roster.get(id);
+    if (entry) entry.away = away;
+  }
+
+  private isAway(id: string) {
+    return this.state.roster.get(id)?.away === true;
   }
 
   private nextSpawn() {
@@ -335,15 +396,22 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
 
   private step(ctx: StepContext) {
     this.tick++;
+    this.stepMatch();
+    // Outside a match (waiting room, results) the world is frozen: nothing hurts, nothing can be taken.
+    const playing = isPlayingPhase(this.state.phase);
     this.updateActive();
     for (const [id, player] of this.state.players) this.stepPlayerTick(id, player, ctx.dt);
     this.stepProjectiles(ctx.dt);
     this.stepHostiles(ctx.dt);
-    for (const [id, enemy] of this.state.enemies) this.stepEnemy(id, enemy, ctx.dt);
-    this.stepPickups();
-    this.stepChests();
-    for (const [id, player] of this.state.players) this.stepShop(id, player);
+    if (playing) {
+      for (const [id, enemy] of this.state.enemies) this.stepEnemy(id, enemy, ctx.dt);
+      this.stepPickups();
+      this.stepChests();
+      for (const [id, player] of this.state.players) this.stepShop(id, player);
+    }
     this.stepSpawners();
+    this.stepWatchers();
+    if (playing) this.checkMatchEnd();
     if (this.tick % INTEREST_EVERY_TICKS === 0) this.updateInterest();
   }
 
@@ -377,7 +445,6 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
 
   private stepPlayerTick(id: string, player: Player, dt: number) {
     if (player.invuln > 0) player.invuln--;
-    if (player.dead && this.tick >= (this.respawnAt.get(id) ?? 0)) this.revive(id, player);
 
     const channel = this.inputs.get(id);
     const inputs = channel ? channel.take(this.inputBudget.refill(id)) : [];
@@ -400,8 +467,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     }
   }
 
-  /** Sword hits every enemy in the hitbox once. PvP is off for now. */
+  /** Sword hits every enemy in the hitbox once, and other heroes while PvP is on. */
   private resolveSwing(id: string, player: Player) {
+    if (!isPlayingPhase(this.state.phase)) return;
     const stats = this.statsOf(id);
     const box = swordHitbox(player.x, player.y, player.facing, stats.reach);
     for (const enemyId of this.enemiesNear([player.x, player.y], [box.x, box.y])) {
@@ -410,6 +478,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       if (!enemy || !brain || !hitboxTouches(box, enemy.x, enemy.y, brain.stats.half)) continue;
       const hit = rollHit(stats, brain.stats.defense, this.rng);
       this.damageEnemy(enemyId, enemy, brain, id, player, hit, player.x, player.y, ENEMY_KNOCK_SPEED);
+    }
+    if (!isPvpPhase(this.state.phase)) return;
+    for (const [otherId, other] of this.state.players) {
+      if (otherId === id || !this.canBeHurt(other) || !hitboxTouches(box, other.x, other.y, PLAYER_HALF)) continue;
+      const hit = rollHit(stats, this.statsOf(otherId).defense, this.rng);
+      this.pvpHit(id, player, otherId, other, hit, player.x, player.y);
     }
   }
 
@@ -465,6 +539,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       p.dist = Math.min(p.maxDist, p.dist + def.speed * dt);
       const bx = p.x0 + p.dirX * p.dist;
       const by = p.y0 + p.dirY * p.dist;
+      // Outside a match projectiles only fly (nothing to hit).
+      if (!isPlayingPhase(this.state.phase)) return p.dist < p.maxDist;
       for (const enemyId of this.enemiesNear([ax, ay], [bx, by])) {
         const enemy = this.state.enemies.get(enemyId);
         const brain = this.brains.get(enemyId);
@@ -478,6 +554,20 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
           return false;
         }
       }
+      if (isPvpPhase(this.state.phase))
+        for (const [otherId, other] of this.state.players) {
+          const key = `p:${otherId}`;
+          if (otherId === p.owner || p.hits.has(key) || !this.canBeHurt(other)) continue;
+          if (!sweptHit(ax, ay, bx, by, def.radius, other.x, other.y, PLAYER_HALF)) continue;
+          p.hits.add(key);
+          const defense = this.statsOf(otherId).defense;
+          const hit = rollProjectileHit(p.weapon, p.rarity, this.statsOf(p.owner), defense, this.rng);
+          this.pvpHit(p.owner, owner, otherId, other, hit, ax, ay);
+          if (p.pierceLeft-- <= 0) {
+            ended.push({ key: p.key, x: bx, y: by });
+            return false;
+          }
+        }
       return p.dist < p.maxDist;
     });
     this.sendEnded(ended);
@@ -571,9 +661,40 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.clientOf(id)?.send(Msg.levelUp, message);
   }
 
+  private canBeHurt(player: Player) {
+    return !player.dead && player.invuln === 0;
+  }
+
+  /** Monster damage (contact or shots), through the hero's defense. */
   private hurtPlayer(id: string, player: Player, raw: number, fromX: number, fromY: number) {
-    if (player.dead || player.invuln > 0) return;
-    const amount = mitigate(raw, this.statsOf(id).defense);
+    if (!this.canBeHurt(player)) return;
+    this.damagePlayer(id, player, mitigate(raw, this.statsOf(id).defense), false, fromX, fromY, "monster");
+  }
+
+  /** A hero hit by another hero (PvP phases): life steal for the attacker, loot if it was the last blow. */
+  private pvpHit(
+    attackerId: string,
+    attacker: Player,
+    victimId: string,
+    victim: Player,
+    hit: HitResult,
+    fromX: number,
+    fromY: number,
+  ) {
+    if (hit.heal > 0 && !attacker.dead) attacker.hp = Math.min(attacker.maxHp, attacker.hp + hit.heal);
+    this.damagePlayer(victimId, victim, hit.amount, hit.crit, fromX, fromY, "hero", attackerId);
+  }
+
+  private damagePlayer(
+    id: string,
+    player: Player,
+    amount: number,
+    crit: boolean,
+    fromX: number,
+    fromY: number,
+    cause: KillMessage["cause"],
+    attackerId?: string,
+  ) {
     player.hp = Math.max(0, player.hp - amount);
     player.invuln = HIT_INVULN_TICKS;
     const dx = player.x - fromX;
@@ -583,23 +704,306 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     player.knockY = (dy / len) * PLAYER_KNOCK_SPEED;
     player.knockTicks = PLAYER_KNOCK_TICKS;
     player.lock = 0;
-    this.sendDamage({ x: player.x, y: player.y, amount, crit: false, player: true });
-    if (player.hp <= 0) {
-      player.dead = true;
-      player.knockTicks = 0;
-      this.respawnAt.set(id, this.tick + this.respawnTicks);
+    this.sendDamage({ x: player.x, y: player.y, amount, crit, player: true });
+    if (player.hp <= 0) this.heroDown(id, player, cause, attackerId);
+  }
+
+  /**
+   * A hero fell and is out of the match (one life each). Beaten by another
+   * hero: the winner takes one random relic and every rupee.
+   */
+  private heroDown(id: string, player: Player, cause: KillMessage["cause"], killerId?: string) {
+    const killer = killerId ? this.state.players.get(killerId) : undefined;
+    let relic: KillMessage["relic"];
+    let rupees = 0;
+    if (killer && killerId) {
+      const index = Math.floor(this.rng() * player.relics.length);
+      const taken = player.relics.length > 0 ? player.relics[index] : undefined;
+      if (taken) {
+        relic = { kind: taken.kind as RelicKind, rarity: taken.rarity };
+        player.relics.splice(index, 1);
+        this.applyStats(id, player);
+        this.giveRelic(killerId, killer, relic.kind, relic.rarity, "loot");
+      }
+      rupees = player.rupees;
+      player.rupees = 0;
+      killer.rupees += rupees;
+    }
+    // Watch the hero who did it, if any.
+    this.knockOut(id, player, killer && !killer.out ? killerId : undefined);
+    player.place = this.aliveCount() + 1;
+    const message: KillMessage = {
+      cause,
+      killer: killer && killerId ? killerId : "",
+      killerName: killer?.name ?? "",
+      victim: id,
+      victimName: player.name,
+      relic,
+      rupees,
+      place: player.place,
+    };
+    this.broadcast(Msg.kill, message);
+  }
+
+  /** Out until the next match: hidden, and the server keeps it next to the hero it watches. */
+  private knockOut(id: string, player: Player, watch?: string) {
+    player.dead = true;
+    player.out = true;
+    player.hp = 0;
+    player.vx = 0;
+    player.vy = 0;
+    player.knockTicks = 0;
+    const entry = this.state.roster.get(id);
+    if (entry) entry.out = true;
+    player.watch = "";
+    this.pickWatch(id, player, watch);
+  }
+
+  /** Who an out hero watches: `preferred` if still in, else the next hero still in the match. */
+  private pickWatch(id: string, player: Player, preferred?: string) {
+    const standing = [...this.state.players.entries()]
+      .filter(([other, p]) => other !== id && !p.out)
+      .map(([other]) => other)
+      .sort();
+    if (preferred && standing.includes(preferred)) player.watch = preferred;
+    else player.watch = standing.find((other) => other > player.watch) ?? standing[0] ?? "";
+  }
+
+  /** Out heroes move with the hero they watch, so they see (and are sent) what is around it. */
+  private stepWatchers() {
+    for (const [id, player] of this.state.players) {
+      if (!player.out) continue;
+      let target = this.state.players.get(player.watch);
+      if (!target || target.out) {
+        this.pickWatch(id, player);
+        target = this.state.players.get(player.watch);
+      }
+      if (target && (player.x !== target.x || player.y !== target.y)) {
+        player.x = target.x;
+        player.y = target.y;
+      }
     }
   }
 
-  private revive(id: string, player: Player) {
-    const spawn = this.nextSpawn();
-    player.x = spawn.x;
-    player.y = spawn.y;
-    player.dead = false;
-    player.hp = player.maxHp;
-    player.invuln = HIT_INVULN_TICKS * 2;
+  /** Moves a hero server-side (match start, arena, waiting room); the owner's prediction snaps to it. */
+  private teleport(player: Player, x: number, y: number) {
+    player.x = x;
+    player.y = y;
+    player.vx = 0;
+    player.vy = 0;
     player.knockTicks = 0;
-    this.respawnAt.delete(id);
+    player.lock = 0;
+  }
+
+  // ─── The match ────────────────────────────────────────────────────────────
+
+  /** Advances the match clock and phases (several in one tick if the clock jumped). */
+  private stepMatch() {
+    const s = this.state;
+    const clock = Math.floor((this.tick - this.matchStart) / TICK_RATE);
+    if (s.clock !== clock) s.clock = clock;
+    if (isLobbyPhase(s.phase)) {
+      // Everyone connected must be ready (a dropped player doesn't hold the others up).
+      let total = 0;
+      let ready = 0;
+      for (const [id, p] of s.players) {
+        if (this.isAway(id)) continue;
+        total++;
+        if (p.ready) ready++;
+      }
+      const everyone = total > 0 && ready === total;
+      if (s.phase === MatchPhase.lobby && everyone) this.setPhase(MatchPhase.starting, clock + START_COUNTDOWN_SECONDS);
+      // Someone changed their mind, or a newcomer isn't ready yet.
+      else if (s.phase === MatchPhase.starting && !everyone) this.setPhase(MatchPhase.lobby, 0);
+      else if (s.phase === MatchPhase.starting && clock >= s.phaseEnds) this.startMatch();
+      return;
+    }
+    if (s.phase === MatchPhase.calm && clock >= this.times.pvpAfter)
+      this.setPhase(MatchPhase.pvp, this.times.arenaAfter);
+    if (s.phase === MatchPhase.pvp && clock >= this.times.arenaAfter) this.startArena();
+    if (s.phase === MatchPhase.prep && clock >= s.phaseEnds) {
+      this.setPhase(MatchPhase.arena, 0);
+      this.fightStart = this.tick;
+    }
+    if (s.phase === MatchPhase.arena) this.stepStorm();
+    if (s.phase === MatchPhase.ended && clock >= s.phaseEnds) this.openLobby();
+  }
+
+  private setPhase(phase: MatchPhase, endsAt: number) {
+    this.state.phase = phase;
+    this.state.phaseEnds = endsAt;
+  }
+
+  /** Waiting room: ready (or not) for the next match. */
+  private setReady(id: string, message: unknown) {
+    const player = this.state.players.get(id);
+    if (!player || !isLobbyPhase(this.state.phase)) return;
+    const wanted = (message as Partial<ReadyMessage> | null)?.ready;
+    const ready = typeof wanted === "boolean" ? wanted : !player.ready;
+    player.ready = ready;
+    const entry = this.state.roster.get(id);
+    if (entry) entry.ready = ready;
+  }
+
+  /** Everyone was ready: the room closes and the match starts, everyone at the centre. */
+  private startMatch() {
+    void this.lock();
+    this.spawnCursor = 0;
+    const absent: [string, Player][] = [];
+    for (const [id, player] of this.state.players) {
+      // Dropped and not back yet: not in this match (watches it if they come back).
+      if (this.isAway(id)) {
+        absent.push([id, player]);
+        continue;
+      }
+      const spawn = this.nextSpawn();
+      this.teleport(player, spawn.x, spawn.y);
+      player.hp = player.maxHp;
+      player.invuln = 0;
+      player.ready = false;
+      const entry = this.state.roster.get(id);
+      if (entry) entry.ready = false;
+    }
+    for (const [id, player] of absent) this.knockOut(id, player);
+    this.startedWith = this.state.players.size - absent.length;
+    this.matchStart = this.tick;
+    this.state.clock = 0;
+    this.state.alive = this.startedWith;
+    this.setPhase(MatchPhase.calm, this.times.pvpAfter);
+  }
+
+  /** The heroes still standing go to the arena, spread around it and healed. */
+  private startArena() {
+    const { arena } = this;
+    if (!arena) {
+      // A map without an arena: the match ends here, without a winner.
+      this.endMatch(undefined);
+      return;
+    }
+    this.setPhase(MatchPhase.prep, this.times.arenaAfter + ARENA_PREP_SECONDS);
+    // Whatever is still flying stays behind.
+    this.projectiles = [];
+    this.hostiles = [];
+    const ids = [...this.state.players.entries()].filter(([, p]) => !p.out).map(([id]) => id);
+    ids.forEach((id, i) => {
+      const player = this.state.players.get(id);
+      if (!player) return;
+      const spot = this.arenaSpawns[Math.floor((i * this.arenaSpawns.length) / ids.length)] ?? {
+        x: arena.centerX,
+        y: arena.centerY,
+      };
+      this.teleport(player, spot.x, spot.y);
+      player.hp = player.maxHp;
+      player.invuln = 0;
+    });
+    this.state.zone = this.zoneStart;
+    this.state.alive = ids.length;
+  }
+
+  /** The safe zone closes; outside it heroes lose a share of their max HP every second. */
+  private stepStorm() {
+    const { arena } = this;
+    if (!arena) return;
+    const ticks = this.tick - this.fightStart;
+    const radius = zoneRadius(this.zoneStart, ticks / TICK_RATE);
+    this.state.zone = Math.ceil(radius);
+    if (ticks === 0 || ticks % TICK_RATE !== 0) return;
+    for (const [id, player] of this.state.players) {
+      if (player.dead || Math.hypot(player.x - arena.centerX, player.y - arena.centerY) <= radius) continue;
+      const amount = Math.max(1, Math.round(player.maxHp * ZONE_DAMAGE_PER_SECOND));
+      player.hp = Math.max(0, player.hp - amount);
+      this.sendDamage({ x: player.x, y: player.y, amount, crit: false, player: true });
+      if (player.hp <= 0) this.heroDown(id, player, "storm");
+    }
+  }
+
+  private aliveCount() {
+    let alive = 0;
+    for (const p of this.state.players.values()) if (!p.out) alive++;
+    return alive;
+  }
+
+  /**
+   * The last hero standing wins, at any moment (nobody, if the last ones fell
+   * together). A match started alone ends when that hero falls, or wins the arena.
+   */
+  private checkMatchEnd() {
+    const standing = [...this.state.players.entries()].filter(([, p]) => !p.out);
+    this.state.alive = standing.length;
+    const over =
+      this.startedWith > 1
+        ? standing.length <= 1
+        : standing.length === 0 || (this.state.phase === MatchPhase.arena && standing.length <= 1);
+    if (over) this.endMatch(standing.length === 1 ? standing[0] : undefined);
+  }
+
+  private endMatch(winner: [string, Player] | undefined) {
+    this.setPhase(MatchPhase.ended, this.state.clock + RESULTS_SECONDS);
+    this.state.winner = winner?.[0] ?? "";
+    this.state.winnerName = winner?.[1].name ?? "";
+    this.projectiles = [];
+    this.hostiles = [];
+  }
+
+  /** Back to the waiting room: the world refills, every hero starts over at level 1 in the centre, and the room reopens. */
+  private openLobby() {
+    const s = this.state;
+    this.matchStart = this.tick;
+    s.clock = 0;
+    this.setPhase(MatchPhase.lobby, 0);
+    s.zone = 0;
+    s.alive = 0;
+    s.winner = "";
+    s.winnerName = "";
+    this.startedWith = 0;
+
+    for (const id of [...s.enemies.keys()]) this.removeEnemy(id);
+    for (const spawner of this.spawners) {
+      spawner.enemyId = undefined;
+      spawner.respawnAt = 0;
+    }
+    s.pickups.clear();
+    this.pickupExpiry.clear();
+    for (const [id, meta] of this.chestMeta) {
+      const chest = s.chests.get(id);
+      if (meta.dropped || !chest) {
+        s.chests.delete(id);
+        this.chestMeta.delete(id);
+      } else {
+        chest.open = false;
+        meta.at = 0;
+      }
+    }
+    this.projectiles = [];
+    this.hostiles = [];
+    this.shops.clear();
+    this.touching.clear();
+    this.screenOfPlayer.clear();
+
+    this.spawnCursor = 0;
+    for (const [id, player] of s.players) {
+      player.relics.clear();
+      player.level = 1;
+      player.xp = 0;
+      player.rupees = 0;
+      player.out = false;
+      player.dead = false;
+      player.place = 0;
+      player.watch = "";
+      player.ready = false;
+      this.applyStats(id, player);
+      player.hp = player.maxHp;
+      player.invuln = 0;
+      const spawn = this.nextSpawn();
+      this.teleport(player, spawn.x, spawn.y);
+      const entry = s.roster.get(id);
+      if (entry) {
+        entry.level = 1;
+        entry.ready = false;
+        entry.out = false;
+      }
+    }
+    void this.unlock();
   }
 
   // ─── Relics, chests and shops ─────────────────────────────────────────────

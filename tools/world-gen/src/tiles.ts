@@ -110,7 +110,7 @@ const cave: Drawer = (x, y, r) => {
 
 const caveFloor: Drawer = speckle("#3a2f28", "#45382f", "#30261f", 0.1, 0.08);
 
-const caveWall: Drawer = (x, y, r) => {
+const caveWall: Drawer = (_x, y, r) => {
   if (y > 12) return hex("#1a1412");
   return r() < 0.12 ? hex("#4a3d35") : y < 3 ? hex("#3d322b") : hex("#2e2520");
 };
@@ -172,6 +172,18 @@ const door: Drawer = (x, y) => {
   return hex("#77777f");
 };
 
+const arenaSand = speckle("#d8b07a", "#e2bd88", "#c79f69", 0.1, 0.08);
+const arenaLine = speckle("#ecd9ae", "#f4e4c0", "#dcc394", 0.1, 0.08);
+
+const arenaPillar: Drawer = (x, y, r) => (x >= 4 && x <= 11 ? pillar(x, y, r) : arenaSand(x, y, r));
+
+const arenaWall: Drawer = (x, y) => {
+  const row = Math.floor(y / 4);
+  const offset = row % 2 === 0 ? 0 : 5;
+  if (y % 4 === 3 || (x + offset) % 10 === 9) return hex("#3a2a20");
+  return y < 4 ? hex("#a07a5a") : hex("#86644a");
+};
+
 export interface TileInfo {
   key: string;
   draw: Drawer;
@@ -206,6 +218,10 @@ export const TILES: TileInfo[] = [
   { key: "dungeonWall", draw: dungeonWall, collides: true },
   { key: "statue", draw: statue, collides: true },
   { key: "cactus", draw: cactus, collides: true },
+  { key: "arenaSand", draw: arenaSand, collides: false },
+  { key: "arenaLine", draw: arenaLine, collides: false },
+  { key: "arenaWall", draw: arenaWall, collides: true },
+  { key: "arenaPillar", draw: arenaPillar, collides: true },
 ];
 
 export const tileId = (key: string): number => {
