@@ -39,6 +39,13 @@ function statRows(ctx: BeforeJoinContext, classId: ClassId): [string, string][] 
 }
 
 /**
+ * More than one map to pick from? Until then (more maps come after launch) the
+ * map step is skipped: picking a hero joins the only map, and its rules show
+ * on the hero step.
+ */
+const PICK_MAP = MAP_IDS.length > 1;
+
+/**
  * Hero and map select, shown by the core between Play and joining
  * (`GameModule.beforeJoin`). The class and colour travel in the join options
  * (the server validates them) and the map picks the room. Also shows the
@@ -61,6 +68,8 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
       ctx.storage.set("hero", hero);
       resolve({ roomName: ROOM_BY_MAP[mapId], options: { classId: hero, palette } });
     };
+    const rules = () =>
+      ctx.t("map.rules", { pvp: DEFAULT_MATCH_TIMES.pvpAfter / 60, arena: DEFAULT_MATCH_TIMES.arenaAfter / 60 });
     const colours = () => {
       const { t } = ctx;
       return h(
@@ -112,6 +121,7 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
           "div",
           { className: "sw-select" },
           h("h2", { className: "sw-select-title" }, t("select.heroTitle")),
+          !PICK_MAP && h("p", { className: "sw-select-rules" }, rules()),
           h(
             "div",
             { className: "sw-cards" },
@@ -126,8 +136,12 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
                   autofocus: id === hero,
                   onclick: () => {
                     hero = id;
-                    step = "map";
                     ctx.audio.playSfx("ui");
+                    if (!PICK_MAP) {
+                      done(MAP_IDS[0]);
+                      return;
+                    }
+                    step = "map";
                     ctx.show(render);
                   },
                 },
@@ -169,14 +183,7 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
               },
               h("strong", { className: "sw-card-title" }, t(`map.${id}`)),
               h("span", { className: "sw-card-desc" }, t(`map.${id}.desc`)),
-              h(
-                "span",
-                { className: "sw-card-desc sw-card-rules" },
-                t("map.rules", {
-                  pvp: DEFAULT_MATCH_TIMES.pvpAfter / 60,
-                  arena: DEFAULT_MATCH_TIMES.arenaAfter / 60,
-                }),
-              ),
+              h("span", { className: "sw-card-desc sw-card-rules" }, rules()),
               h("span", { className: "ui-button primary" }, t("select.enter")),
             ),
           ),

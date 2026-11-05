@@ -1,6 +1,7 @@
 import { loadMap } from "@core/server";
 import {
   ARENA_SPAWN_MIN,
+  areaAt,
   arenaRect,
   ENEMIES,
   inRect,
@@ -11,7 +12,7 @@ import {
   TILE_SIZE,
 } from "@game/shared";
 import { describe, expect, it } from "vitest";
-import { loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
+import { loadProps, loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
 
 const map = loadMap("overworld", { tileSize: TILE_SIZE });
 const objects = loadWorldObjects("overworld");
@@ -86,6 +87,33 @@ describe("overworld objects", () => {
       }
     const screens = objects.vendors.map((v) => JSON.stringify(screenOf(v.x, v.y)));
     expect(new Set(screens).size).toBe(screens.length);
+  });
+
+  it("has tall grass on grassy screens outside and pots in caves and dungeons, on open floor clear of the rest", () => {
+    const { props, tiles } = loadProps("overworld");
+    expect(tiles.bush?.whole).toBeGreaterThan(0);
+    expect(tiles.pot?.broken).toBeGreaterThan(0);
+    const bushes = props.filter((p) => p.kind === "bush");
+    const pots = props.filter((p) => p.kind === "pot");
+    expect(bushes.length).toBeGreaterThan(300);
+    expect(pots.length).toBeGreaterThan(60);
+    const reached = reachableFromStart();
+    const start = screenOf(map.spawns[0]?.x ?? 0, map.spawns[0]?.y ?? 0);
+    const offers = objects.vendors.flatMap((v) => [0, 1, 2].map((slot) => offerPosition(v, slot)));
+    const near = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.abs(a.x - b.x) <= TILE_SIZE && Math.abs(a.y - b.y) <= TILE_SIZE;
+    for (const p of props) {
+      expect(solidAt(p.x, p.y)).toBe(false);
+      expect(reached(p)).toBe(true);
+      expect(portalAt(objects.portals, p.x, p.y)).toBeUndefined();
+      expect([...objects.chests, ...offers].some((spot) => near(spot, p))).toBe(false);
+      const { col, row } = screenOf(p.x, p.y);
+      const area = areaAt(info.areas, col, row);
+      if (p.kind === "bush") {
+        expect(row).toBeLessThan(info.rows);
+        expect(col !== start.col || row !== start.row).toBe(true);
+      } else expect(area?.kind === "cave" || area?.kind === "dungeon").toBe(true);
+    }
   });
 
   it("has a closed battle royale arena with spawns spread on open floor", () => {

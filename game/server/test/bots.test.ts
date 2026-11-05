@@ -166,12 +166,15 @@ describe("bots", () => {
     const live = bots(room).filter(([, p]) => !p.out);
     const screens = new Set(live.map(([, p]) => `${screenOf(p.x, p.y).col},${screenOf(p.x, p.y).row}`));
     const grown = live.filter(([, p]) => p.level > 1).length;
+    const cut = room.state.brokenProps.size;
     const summary = {
-      calm: { msPerTick: calm.msPerTick.toFixed(2), alive: live.length, screens: screens.size, grown },
+      calm: { msPerTick: calm.msPerTick.toFixed(2), alive: live.length, screens: screens.size, grown, cut },
     } as Record<string, unknown>;
     expect(live.every(([, p]) => !solidUnder(p))).toBe(true);
     expect(screens.size).toBeGreaterThan(10);
     expect(grown).toBeGreaterThan(live.length / 3);
+    // Tall grass and pots along the way (rupees, hearts).
+    expect(cut).toBeGreaterThan(10);
 
     // PvP until the arena: some fall to other heroes.
     const pvp = fastForward(room, 210, () => room.state.phase !== MatchPhase.pvp);

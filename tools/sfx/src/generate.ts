@@ -185,6 +185,27 @@ const SOUNDS: Record<string, () => Float32Array> = {
     tone(out, { start: 0, dur: 0.6, from: 220, to: 55, vol: 0.2 });
     return normalize(out, 0.7);
   },
+  /** Tall grass cut: a quick leafy swish. */
+  cut: () => {
+    const out = buffer(0.16);
+    hiss(out, 0, 0.12, 1, 7000, 2500, 0.004);
+    hiss(out, 0.03, 0.12, 0.6, 3000, 900);
+    return normalize(out, 0.5);
+  },
+  /** A pot breaking: a hollow knock, then bits of clay clinking. */
+  break: () => {
+    const out = buffer(0.32);
+    tone(out, { start: 0, dur: 0.08, from: 420, to: 260, wave: triangle, vol: 0.7 });
+    hiss(out, 0, 0.06, 0.8, 5000, 1500);
+    for (const [at, midi] of [
+      [0.05, 91],
+      [0.09, 88],
+      [0.14, 94],
+      [0.2, 90],
+    ] as const)
+      tone(out, { start: at, dur: 0.06, from: hz(midi), wave: sine, vol: 0.25 });
+    return normalize(out, 0.6);
+  },
   /** Victory: a short fanfare. */
   win: () => {
     const out = buffer(1.2);

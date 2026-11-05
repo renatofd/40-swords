@@ -134,6 +134,11 @@ export const WorldState = schema({
   chests: t.map(Chest).view(),
   /** Everyone in the room who picked a class, by session id. Cheap to send to all. */
   roster: t.map(RosterEntry),
+  /**
+   * Props (tall grass, pots: see props.ts) broken right now, by id (tile index); the value is the
+   * PropKind's index. Whole ones come from the map. Sent to all: only a few are broken at a time.
+   */
+  brokenProps: t.map("uint8"),
   // ─── The match (see match.ts) ───
   /** MatchPhase. */
   phase: t.uint8().default(0),

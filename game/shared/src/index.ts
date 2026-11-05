@@ -7,6 +7,7 @@ export * from "./net/messages";
 export * from "./net/rooms";
 export * from "./net/schema";
 export * from "./progress";
+export * from "./props";
 export * from "./relics";
 export * from "./rng";
 export * from "./simulation/facing";

@@ -46,11 +46,11 @@ test("the hero select shows the three classes with their stats, in the player's 
   await expect(page.locator('.sw-colour[data-palette="classic"]')).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".sw-career")).toHaveText("Sua carreira começa na primeira partida.");
 
-  // Choosing a class goes to the map step; Back returns to the classes, and Back again to the menu.
-  await page.locator('.sw-card[data-class="rogue"]').click();
-  await expect(page.getByRole("heading", { name: "Escolha o mapa" })).toBeVisible();
-  await page.getByRole("button", { name: "Voltar" }).click();
-  await expect(page.locator(".sw-card[data-class]")).toHaveCount(3);
+  // One map for now: no map step, its rules show here; Back returns to the menu.
+  await expect(page.locator(".sw-select-rules")).toHaveText(
+    "Uma vida por partida · só monstros por 5 min, depois PvP · aos 30 min, battle royale na arena",
+  );
+  await expect(page.locator(".sw-select [data-map]")).toHaveCount(0);
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page.locator(".ui-menu")).toBeVisible();
 
@@ -104,11 +104,11 @@ test("the waiting room starts the match once everyone is ready", async ({ page }
   await page.goto("/?lang=en");
   await page.locator(".ui-input").fill("Duda");
   await page.locator("button[type=submit]").click();
-  await page.locator('.sw-select [data-class="knight"]').click();
-  await expect(page.locator('.sw-select [data-map="overworld"]')).toContainText(
+  await expect(page.locator(".sw-select-rules")).toHaveText(
     "One life per match · only monsters for 5 min, then PvP · at 30 min, battle royale in the arena",
   );
-  await page.locator('.sw-select [data-map="overworld"]').click();
+  // Picking a hero joins the (only) map.
+  await page.locator('.sw-select [data-class="knight"]').click();
 
   // Joining lands in the waiting room: nothing starts until everyone is ready.
   const lobby = page.locator(".sw-lobby");
@@ -137,9 +137,19 @@ test("the waiting room starts the match once everyone is ready", async ({ page }
   await expect(clock).toHaveText("Waiting room · 0/1 ready");
   await page.getByRole("button", { name: "Ready" }).click();
 
-  // After the countdown the match is on, with bots up to 40 heroes: the panel goes away and the PvP clock runs.
+  // After the countdown the match is on, with bots up to 40 heroes: the panel goes away and the PvP clock runs,
+  // first big in the middle of the screen, then back in its corner.
   await expect(clock).toHaveText(/^PvP in \d+:\d\d · 👥 40$/, { timeout: 10_000 });
   await expect(lobby).toBeHidden();
+  const viewport = page.viewportSize() ?? { width: 0, height: 0 };
+  const centreX = async () => {
+    const box = await clock.boundingBox();
+    return box ? box.x + box.width / 2 : 0;
+  };
+  await expect(clock).toHaveClass(/sw-match-intro/);
+  expect(Math.abs((await centreX()) - viewport.width / 2)).toBeLessThan(40);
+  await expect(clock).not.toHaveClass(/sw-match-intro/, { timeout: 6000 });
+  expect(await centreX()).toBeGreaterThan(viewport.width * 0.7);
   // Bots are listed with the players (Tab), marked as bots.
   await page.keyboard.down("Tab");
   await expect(page.locator(".ui-playerlist")).toContainText("🤖");

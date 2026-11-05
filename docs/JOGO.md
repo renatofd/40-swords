@@ -4,10 +4,10 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 
 > Toda a arte atual é **provisória, feita em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
 
-## Como jogar (etapa 5)
+## Como jogar (etapa 6)
 
 1. No menu, digite o nome e clique em **Jogar**.
-2. Escolha o **herói** (cada classe mostra os atributos), a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados.
+2. Escolha a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e clique no **herói** (cada classe mostra os atributos) para entrar. A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados. Por enquanto há um mapa só (o Vale das Espadas), então não há passo de escolha de mapa: as regras da partida aparecem embaixo do título. A escolha de mapa volta quando houver mais mapas, em versões depois do lançamento.
 3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida"). Com **🤖 Bots: ligados** (o padrão), bots completam a partida até 40 heróis; qualquer um na sala pode desligar no mesmo painel (veja "Bots").
 4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
 5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
@@ -17,6 +17,14 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 9. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
 10. Ao subir de nível, os atributos melhoram e a vida enche. **Cuidado: é uma vida só.** Quem cai (para um monstro, outro herói ou a tempestade) está fora da partida e passa a assistir. Se foi outro herói, ele leva **uma relíquia sua, sorteada, e todos os seus rupees**.
 11. **Curar:** monstros às vezes deixam cair um **coração** ❤ (10%; elites 50%; chefes e minichefes sempre), que devolve 25% da vida (só um herói ferido o pega; com a vida cheia ele fica no chão para os outros). Fora de combate (6 s sem levar dano) a vida também volta devagar, 1% por segundo, menos na arena. E há as poções das lojas.
+12. **Matos e potes:** o **mato alto** (tufos claros e pontudos nas telas de grama; as moitas redondas e escuras continuam bloqueando o caminho) se corta com a espada, e os **potes** (nos cantos das cavernas e das masmorras) se quebram com ela. Os dois deixam o herói passar por cima. Alguns guardam rupees ou um coração (veja a tabela). Eles voltam depois de um tempo, mas só quando nenhum herói está na tela (ninguém vê nada brotar do nada); numa partida nova, tudo volta inteiro.
+
+| | Coração | Rupees | Volta depois de |
+|---|---|---|---|
+| Mato alto | 8% | 30%: 1 | 45 s |
+| Pote | 20% | 50%: 1 a 5 | 90 s |
+
+A sorte do herói pode dobrar os rupees, como nos monstros. Só a espada corta e quebra (as armas não).
 
 | Ação | Teclado | Controle | Toque |
 |---|---|---|---|
@@ -31,7 +39,7 @@ Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um qua
 
 ## A partida
 
-O relógio no canto superior direito mostra a fase atual, quanto falta para a próxima e quantos heróis ainda estão de pé (👥). Avisos aparecem 1 minuto antes do PvP e da arena.
+O relógio no canto superior direito mostra a fase atual, quanto falta para a próxima e quantos heróis ainda estão de pé (👥). Quando a partida começa, a contagem até o PvP aparece grande no meio da tela por alguns segundos e depois desliza para o canto. Avisos aparecem 1 minuto antes do PvP e da arena.
 
 | Fase | Quando | O que acontece |
 |---|---|---|
@@ -90,23 +98,26 @@ O que um bot faz, em ordem de prioridade (decide 5 vezes por segundo):
 1. **Na arena:** fica dentro da zona segura e luta com o herói mais perto (recua se estiver fraco).
 2. **No PvP:** luta com heróis que consegue vencer (compara vida, dano, defesa e armas) e foge dos mais fortes.
 3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo.
-4. **Vida baixa:** vai à loja mais perto comprar poção, se tiver rupees.
+4. **Vida baixa:** pega os corações da tela. Abaixo da metade da vida, se recupera longe das lutas até 85%: numa tela calma, corta o mato e quebra os potes (pode sair coração) ou passeia pela tela; numa tela perigosa, vai para a tela fácil mais perto. Se tiver rupees, vai à loja mais perto comprar poção.
 5. **Loja, baús e rupees:** compra a melhor relíquia que pode pagar (sem pisar nas outras ofertas), abre baús e pega rupees da tela.
-6. **Explorar:** vai para telas que não viu há algum tempo, cada vez mais longe da praça (inimigos mais fortes) conforme sobe de nível e junta relíquias, sem atravessar telas perigosas demais.
+6. **Mato e potes:** corta boa parte dos que estão perto (não todos: tem para onde ir).
+7. **Explorar:** vai para telas que não viu há algum tempo, cada vez mais longe da praça (inimigos mais fortes) conforme sobe de nível e junta relíquias, sem atravessar telas perigosas demais. Sem tela nova por perto, passeia pela tela em vez de ficar parado.
 
 O caminho usa um grafo das partes transitáveis de cada tela (ligadas pelas bordas abertas e pelos portais das cavernas e masmorras) e mapas de distância dentro da tela; se um bot ficar preso numa parede, ele tenta outro caminho. Com 40 heróis, o servidor gasta cerca de 1 ms por tick (de 33 ms disponíveis).
 
 O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (calmaria, PvP, arena) com 39 bots e confere que eles se espalham, sobem de nível, se enfrentam e que alguém vence.
 
-**Equilíbrio medido com os bots** (partidas simuladas de 30 min com 40 bots, tempos padrão):
+**Equilíbrio medido com os bots** (3 partidas simuladas de 30 min com 40 bots, tempos padrão, depois dos ajustes da etapa 6):
 
 | Momento | Heróis de pé | Níveis |
 |---|---|---|
-| 5 min (começa o PvP) | 38–39 | 2 a 11 |
-| 10 min | 24–27 | 4 a 18 |
-| 15 min | 18–19 | 9 a 22 |
-| 20 min | 15–16 | 15 a 26 |
-| 30 min (arena) | 11–14 | 22 a 30 |
+| 5 min (começa o PvP) | 39 | 2 a 11 |
+| 10 min | 25–29 | 5 a 17 |
+| 15 min | 20–23 | 7 a 21 |
+| 20 min | 17–20 | 15 a 24 |
+| 30 min (arena) | 15–18 | 20 a 30 |
+
+Comparado com a etapa 5 (38–39, 24–27, 18–19, 15–16 e 11–14 heróis de pé nos mesmos momentos), um pouco mais de heróis chegam à arena: quase ninguém cai para monstros na calmaria (1 por partida) e os níveis seguem o mesmo ritmo.
 
 Antes dos ajustes da etapa 5B, os melhores chegavam ao nível 30 em 7 minutos, cerca de 1 em cada 5 heróis caía para monstros na calmaria e o começo do PvP derrubava 2/3 dos heróis em 5 minutos.
 
@@ -172,6 +183,8 @@ O dano de cada projétil soma uma parte da força do herói (20% a 40%, conforme
 
 Valores de base (nível 0, perto da praça). Cada nível de dificuldade soma +30% de vida, +15% de dano e +35% de XP. O nível é a distância da praça, em telas, e nas masmorras vai de 4 a 7.
 
+Os monstros comuns do centro são mais fracos, para o começo ser mais tranquilo: nos níveis 0, 1 e 2 (até duas telas da praça) eles têm 30%, 25% e 12% menos vida e dano, com o mesmo XP e os mesmos rupees. Nas masmorras, nos minichefes e nos chefes, nada muda (`START_AREA_SOFTENING` em `game/shared/src/enemies.ts`).
+
 | Inimigo | Onde | Vida | Dano | Comportamento | XP |
 |---|---|---|---|---|---|
 | Slime | prados, lagos, pântano | 18 | 6 | vagueia | 4 |
@@ -205,7 +218,7 @@ Cada inimigo fica na tela onde nasceu e só age quando há um herói por perto. 
 
 ## O mapa
 
-`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 4 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas, as 8 cavernas e a arena), ligados por portais. São 320×132 tiles, ~530 inimigos e ~40 baús.
+`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 4 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas, as 8 cavernas e a arena), ligados por portais. São 320×132 tiles, ~530 inimigos, ~40 baús, ~590 tufos de mato alto e ~130 potes.
 
 A **arena** é uma sala de 2×2 telas (40×22 tiles) de areia com muralhas, pilares para se proteger e 16 pontos de entrada num anel. Não há portal até ela: só o servidor leva os heróis para lá.
 
@@ -217,7 +230,7 @@ Nem toda tela vizinha se liga: as ligações formam um labirinto (uma árvore a 
 
 Há dois caminhos:
 
-- **Gerador (recomendado):** o mundo sai de `tools/world-gen`. Em `src/world.ts` ficam o mapa de biomas (uma letra por tela), a posição das masmorras e cavernas, a praça, as cavernas e a arena (`ARENA`) desenhadas à mão, e a `SEED`. Em `src/build.ts` ficam as regras de cada bioma e das salas de masmorra. Rode `pnpm --filter @tools/world-gen generate`: o gerador confere as bordas entre telas e se tudo é alcançável a partir da praça (inclusive passando pelos portais), e regrava `content/maps/overworld.tmj` e `content/tilesets/overworld.png`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
+- **Gerador (recomendado):** o mundo sai de `tools/world-gen`. Em `src/world.ts` ficam o mapa de biomas (uma letra por tela), a posição das masmorras e cavernas, a praça, as cavernas e a arena (`ARENA`) desenhadas à mão, e a `SEED`. Em `src/build.ts` ficam as regras de cada bioma e das salas de masmorra. O mato alto (1 a 3 moitas de 2 a 4 tufos em cada tela de grama, menos a praça) e os potes (2 a 4 por caverna e sala de masmorra, primeiro nos cantos) são colocados depois, com um sorteio separado: mexer neles não muda o resto do mundo. Nada disso fica nas bordas das telas, na frente das passagens, perto de portais, baús e ofertas. Rode `pnpm --filter @tools/world-gen generate`: o gerador confere as bordas entre telas e se tudo é alcançável a partir da praça (inclusive passando pelos portais), e regrava `content/maps/overworld.tmj` e `content/tilesets/overworld.png`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
 - **Tiled:** abra `content/maps/game.tiled-project` e edite o `.tmj` direto. Classes de objeto do jogo:
   - `spawn`: onde os jogadores nascem;
   - `enemy`: ponto com as propriedades `kind` (tipo do inimigo), `tier` (nível de dificuldade) e `dungeon` (dentro de masmorra);
@@ -225,18 +238,20 @@ Há dois caminhos:
   - `vendor`: ponto do vendedor; as 3 ofertas ficam numa fileira 2 tiles à frente dele, e precisam estar livres;
   - `portal`: retângulo com a propriedade `target`, o nome do objeto para onde o herói vai ao entrar (use um ponto da classe `dest`);
   - `arenaSpawn`: ponto onde um herói aparece na arena (pelo menos 8). A área da arena vem da propriedade `areas` do mapa (tipo `arena`).
+
+  Matos e potes ficam na camada de tiles `props`: pinte com os tiles de mato e de pote do tileset (eles têm as propriedades `prop`, que diz o tipo, e `broken`, que marca o desenho de quebrado). Nunca são sólidos.
   
   Se editar no Tiled, não rode mais o gerador (ele sobrescreve o mapa).
 
-Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes que conferem portais, baús e vendedores do mapa).
+Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes que conferem portais, baús, vendedores, matos e potes do mapa).
 
 ## Trocar a arte
 
-- **Tileset:** substitua `content/tilesets/overworld.png` mantendo a ordem dos 29 tiles (8 colunas, 16×16, margem 1, espaçamento 2), ou crie outro tileset e remapeie no Tiled.
+- **Tileset:** substitua `content/tilesets/overworld.png` mantendo a ordem dos 33 tiles (8 colunas, 16×16, margem 1, espaçamento 2), ou crie outro tileset e remapeie no Tiled. Os 4 últimos são o mato alto e o pote, inteiros e quebrados, com fundo transparente (ficam por cima do chão).
 - **Heróis e inimigos:** exporte do Aseprite para `content/sprites/<nome>.png + .json` com as tags `idle` e `walk`, usando os nomes `knight`, `rogue`, `barbarian` e os dos inimigos (`slime`, `goblin`, `bat`, `skeleton`, `scorpion`, `wolf`, `lurker`, `brute`, `hexer`, `warden`, `witch`, `matriarch`, `colossus`). O jogo passa a usar o sprite no lugar da forma provisória automaticamente (`game/client/src/render/placeholderArt.ts`).
-- **Baús, vendedor, pedestais, projéteis (dos heróis e dos inimigos) e o brilho dos elites:** desenhados em `game/client/src/render/placeholderArt.ts`.
+- **Baús, vendedor, pedestais, projéteis (dos heróis e dos inimigos), o brilho dos elites e as folhas e cacos que voam do mato e dos potes:** desenhados em `game/client/src/render/placeholderArt.ts`.
 - **Ícones de relíquias e itens:** emojis em `game/client/src/ui/relicText.ts`.
-- **Sons:** arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`). Os efeitos provisórios (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota e vitória) são sintetizados por `pnpm sfx` (`tools/sfx/src/generate.ts`); para trocar um, coloque um arquivo com o mesmo nome (`swing.ogg`, por exemplo) e apague o `.wav`.
+- **Sons:** arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`). Os efeitos provisórios (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória, mato cortado e pote quebrado) são sintetizados por `pnpm sfx` (`tools/sfx/src/generate.ts`); para trocar um, coloque um arquivo com o mesmo nome (`swing.ogg`, por exemplo) e apague o `.wav`.
 
 ## Onde fica cada coisa
 
@@ -248,6 +263,7 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Movimento, espada, armas, recuo, portais (simulação compartilhada, determinística) | `game/shared/src/simulation/player.ts` |
 | Fórmulas de dano, crítico, roubo de vida | `game/shared/src/combat.ts` |
 | Objetos do mapa (inimigos, baús, vendedores, portais) | `game/shared/src/worldObjects.ts` |
+| Mato alto e potes: o que guardam, quando voltam, leitura da camada `props` | `game/shared/src/props.ts` |
 | Inimigos, elites, minichefes, chefes e a escala por nível | `game/shared/src/enemies.ts` |
 | Regras da partida (fases, sala de espera, tempestade) | `game/shared/src/match.ts` |
 | Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
@@ -259,10 +275,10 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
 | Efeitos sonoros provisórios | `tools/sfx/src/generate.ts` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
-| Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
-| Relógio da partida, feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
+| Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis, mato e potes quebrando | `game/client/src/scenes/GameScene.ts` |
+| Relógio da partida (e a contagem grande no começo), feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
 | Painel da sala de espera (Pronto, bots) | `game/client/src/ui/lobby.ts` |
-| Escolha de herói e mapa (antes de entrar) | `game/client/src/ui/heroSelect.ts` |
+| Escolha de herói e mapa (antes de entrar; o passo do mapa só aparece com mais de um mapa) | `game/client/src/ui/heroSelect.ts` |
 | HUD: vida, relíquias, atributos, avisos | `game/client/src/ui/` |
 | Textos (14 idiomas) | `game/client/src/messages.ts` |
 
@@ -273,3 +289,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
 4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.
 5. ✅ **Bots, equilíbrio e progressão:** bots com IA que completam a partida até 40 heróis; combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); progressão entre partidas (resumo, placar da sala, carreira no navegador e cores desbloqueáveis).
+6. ✅ **Ajustes:** mato alto e potes com rupees e corações; monstros do centro mais fracos; bots que não ficam parados (se recuperam cortando mato ou passeando); contagem do PvP em destaque no começo da partida; um mapa só até o lançamento (sem passo de escolha de mapa).

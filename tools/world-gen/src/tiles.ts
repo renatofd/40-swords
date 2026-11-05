@@ -184,10 +184,79 @@ const arenaWall: Drawer = (x, y) => {
   return y < 4 ? hex("#a07a5a") : hex("#86644a");
 };
 
+// ─── Props (clear background, 1px outline) ──────────────────────────────────
+
+const CLEAR: RGBA = [0, 0, 0, 0];
+
+/** A shape on a clear background, with a 1px outline around it. */
+const outlined =
+  (inside: (x: number, y: number) => boolean, fill: (x: number, y: number) => string, outline: string): Drawer =>
+  (x, y) => {
+    if (inside(x, y)) return hex(fill(x, y));
+    const edge = inside(x - 1, y) || inside(x + 1, y) || inside(x, y - 1) || inside(x, y + 1);
+    return edge ? hex(outline) : CLEAR;
+  };
+
+/** Pointed grass blades growing from the bottom: [centre x, top y, lean (px at the top)]. */
+const blades = (list: [number, number, number][], bottom: number, width: number) => (x: number, y: number) =>
+  list.some(([cx, top, lean]) => {
+    if (y < top || y > bottom) return false;
+    const k = (bottom - y) / Math.max(1, bottom - top);
+    return Math.abs(x + 0.5 - (cx + lean * k)) <= width * (1 - k) + 0.35;
+  });
+
+/** Tall grass (cut with the sword): lighter and spikier than the round bushes that block the way. */
+const tuftShape = (x: number, y: number) =>
+  blades(
+    [
+      [3.5, 7, -1.5],
+      [6, 3, -0.8],
+      [8.5, 5, 0.4],
+      [11, 2, 1],
+      [13, 7, 1.6],
+    ],
+    14,
+    1.7,
+  )(x, y) ||
+  (y >= 12 && y <= 14 && x >= 3 && x <= 13);
+const tuft = outlined(
+  tuftShape,
+  (x, y) => (y >= 12 ? "#3f8f35" : !tuftShape(x - 1, y) ? "#9ee07a" : (x + y) % 4 === 0 ? "#6cc455" : "#58b046"),
+  "#1d4a1b",
+);
+
+/** What is left of it: short stubble. */
+const stubbleShape = (x: number, y: number) => y >= 12 && y <= 14 && x >= 3 && x <= 13 && (y >= 13 || x % 3 !== 2);
+const tuftCut = outlined(stubbleShape, (_x, y) => (y === 12 ? "#a8d878" : "#4f8f3c"), "#1d4a1b");
+
+/** A clay pot: round body, a neck and a rim around a dark mouth. */
+const potShape = (x: number, y: number) =>
+  ((x + 0.5 - 8) / 5.5) ** 2 + ((y + 0.5 - 10) / 4.6) ** 2 <= 1 || (y >= 3 && y <= 5 && x >= 5 && x <= 10);
+const pot = outlined(
+  potShape,
+  (x, y) => {
+    if (y === 3) return x >= 6 && x <= 9 ? "#2a160c" : "#d98a5a";
+    if (y <= 5) return "#a0552f";
+    if (x <= 5 && y <= 10) return "#e39a68";
+    return x >= 11 || y >= 13 ? "#8a4426" : "#b8643a";
+  },
+  "#3a1f10",
+);
+
+/** A broken pot: the base and a few shards around it. */
+const shardsShape = (x: number, y: number) =>
+  (y >= 12 && y <= 14 && x >= 5 && x <= 10 && !(y === 12 && x % 2 === 0)) ||
+  (y >= 10 && y <= 11 && x >= 2 && x <= 3 + (y - 10)) ||
+  (y >= 9 && y <= 10 && x >= 12 && x <= 13) ||
+  (y === 14 && x >= 12 && x <= 14);
+const potShards = outlined(shardsShape, (x, y) => (y <= 11 || x <= 6 ? "#d98a5a" : "#a0552f"), "#3a1f10");
+
 export interface TileInfo {
   key: string;
   draw: Drawer;
   collides: boolean;
+  /** Something the sword breaks (tile layer "props", see game/shared/src/props.ts), whole or broken. */
+  prop?: { kind: "bush" | "pot"; broken: boolean };
 }
 
 /** Tile order in the tileset image (tile id = index). Append new tiles at the end. */
@@ -222,6 +291,11 @@ export const TILES: TileInfo[] = [
   { key: "arenaLine", draw: arenaLine, collides: false },
   { key: "arenaWall", draw: arenaWall, collides: true },
   { key: "arenaPillar", draw: arenaPillar, collides: true },
+  // Props: drawn over the ground on their own layer (clear background), never solid.
+  { key: "tuft", draw: tuft, collides: false, prop: { kind: "bush", broken: false } },
+  { key: "tuftCut", draw: tuftCut, collides: false, prop: { kind: "bush", broken: true } },
+  { key: "pot", draw: pot, collides: false, prop: { kind: "pot", broken: false } },
+  { key: "potShards", draw: potShards, collides: false, prop: { kind: "pot", broken: true } },
 ];
 
 export const tileId = (key: string): number => {
