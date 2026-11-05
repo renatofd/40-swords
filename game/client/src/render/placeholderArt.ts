@@ -20,6 +20,7 @@ export const projectileTexture = (weapon: string) => `shot:${weapon}`;
 export const hostileTexture = (style: string) => `hostile:${style}`;
 export const TEX_ELITE_GLOW = "fx:elite";
 export const rupeeTexture = (value: number) => (value >= 5 ? "pickup:rupee-blue" : "pickup:rupee-green");
+export const TEX_HEART = "pickup:heart";
 
 const darken = (color: number, f: number) => {
   const r = ((color >> 16) & 0xff) * f;
@@ -212,6 +213,13 @@ export function createPlaceholderArt(scene: Phaser.Scene) {
     g.fillStyle(0xffffff).fillRect(3, 3, 1, 3);
     g.generateTexture(key, 8, 12);
   }
+
+  // Heart: heals a hurt hero.
+  g.clear();
+  g.fillStyle(0x7a1020).fillCircle(3, 3.5, 3.5).fillCircle(8, 3.5, 3.5).fillTriangle(0, 4.5, 11, 4.5, 5.5, 10.5);
+  g.fillStyle(0xe8344a).fillCircle(3, 3.5, 2.5).fillCircle(8, 3.5, 2.5).fillTriangle(1.2, 4.5, 9.8, 4.5, 5.5, 9);
+  g.fillStyle(0xffd0d8).fillRect(2, 2, 1, 1);
+  g.generateTexture(TEX_HEART, 11, 11);
 
   // Sword swing: a crescent pointing east (rotated by facing at runtime).
   g.clear();

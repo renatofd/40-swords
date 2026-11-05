@@ -29,7 +29,12 @@ export const Msg = {
   watchNext: "watch",
   /** client → server: waiting room, whether bots fill the next match. */
   bots: "bots",
+  /** server → one client: you picked up a rupee or a heart. */
+  picked: "pick",
 } as const;
+
+/** What monsters drop: rupees (`value` = how many) and hearts (heal HEART_HEAL of max health). */
+export type PickupKind = "rupee" | "heart";
 
 export interface DamageMessage {
   x: number;
@@ -126,4 +131,10 @@ export interface ReadyMessage {
 
 export interface BotsMessage {
   on: boolean;
+}
+
+export interface PickedMessage {
+  kind: PickupKind;
+  /** Rupees gained, or health restored. */
+  value: number;
 }

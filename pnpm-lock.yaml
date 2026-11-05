@@ -289,6 +289,15 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
+  tools/sfx:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
   tools/template:
     devDependencies:
       '@types/node':

@@ -1,5 +1,5 @@
 import { type CollisionGrid, moveAxis, signAxis } from "@core/shared";
-import { PLAYER_HALF, SWING_LOCK_TICKS } from "../constants";
+import { PLAYER_HALF, SWING_LOCK_TICKS, SWING_MOVE_FACTOR } from "../constants";
 import { scaledCooldown, WEAPON_IDS, WEAPONS, type WeaponId } from "../weapons";
 import { type Portal, portalAt } from "../worldObjects";
 import { facingFromDir } from "./facing";
@@ -24,7 +24,7 @@ export interface PlayerSimState extends Record<WeaponCountKey | WeaponCooldownKe
   facing: number;
   /** Ticks until the sword can swing again. */
   cooldown: number;
-  /** Ticks left of the current swing (player rooted). */
+  /** Ticks left of the current swing (facing kept, slower movement). */
   lock: number;
   /** Swing counter (wraps at 256): the server resolves a hit whenever it changes. */
   swing: number;
@@ -61,9 +61,9 @@ export interface SimWorld {
  * The single player step, run identically by the server (once per received
  * input) and by the client (prediction and replay after a correction).
  *
- * 8-way movement; the attack button swings the sword (which roots the player a
- * few ticks) and fires every weapon whose cooldown is over; knockback when hit;
- * portals (cave entrances) move the player.
+ * 8-way movement; the attack button swings the sword (the hero keeps facing
+ * the same way and moves at half speed while it lasts) and fires every weapon
+ * whose cooldown is over; knockback when hit; portals (cave entrances) move the player.
  *
  * Contract: pure function of (state, input, dt, world). No clocks, no
  * randomness, no reads outside its arguments. Breaking this makes prediction drift.
@@ -88,27 +88,31 @@ export function stepPlayer(state: PlayerSimState, input: PlayerInputLike, dt: nu
     state.knockTicks--;
     dx = state.knockX * dt;
     dy = state.knockY * dt;
-  } else if (state.lock > 0) {
-    state.lock--;
   } else {
     let dirX: number = signAxis(input.moveX);
     let dirY: number = signAxis(input.moveY);
-    const facing = facingFromDir(dirX, dirY);
-    if (facing >= 0) state.facing = facing;
-
-    if (input.attack > 0 && state.cooldown === 0) {
-      state.cooldown = state.swingCd;
-      state.lock = SWING_LOCK_TICKS;
-      state.swing = (state.swing + 1) & 255;
+    let pace = 1;
+    if (state.lock > 0) {
+      // Mid-swing: still facing the swing, at reduced speed.
+      state.lock--;
+      pace = SWING_MOVE_FACTOR;
     } else {
-      // Diagonal movement must not be faster than straight movement.
-      if (dirX !== 0 && dirY !== 0) {
-        dirX *= Math.SQRT1_2;
-        dirY *= Math.SQRT1_2;
+      const facing = facingFromDir(dirX, dirY);
+      if (facing >= 0) state.facing = facing;
+      if (input.attack > 0 && state.cooldown === 0) {
+        state.cooldown = state.swingCd;
+        state.lock = SWING_LOCK_TICKS;
+        state.swing = (state.swing + 1) & 255;
+        pace = SWING_MOVE_FACTOR;
       }
-      dx = dirX * state.speed * dt;
-      dy = dirY * state.speed * dt;
     }
+    // Diagonal movement must not be faster than straight movement.
+    if (dirX !== 0 && dirY !== 0) {
+      dirX *= Math.SQRT1_2;
+      dirY *= Math.SQRT1_2;
+    }
+    dx = dirX * state.speed * pace * dt;
+    dy = dirY * state.speed * pace * dt;
   }
 
   // Resolve each axis separately so players slide along walls.
