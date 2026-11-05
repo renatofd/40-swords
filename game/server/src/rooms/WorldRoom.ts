@@ -59,6 +59,7 @@ import {
   type OfferMessage,
   offerPosition,
   offerPrice,
+  PALETTES,
   PASSIVE_IDS,
   PICKUP_LIFETIME_SECONDS,
   PICKUP_RADIUS,
@@ -99,7 +100,9 @@ import {
   type Spot,
   START_COUNTDOWN_SECONDS,
   type Stats,
+  type SummaryMessage,
   sanitizeMatchTimes,
+  sanitizePalette,
   screenOf,
   screenRect,
   stepPlayer,
@@ -221,6 +224,16 @@ interface ChestMeta {
   at: number;
 }
 
+/** What a hero did in the current match (for the summary its player gets at the end). */
+interface HeroStats {
+  kills: number;
+  monsters: number;
+  bosses: number;
+  chests: number;
+  /** The summary went out already (it is sent once: when the hero falls or the match ends). */
+  sent: boolean;
+}
+
 const SHOT_RADIUS: Record<ShotStyle, number> = { bone: 3, rock: 4, orb: 4, sting: 3 };
 
 const pick = <T>(items: readonly T[], rng: Rng): T => items[Math.floor(rng() * items.length)] as T;
@@ -270,6 +283,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private pickupExpiry = new Map<string, number>();
   /** Tick each hero last took damage (out of combat, heroes slowly heal). */
   private lastHurt = new Map<string, number>();
+  /** Heroes in the current match and what they did in it. */
+  private heroStats = new Map<string, HeroStats>();
   private projectiles: Projectile[] = [];
   private hostiles: Hostile[] = [];
   /** Attributes of each hero (class, level and relics), recomputed when one of them changes. */
@@ -352,7 +367,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const classId = isClassId(options?.classId) ? options.classId : "knight";
     const spawn = this.nextSpawn();
     const name = this.identity(client).name;
-    const player = new Player({ name, classId, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
+    // Colours are unlocked by the player's career, kept in their browser: cosmetic, so any known one goes.
+    const palette = sanitizePalette(options?.palette);
+    const player = new Player({ name, classId, palette, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
     this.state.players.set(id, player);
     this.state.roster.set(id, new RosterEntry({ name, classId, level: 1 }));
     this.applyStats(id, player);
@@ -384,6 +401,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.inputBudget.delete(id);
     this.bots.delete(id);
     this.lastHurt.delete(id);
+    this.heroStats.delete(id);
   }
 
   /** A dropped connection keeps its seat for a while (GameRoom); meanwhile the waiting room doesn't wait for it. */
@@ -694,6 +712,11 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.removeEnemy(enemyId);
     if (brain.spawner) brain.spawner.respawnAt = this.tick + brain.def.respawnSeconds * TICK_RATE;
     this.giveXp(killerId, killer, brain.stats.xp);
+    const stats = this.heroStats.get(killerId);
+    if (stats) {
+      stats.monsters++;
+      if (rank !== "normal") stats.bosses++;
+    }
   }
 
   /** Removes an enemy (and the minions it summoned) without drops. */
@@ -799,10 +822,15 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       rupees = player.rupees;
       player.rupees = 0;
       killer.rupees += rupees;
+      const stats = this.heroStats.get(killerId);
+      if (stats) stats.kills++;
+      const entry = this.state.roster.get(killerId);
+      if (entry) entry.kills++;
     }
     // Watch the hero who did it, if any.
     this.knockOut(id, player, killer && !killer.out ? killerId : undefined);
     player.place = this.aliveCount() + 1;
+    this.sendSummary(id, player, player.place);
     const message: KillMessage = {
       cause,
       killer: killer && killerId ? killerId : "",
@@ -929,8 +957,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const id = `bot:${serial}`;
     const name = botName(this.rng, new Set([...this.state.players.values()].map((p) => p.name)));
     const classId = pick(CLASS_IDS, this.rng);
+    const palette = Math.floor(this.rng() * PALETTES.length);
     const spawn = this.nextSpawn();
-    const player = new Player({ name, classId, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
+    const player = new Player({ name, classId, palette, x: spawn.x, y: spawn.y, facing: 2, level: 1 });
     this.state.players.set(id, player);
     this.state.roster.set(id, new RosterEntry({ name, classId, level: 1, bot: true }));
     this.applyStats(id, player);
@@ -1015,6 +1044,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const playing = this.state.players.size - absent.length;
     if (this.state.bots) for (let n = playing; n < MAX_PLAYERS_PER_ROOM; n++) this.addBot();
     this.startedWith = playing + this.bots.size;
+    this.heroStats.clear();
+    for (const [id, player] of this.standing())
+      if (!player.out) this.heroStats.set(id, { kills: 0, monsters: 0, bosses: 0, chests: 0, sent: false });
     this.matchStart = this.tick;
     this.state.clock = 0;
     this.state.alive = this.startedWith;
@@ -1092,6 +1124,33 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.state.winnerName = winner?.[1].name ?? "";
     this.projectiles = [];
     this.hostiles = [];
+    if (winner) {
+      const entry = this.state.roster.get(winner[0]);
+      if (entry) entry.wins++;
+    }
+    // Whoever is still standing gets the summary now (the fallen got theirs when they fell).
+    const standing = [...this.standing()];
+    for (const [id, player] of standing) this.sendSummary(id, player, winner ? 1 : standing.length);
+  }
+
+  /** How the match went for one hero, sent once to its player (bots have no one to tell). */
+  private sendSummary(id: string, player: Player, place: number) {
+    const stats = this.heroStats.get(id);
+    const client = this.clientOf(id);
+    if (!stats || stats.sent || !client) return;
+    stats.sent = true;
+    const message: SummaryMessage = {
+      place,
+      heroes: this.startedWith,
+      kills: stats.kills,
+      monsters: stats.monsters,
+      bosses: stats.bosses,
+      chests: stats.chests,
+      level: player.level,
+      relics: player.relics.length,
+      seconds: Math.floor((this.tick - this.matchStart) / TICK_RATE),
+    };
+    client.send(Msg.summary, message);
   }
 
   /** Back to the waiting room: the world refills, every hero starts over at level 1 in the centre, and the room reopens. */
@@ -1193,6 +1252,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
         this.chestMeta.set(chestId, meta);
         const rarity = rollRarity(this.statsOf(id).luck, this.rng, meta.floor);
         this.giveRelic(id, player, pick(RELIC_IDS, this.rng), rarity, "chest");
+        const stats = this.heroStats.get(id);
+        if (stats) stats.chests++;
         break;
       }
     }

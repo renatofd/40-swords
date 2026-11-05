@@ -42,6 +42,7 @@ import {
   type ShotMessage,
   type SimWorld,
   type Spot,
+  type SummaryMessage,
   screenOf,
   statsFor,
   stepPlayer,
@@ -70,6 +71,7 @@ import {
   SFX_WIN,
   tilesetKey,
 } from "../assets";
+import { recordMatch } from "../career";
 import { EnemyView } from "../render/EnemyView";
 import { PlayerView } from "../render/PlayerView";
 import { Projectiles } from "../render/Projectiles";
@@ -90,6 +92,7 @@ import { MatchHud } from "../ui/matchHud";
 import { Minimap } from "../ui/minimap";
 import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
 import { StatusHud } from "../ui/statusHud";
+import { SummaryPanel } from "../ui/summary";
 
 export const GAME_SCENE_KEY = "game";
 export const ACTION_ATTACK = "attack";
@@ -173,6 +176,7 @@ export class GameScene extends Phaser.Scene {
   /** Countdown warnings already shown in this match. */
   private warned = new Set<number>();
   private lobby?: LobbyPanel;
+  private summary?: SummaryPanel;
   private portals: readonly Portal[] = [];
   /** Cave or dungeon the hero is in (to announce dungeons on entry). */
   private areaId = "";
@@ -247,6 +251,11 @@ export class GameScene extends Phaser.Scene {
       this.ctx.ui.toast(t("toast.levelUp", { level: m.level }));
       this.sfx(SFX_LEVEL);
     });
+    // The match is over for this hero: how it went, into the career saved in this browser.
+    room.onMessage(Msg.summary, (m: SummaryMessage) => {
+      const { career, unlocked } = recordMatch(m);
+      this.summary?.show(m, career, unlocked);
+    });
     room.onMessage(Msg.picked, (m: PickedMessage) => {
       if (m.kind === "heart") {
         this.sfx(SFX_HEART);
@@ -289,6 +298,7 @@ export class GameScene extends Phaser.Scene {
     this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
     this.status.addWidget(this.minimap.el);
     this.match = new MatchHud(t);
+    this.summary = new SummaryPanel(t);
     this.lobby = new LobbyPanel(
       t,
       () => this.toggleReady(),
@@ -303,6 +313,7 @@ export class GameScene extends Phaser.Scene {
       this.match.timer,
       this.match.feed,
       this.match.banner,
+      this.summary.el,
     );
     this.lastPhase = room.state.phase;
     this.ctx.audio.playMusic(MUSIC_THEME);
@@ -360,7 +371,7 @@ export class GameScene extends Phaser.Scene {
   private addPlayer(player: Player, id: string) {
     if (this.players.has(id)) return;
     const isSelf = id === this.ctx.room.sessionId;
-    const view = new PlayerView(this, player.classId, isSelf);
+    const view = new PlayerView(this, player.classId, isSelf, player.palette);
     this.players.set(id, view);
     this.lastSwing.set(id, player.swing);
     if (isSelf) this.startPrediction(player);
@@ -595,10 +606,15 @@ export class GameScene extends Phaser.Scene {
       if (phase === MatchPhase.calm) {
         ui.toast(t("toast.matchStart"), 5000);
         this.warned.clear();
+        this.summary?.hide();
       } else if (phase === MatchPhase.pvp) ui.toast(t("toast.pvpOn"), 6000);
       else if (phase === MatchPhase.prep) ui.toast(t("toast.arena"), 4000);
       else if (phase === MatchPhase.arena) ui.toast(t("toast.fight"), 2000);
-      else if (phase === MatchPhase.lobby && was === MatchPhase.ended) ui.toast(t("toast.lobby"), 5000);
+      else if (phase === MatchPhase.lobby && was === MatchPhase.ended) {
+        ui.toast(t("toast.lobby"), 5000);
+        // The waiting room panel takes its place.
+        this.summary?.hide();
+      }
       // No sound for a countdown that got cancelled or started.
       if (phase === MatchPhase.ended && this.ctx.room.state.winner === this.ctx.room.sessionId) audio.playSfx(SFX_WIN);
       else if (was >= 0 && phase !== MatchPhase.lobby && phase !== MatchPhase.starting)
@@ -662,6 +678,7 @@ export class GameScene extends Phaser.Scene {
         name: r.name,
         ready: r.ready,
         away: r.away,
+        wins: r.wins,
       }));
   }
 

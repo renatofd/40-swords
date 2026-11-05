@@ -6,7 +6,7 @@
  * tags "idle" and "walk"): `artFor` then returns the sprite instead.
  */
 import { animKey } from "@core/client";
-import { CLASS_IDS, CLASSES, ENEMIES } from "@game/shared";
+import { CLASS_IDS, CLASSES, ENEMIES, PALETTES } from "@game/shared";
 import Phaser from "phaser";
 
 export const TEX_SWING = "fx:swing";
@@ -34,19 +34,20 @@ export function createPlaceholderArt(scene: Phaser.Scene) {
   if (scene.textures.exists(TEX_SWING)) return;
   const g = scene.make.graphics({}, false);
 
-  // Heroes: a body in the class colour, a head and a class mark.
-  for (const id of CLASS_IDS) {
-    const color = CLASSES[id].color;
-    g.clear();
-    g.fillStyle(darken(color, 0.45)).fillRoundedRect(1, 5, 12, 10, 3);
-    g.fillStyle(color).fillRoundedRect(2, 6, 10, 8, 2);
-    g.fillStyle(0xf2c9a0).fillCircle(7, 4.5, 3.5);
-    g.fillStyle(0x221a14).fillRect(5, 4, 1, 1).fillRect(8, 4, 1, 1);
-    if (id === "knight") g.fillStyle(0xd0d4e0).fillRect(3, 0, 8, 2); // helmet
-    if (id === "rogue") g.fillStyle(0x2c2c3c).fillTriangle(2, 3, 12, 3, 7, -1); // hood
-    if (id === "barbarian") g.fillStyle(0xe8e0c8).fillTriangle(2, 2, 4, 2, 2, -1).fillTriangle(10, 2, 12, 2, 12, -1); // horns
-    g.generateTexture(`hero:${id}`, 14, 16);
-  }
+  // Heroes: a body in the class colour (or the colour the player picked), a head and a class mark.
+  for (const id of CLASS_IDS)
+    PALETTES.forEach((palette, p) => {
+      const color = palette.color ?? CLASSES[id].color;
+      g.clear();
+      g.fillStyle(darken(color, 0.45)).fillRoundedRect(1, 5, 12, 10, 3);
+      g.fillStyle(color).fillRoundedRect(2, 6, 10, 8, 2);
+      g.fillStyle(0xf2c9a0).fillCircle(7, 4.5, 3.5);
+      g.fillStyle(0x221a14).fillRect(5, 4, 1, 1).fillRect(8, 4, 1, 1);
+      if (id === "knight") g.fillStyle(0xd0d4e0).fillRect(3, 0, 8, 2); // helmet
+      if (id === "rogue") g.fillStyle(0x2c2c3c).fillTriangle(2, 3, 12, 3, 7, -1); // hood
+      if (id === "barbarian") g.fillStyle(0xe8e0c8).fillTriangle(2, 2, 4, 2, 2, -1).fillTriangle(10, 2, 12, 2, 12, -1); // horns
+      g.generateTexture(heroTexture(id, p), 14, 16);
+    });
 
   // Slime: a wobbly green blob.
   g.clear();
@@ -296,5 +297,7 @@ export function artFor(scene: Phaser.Scene, key: string, fallback: string): { te
   return { texture: animated ? key : fallback, animated };
 }
 
-export const heroTexture = (classId: string) => `hero:${classId}`;
+/** Placeholder texture of a hero; colours after the first get their own ("hero:knight:2"). */
+export const heroTexture = (classId: string, palette = 0) =>
+  palette > 0 ? `hero:${classId}:${palette}` : `hero:${classId}`;
 export const enemyTexture = (kind: string) => `enemy:${kind}`;

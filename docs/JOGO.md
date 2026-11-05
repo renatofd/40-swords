@@ -7,7 +7,7 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 ## Como jogar (etapa 5)
 
 1. No menu, digite o nome e clique em **Jogar**.
-2. Escolha o **herói** (cada classe mostra os atributos) e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói fica lembrado.
+2. Escolha o **herói** (cada classe mostra os atributos), a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados.
 3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida"). Com **🤖 Bots: ligados** (o padrão), bots completam a partida até 40 heróis; qualquer um na sala pode desligar no mesmo painel (veja "Bots").
 4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
 5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
@@ -58,6 +58,26 @@ O relógio no canto superior direito mostra a fase atual, quanto falta para a pr
 Exemplo: `MATCH_PVP_SECONDS=30 MATCH_ARENA_SECONDS=120 pnpm dev` (no Windows, `set MATCH_PVP_SECONDS=30` e `set MATCH_ARENA_SECONDS=120` antes de `pnpm dev`). O jogador nunca controla esses tempos: só o servidor.
 
 As durações fixas (contagem da sala de espera e da arena, tempestade, dano da tempestade, tempo do resultado) ficam em `game/shared/src/match.ts`.
+
+## Progressão
+
+Toda partida começa igual para todos (nível 1, sem relíquias nem rupees), então nada do que se ganha entre partidas dá vantagem no PvP: a progressão é de **resultado e aparência**.
+
+- **Resumo da partida:** quando o seu herói cai (ou quando a partida termina com ele de pé), aparece um painel com a colocação, heróis derrotados, monstros abatidos, chefes e minichefes, baús abertos, nível alcançado, relíquias e o tempo na partida. Ele some quando a próxima partida começa (ou no botão OK).
+- **Placar da sala:** vitórias e heróis derrotados de cada jogador continuam de uma partida para a outra enquanto ele estiver na sala. As vitórias aparecem na sala de espera (🏆).
+- **Carreira:** cada resumo soma na carreira do jogador, **salva no navegador** (partidas, vitórias, melhor colocação, heróis derrotados, monstros, chefes, maior nível e tempo jogado). Ela aparece na escolha de herói e no resumo.
+- **Cores do herói:** marcos da carreira desbloqueiam cores, que todos na partida veem (os bots usam cores sorteadas):
+
+| Cor | Como desbloquear |
+|---|---|
+| Cor da classe | sempre |
+| Floresta | jogar 3 partidas |
+| Brasa | derrotar 10 heróis |
+| Sombra | terminar entre os 3 primeiros |
+| Gelo | chegar ao nível 20 numa partida |
+| Ouro | vencer uma partida |
+
+As cores e as regras ficam em `game/shared/src/progress.ts` (os índices vão pela rede: acrescente cores novas no fim). Como a carreira fica no navegador do jogador, o servidor aceita qualquer cor conhecida: é só aparência.
 
 ## Bots
 
@@ -232,6 +252,8 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Regras da partida (fases, sala de espera, tempestade) | `game/shared/src/match.ts` |
 | Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
 | Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, sala de espera, fases da partida, eliminação e espectadores, arena) | `game/server/src/rooms/WorldRoom.ts` |
+| Progressão: resumo da partida, carreira, cores e como se desbloqueiam | `game/shared/src/progress.ts` |
+| Carreira salva no navegador, painel de resumo, cores na escolha de herói | `game/client/src/career.ts`, `game/client/src/ui/summary.ts`, `game/client/src/ui/heroSelect.ts` |
 | Bots: decisões, combate e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
 | Bots: caminhos (partes das telas, bordas, portais, mapas de distância) | `game/server/src/bots/navigation.ts` |
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
@@ -250,4 +272,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 2. ✅ **Relíquias e lojas:** relíquias com raridade (sorte), armas com recarga e multiplicação de projéteis, baús, vendedores em cavernas.
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
 4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.
-5. 🚧 **Bots, equilíbrio e progressão:** ✅ bots com IA que completam a partida até 40 heróis; ✅ combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); ⏳ progressão entre partidas.
+5. ✅ **Bots, equilíbrio e progressão:** bots com IA que completam a partida até 40 heróis; combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); progressão entre partidas (resumo, placar da sala, carreira no navegador e cores desbloqueáveis).

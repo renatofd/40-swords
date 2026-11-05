@@ -70,6 +70,8 @@ export const Player = schema({
   watch: t.string().default(""),
   /** Waiting room: ready for the next match. */
   ready: t.boolean().default(false),
+  /** Hero colour (index into PALETTES; cosmetic). */
+  palette: t.uint8().default(0),
 });
 export type Player = SchemaType<typeof Player>;
 
@@ -116,6 +118,9 @@ export const RosterEntry = schema({
   away: t.boolean().default(false),
   /** A bot the server plays (it fills the match up to MAX_PLAYERS_PER_ROOM). */
   bot: t.boolean().default(false),
+  /** Matches won and heroes defeated in this room so far (they carry over from match to match). */
+  wins: t.uint16().default(0),
+  kills: t.uint16().default(0),
 });
 export type RosterEntry = SchemaType<typeof RosterEntry>;
 

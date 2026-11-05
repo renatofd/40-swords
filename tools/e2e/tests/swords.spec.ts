@@ -36,6 +36,16 @@ test("the hero select shows the three classes with their stats, in the player's 
   ])
     await expect(page.locator('.sw-card[data-class="rogue"]')).toContainText(label);
 
+  // Hero colours: the class colour is on; the others unlock with the career (a new browser has none yet).
+  await expect(page.locator(".sw-colour")).toHaveCount(6);
+  await expect(page.locator('.sw-colour[data-palette="classic"]')).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator('.sw-colour[data-palette="gold"]')).toHaveAttribute("aria-disabled", "true");
+  // A locked colour can't be picked (aria-disabled), but clicking it still says how to unlock it.
+  await page.locator('.sw-colour[data-palette="gold"]').click({ force: true });
+  await expect(page.locator(".sw-colours-note")).toHaveText("🔒 Ouro: Vença uma partida");
+  await expect(page.locator('.sw-colour[data-palette="classic"]')).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".sw-career")).toHaveText("Sua carreira começa na primeira partida.");
+
   // Choosing a class goes to the map step; Back returns to the classes, and Back again to the menu.
   await page.locator('.sw-card[data-class="rogue"]').click();
   await expect(page.getByRole("heading", { name: "Escolha o mapa" })).toBeVisible();
