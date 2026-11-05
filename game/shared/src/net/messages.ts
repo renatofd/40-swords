@@ -27,6 +27,8 @@ export const Msg = {
   ready: "ready",
   /** client → server: while out, watch the next hero still in the match. */
   watchNext: "watch",
+  /** client → server: waiting room, whether bots fill the next match. */
+  bots: "bots",
 } as const;
 
 export interface DamageMessage {
@@ -120,4 +122,8 @@ export interface KillMessage {
 
 export interface ReadyMessage {
   ready: boolean;
+}
+
+export interface BotsMessage {
+  on: boolean;
 }

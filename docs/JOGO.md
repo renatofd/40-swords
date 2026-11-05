@@ -4,11 +4,11 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 
 > Toda a arte atual é **provisória, feita em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
 
-## Como jogar (etapa 4)
+## Como jogar (etapa 5)
 
 1. No menu, digite o nome e clique em **Jogar**.
 2. Escolha o **herói** (cada classe mostra os atributos) e depois o **mapa** (por enquanto só o Vale das Espadas). A escolha acontece antes de entrar na sala; o último herói fica lembrado.
-3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida").
+3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida"). Com **🤖 Bots: ligados** (o padrão), bots completam a partida até 40 heróis; qualquer um na sala pode desligar no mesmo painel (veja "Bots").
 4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
 5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
 6. **Cavernas** (8 espalhadas pelo mundo): entre pela abertura escura. Duas guardam baús; nas outras seis um **vendedor** oferece uma relíquia, uma arma e uma poção. Ande até o item para comprar. Cada jogador vê as próprias ofertas, sorteadas com a sua sorte e renovadas a cada 3 minutos. Para sair, use a passagem no fundo da caverna.
@@ -45,7 +45,7 @@ O relógio no canto superior direito mostra a fase atual, quanto falta para a pr
 - A partida também pode terminar antes da arena: se só sobrar um, ele vence na hora.
 - Quem tentar entrar com a partida em andamento vai para outra sala (a sala fecha quando a partida começa). Se alguém ainda conseguir entrar no último instante, assiste e joga na partida seguinte.
 - Quem cai da conexão tem 20 s para voltar. Na sala de espera, ele aparece como ausente (⏳) e não segura o início; se a partida começar sem ele, ao voltar ele assiste.
-- Partida sozinho (para testar): começa quando você aperta Pronto e só termina se você cair ou chegar à arena (aí você vence).
+- Partida sozinho e sem bots (para testar): começa quando você aperta Pronto e só termina se você cair ou chegar à arena (aí você vence). Com bots, é uma partida normal de 40.
 
 **Testar a partida mais rápido:** os tempos vêm de variáveis de ambiente do servidor (validadas ao iniciar):
 
@@ -57,6 +57,25 @@ O relógio no canto superior direito mostra a fase atual, quanto falta para a pr
 Exemplo: `MATCH_PVP_SECONDS=30 MATCH_ARENA_SECONDS=120 pnpm dev` (no Windows, `set MATCH_PVP_SECONDS=30` e `set MATCH_ARENA_SECONDS=120` antes de `pnpm dev`). O jogador nunca controla esses tempos: só o servidor.
 
 As durações fixas (contagem da sala de espera e da arena, tempestade, dano da tempestade, tempo do resultado) ficam em `game/shared/src/match.ts`.
+
+## Bots
+
+Para a sala nunca ficar vazia, **bots** completam cada partida até **40 heróis** (contando os jogadores). Eles entram quando a partida começa e saem quando ela termina; na sala de espera, o botão **🤖 Bots** liga e desliga (vale para a próxima partida e todos na sala veem a escolha). Os nomes dos bots começam com 🤖 (na lista de jogadores, no placar, no feed e acima do herói).
+
+Bots jogam com as mesmas regras dos jogadores: o servidor manda **uma entrada por tick** (mover, atacar) para cada bot e ela passa pela mesma simulação (`stepPlayer`) que a dos jogadores, sem atalhos. Eles só "veem" o que um jogador veria: a própria tela, os heróis perto, as ofertas da loja em que estão. Cada um tem uma personalidade sorteada (ousadia, coragem no PvP, cautela com a vida, reflexo).
+
+O que um bot faz, em ordem de prioridade (decide 5 vezes por segundo):
+
+1. **Na arena:** fica dentro da zona segura e luta com o herói mais perto (recua se estiver fraco).
+2. **No PvP:** luta com heróis que consegue vencer (compara vida, dano, defesa e armas) e foge dos mais fortes.
+3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo.
+4. **Vida baixa:** vai à loja mais perto comprar poção, se tiver rupees.
+5. **Loja, baús e rupees:** compra a melhor relíquia que pode pagar (sem pisar nas outras ofertas), abre baús e pega rupees da tela.
+6. **Explorar:** vai para telas que não viu há algum tempo, cada vez mais longe da praça (inimigos mais fortes) conforme sobe de nível e junta relíquias, sem atravessar telas perigosas demais.
+
+O caminho usa um grafo das partes transitáveis de cada tela (ligadas pelas bordas abertas e pelos portais das cavernas e masmorras) e mapas de distância dentro da tela; se um bot ficar preso numa parede, ele tenta outro caminho. Com 40 heróis, o servidor gasta cerca de 1 ms por tick (de 33 ms disponíveis).
+
+O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (calmaria, PvP, arena) com 39 bots e confere que eles se espalham, sobem de nível, se enfrentam e que alguém vence.
 
 ## Classes
 
@@ -200,11 +219,13 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Regras da partida (fases, sala de espera, tempestade) | `game/shared/src/match.ts` |
 | Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
 | Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, sala de espera, fases da partida, eliminação e espectadores, arena) | `game/server/src/rooms/WorldRoom.ts` |
+| Bots: decisões, combate e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
+| Bots: caminhos (partes das telas, bordas, portais, mapas de distância) | `game/server/src/bots/navigation.ts` |
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
 | Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
 | Relógio da partida, feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
-| Painel da sala de espera (Pronto) | `game/client/src/ui/lobby.ts` |
+| Painel da sala de espera (Pronto, bots) | `game/client/src/ui/lobby.ts` |
 | Escolha de herói e mapa (antes de entrar) | `game/client/src/ui/heroSelect.ts` |
 | HUD: vida, relíquias, atributos, avisos | `game/client/src/ui/` |
 | Textos (14 idiomas) | `game/client/src/messages.ts` |
@@ -215,3 +236,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 2. ✅ **Relíquias e lojas:** relíquias com raridade (sorte), armas com recarga e multiplicação de projéteis, baús, vendedores em cavernas.
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
 4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.
+5. 🚧 **Bots, equilíbrio e progressão:** ✅ bots com IA que completam a partida até 40 heróis; ⏳ combate e equilíbrio (medidos com os bots); ⏳ progressão entre partidas.

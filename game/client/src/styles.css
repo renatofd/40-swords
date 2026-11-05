@@ -693,3 +693,12 @@
 .sw-lobby-ready {
   min-inline-size: 140px;
 }
+
+.sw-lobby-bots {
+  margin-block-start: 10px;
+  font-size: 12px;
+}
+
+.sw-lobby-bots-hint {
+  margin: 4px 0 0;
+}
