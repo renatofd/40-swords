@@ -12,6 +12,23 @@ describe("enemies", () => {
     }
   });
 
+  it("regular monsters around the start are a bit weaker in the overworld, not in dungeons", () => {
+    for (const tier of [0, 1, 2]) {
+      const outside = enemyStats("goblin", tier, false, true);
+      const inside = enemyStats("goblin", tier, false, false);
+      expect(outside.maxHp).toBeLessThan(inside.maxHp);
+      expect(outside.damage).toBeLessThan(inside.damage);
+      expect(outside.xp).toBe(inside.xp);
+      expect(outside.rupees).toEqual(inside.rupees);
+    }
+    // Still stronger the farther they are, and the same as before from tier 3 on.
+    expect(enemyStats("goblin", 1, false, true).maxHp).toBeGreaterThan(enemyStats("goblin", 0, false, true).maxHp);
+    expect(enemyStats("goblin", 2, false, true).maxHp).toBeGreaterThan(enemyStats("goblin", 1, false, true).maxHp);
+    expect(enemyStats("goblin", 3, false, true)).toEqual(enemyStats("goblin", 3, false, false));
+    // Bosses keep their strength wherever they are.
+    expect(enemyStats("warden", 0, false, true)).toEqual(enemyStats("warden", 0, false, false));
+  });
+
   it("elites are tougher and richer", () => {
     const normal = enemyStats("goblin", 2, false);
     const elite = enemyStats("goblin", 2, true);

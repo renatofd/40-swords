@@ -98,6 +98,15 @@
   text-shadow: 0 2px 0 #000;
 }
 
+/* The match rules under the title (while there is only one map, so no map step). */
+.sw-select-rules {
+  margin: 0;
+  max-inline-size: 640px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ui-muted);
+}
+
 .sw-cards {
   display: flex;
   flex-wrap: wrap;
@@ -541,6 +550,27 @@
 .sw-match[data-phase="4"] {
   border-color: #c09030;
   color: #ffe9b0;
+}
+
+/* The start of a match: big in the middle of the screen, then it slides to its corner (MatchHud.intro). */
+.sw-match-intro {
+  z-index: 5;
+  max-inline-size: none;
+  overflow: visible;
+  border-color: #c09030;
+  color: #ffe9b0;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.55);
+}
+
+/* Keep the duration in step with INTRO_MOVE_MS (matchHud.ts). */
+.sw-match-settle {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-match-settle {
+    transition: none;
+  }
 }
 
 .sw-feed {

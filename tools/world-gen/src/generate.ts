@@ -15,11 +15,23 @@
  *   n  arena sand   l  arena line   N  arena wall   u  arena pillar   x  arena spawn
  *   enemies: e slime  g goblin  b bat  k skeleton  z scorpion  w wolf  f lurker
  *            1 the dungeon's mini-boss   2 the dungeon's boss
+ *
+ * Props (tile layer "props", placed after the layout with their own random
+ * stream, so they never change the rest of the world): clumps of tall grass on
+ * the grassy overworld screens, pots in the corners of caves and dungeon rooms.
  */
 import { writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { OFFER_SLOTS, offerPosition, SCREEN_TILES_X, SCREEN_TILES_Y, TILE_SIZE } from "@game/shared";
+import {
+  OFFER_SLOTS,
+  offerPosition,
+  PROPS_LAYER,
+  type PropKind,
+  SCREEN_TILES_X,
+  SCREEN_TILES_Y,
+  TILE_SIZE,
+} from "@game/shared";
 import { PNG } from "pngjs";
 import { buildDungeonRoom, buildOverworld, dungeonLayout, type Openings, rngFor } from "./build";
 import { buildTileset, COLUMNS, MARGIN, SPACING, TILES, tileId } from "./tiles";
@@ -273,6 +285,7 @@ plans.forEach((row, sr) => {
   });
 });
 const glyph = (x: number, y: number) => GLYPHS[glyphAt[y]?.[x] ?? "K"] ?? {};
+const centreOf = (t: number) => t * TILE_SIZE + TILE_SIZE / 2;
 const isSolid = (x: number, y: number) => x < 0 || y < 0 || x >= width || y >= height || Boolean(glyph(x, y).wall);
 
 // ─── Edge rules ─────────────────────────────────────────────────────────────
@@ -421,6 +434,129 @@ for (let y = 0; y < height; y++)
   for (const [x, y] of spawns) if (!inside.has(y * width + x)) errors.push(`arena spawn at (${x}, ${y}) is cut off`);
 }
 
+// ─── Props: tall grass outside, pots in caves and dungeons ──────────────────
+const propRng = rngFor(SEED + 1);
+const propAt = new Map<number, PropKind>();
+/** Tiles kept clear: around portals, spawns and chests, and the vendors' offers. */
+const keepClear = new Set<number>();
+for (let y = 0; y < height; y++)
+  for (let x = 0; x < width; x++) {
+    const g = glyph(x, y);
+    const around: [number, number][] = [];
+    if (g.portal || g.object === "spawn") around.push([x, y]);
+    if (g.object === "chest") around.push([x, y]);
+    if (g.object === "vendor") {
+      around.push([x, y]);
+      for (let slot = 0; slot < OFFER_SLOTS; slot++) {
+        const at = offerPosition({ x: centreOf(x), y: centreOf(y) }, slot);
+        around.push([Math.floor(at.x / TILE_SIZE), Math.floor(at.y / TILE_SIZE)]);
+      }
+    }
+    for (const [cx, cy] of around) {
+      const r = g.portal ? 2 : 1;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) keepClear.add((cy + dy) * width + cx + dx);
+    }
+  }
+/** Walkable, reachable, free tile inside a screen (not on its border nor in front of its openings). */
+const propFree = (x: number, y: number) => {
+  const k = y * width + x;
+  const lx = x % SCREEN_TILES_X;
+  const ly = y % SCREEN_TILES_Y;
+  if (lx < 1 || ly < 1 || lx > SCREEN_TILES_X - 2 || ly > SCREEN_TILES_Y - 2) return false;
+  if ((lx <= 1 || lx >= SCREEN_TILES_X - 2) && ly >= 3 && ly <= 7) return false;
+  if ((ly <= 1 || ly >= SCREEN_TILES_Y - 2) && lx >= 7 && lx <= 12) return false;
+  const g = glyph(x, y);
+  return !isSolid(x, y) && seen.has(k) && !keepClear.has(k) && !propAt.has(k) && !g.enemy && !g.object;
+};
+const shuffle = <T>(list: T[]): T[] => {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(propRng() * (i + 1));
+    [list[i], list[j]] = [list[j] as T, list[i] as T];
+  }
+  return list;
+};
+const NEIGHBOURS: [number, number][] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+];
+// Overworld: one to three clumps of two to four tufts on each grassy screen (not the start square).
+for (let sr = 0; sr < OVERWORLD_ROWS; sr++)
+  for (let sc = 0; sc < COLS; sc++) {
+    const plan = plans[sr]?.[sc];
+    if (!plan || plan.rows === START_SCREEN || (plan.ground !== "grass" && plan.ground !== "darkGrass")) continue;
+    const open = (x: number, y: number) => {
+      const lx = x % SCREEN_TILES_X;
+      const ly = y % SCREEN_TILES_Y;
+      const g = glyphAt[y]?.[x];
+      return (
+        lx >= 2 &&
+        ly >= 2 &&
+        lx <= SCREEN_TILES_X - 3 &&
+        ly <= SCREEN_TILES_Y - 3 &&
+        (g === "." || g === ",") &&
+        propFree(x, y)
+      );
+    };
+    const clumps = 1 + Math.floor(propRng() * 3);
+    for (let i = 0; i < clumps; i++) {
+      const spots: [number, number][] = [];
+      for (let ly = 0; ly < SCREEN_TILES_Y; ly++)
+        for (let lx = 0; lx < SCREEN_TILES_X; lx++) {
+          const x = sc * SCREEN_TILES_X + lx;
+          const y = sr * SCREEN_TILES_Y + ly;
+          if (open(x, y)) spots.push([x, y]);
+        }
+      const centre = spots[Math.floor(propRng() * spots.length)];
+      if (!centre) break;
+      let left = 2 + Math.floor(propRng() * 3);
+      for (const [dx, dy] of [[0, 0] as [number, number], ...shuffle([...NEIGHBOURS])]) {
+        const x = centre[0] + dx;
+        const y = centre[1] + dy;
+        if (left === 0) break;
+        if (!open(x, y)) continue;
+        propAt.set(y * width + x, "bush");
+        left--;
+      }
+    }
+  }
+// Caves and dungeon rooms: two to four pots, in the corners first, then along the walls.
+for (let sr = OVERWORLD_ROWS; sr < ROWS; sr++)
+  for (let sc = 0; sc < COLS; sc++) {
+    const plan = plans[sr]?.[sc];
+    if (!plan || plan.name === "bedrock" || inArena(sc * SCREEN_TILES_X, sr * SCREEN_TILES_Y)) continue;
+    const corners: [number, number][] = [];
+    const sides: [number, number][] = [];
+    for (let ly = 0; ly < SCREEN_TILES_Y; ly++)
+      for (let lx = 0; lx < SCREEN_TILES_X; lx++) {
+        const x = sc * SCREEN_TILES_X + lx;
+        const y = sr * SCREEN_TILES_Y + ly;
+        if (!propFree(x, y)) continue;
+        const across = isSolid(x - 1, y) || isSolid(x + 1, y);
+        const along = isSolid(x, y - 1) || isSolid(x, y + 1);
+        if (across && along) corners.push([x, y]);
+        else if (across || along) sides.push([x, y]);
+      }
+    let left = 2 + Math.floor(propRng() * 3);
+    for (const [x, y] of [...shuffle(corners), ...shuffle(sides)]) {
+      if (left === 0) break;
+      if (!propFree(x, y)) continue;
+      propAt.set(y * width + x, "pot");
+      left--;
+    }
+  }
+for (const k of propAt.keys()) {
+  const x = k % width;
+  const y = Math.floor(k / width);
+  if (isSolid(x, y) || !seen.has(k) || glyph(x, y).portal)
+    errors.push(`prop at tile (${x}, ${y}) is not on free floor`);
+}
+
 if (errors.length > 0) {
   console.error(`✗ world layout:\n  - ${errors.slice(0, 40).join("\n  - ")}`);
   process.exit(1);
@@ -430,6 +566,7 @@ if (errors.length > 0) {
 const gid = (key: string) => tileId(key) + 1;
 const ground: number[] = [];
 const walls: number[] = [];
+const props: number[] = [];
 const objects: unknown[] = [];
 let nextObjectId = 1;
 const centre = (t: number) => t * TILE_SIZE + TILE_SIZE / 2;
@@ -454,6 +591,8 @@ for (let y = 0; y < height; y++)
     const plan = planAt(x, y);
     ground.push(gid(g.ground ?? plan?.ground ?? "grass"));
     walls.push(g.wall ? gid(g.wall) : 0);
+    const prop = propAt.get(y * width + x);
+    props.push(prop === "bush" ? gid("tuft") : prop === "pot" ? gid("pot") : 0);
     if (g.object) point(g.object, "", x, y);
     if (g.enemy) {
       const d = plan?.dungeon;
@@ -527,7 +666,7 @@ const map = {
   height,
   tilewidth: TILE_SIZE,
   tileheight: TILE_SIZE,
-  nextlayerid: 4,
+  nextlayerid: 5,
   nextobjectid: nextObjectId,
   properties: [
     { name: "overworldColumns", type: "int", value: OVERWORLD_COLUMNS },
@@ -538,6 +677,7 @@ const map = {
   layers: [
     tileLayer(1, "ground", ground),
     tileLayer(2, "walls", walls),
+    tileLayer(4, PROPS_LAYER, props),
     {
       id: 3,
       name: "objects",
@@ -563,9 +703,18 @@ const map = {
       spacing: SPACING,
       tilecount: TILES.length,
       columns: COLUMNS,
-      tiles: TILES.flatMap((t, id) =>
-        t.collides ? [{ id, properties: [{ name: "collides", type: "bool", value: true }] }] : [],
-      ),
+      tiles: TILES.flatMap((t, id) => {
+        const properties = [
+          ...(t.collides ? [{ name: "collides", type: "bool", value: true }] : []),
+          ...(t.prop
+            ? [
+                { name: "prop", type: "string", value: t.prop.kind },
+                { name: "broken", type: "bool", value: t.prop.broken },
+              ]
+            : []),
+        ];
+        return properties.length > 0 ? [{ id, properties }] : [];
+      }),
     },
   ],
 };
@@ -582,5 +731,6 @@ writeFileSync(resolve(ROOT, `content/maps/${MAP_ID}.tmj`), `${json}\n`);
 const count = (type: string) => objects.filter((o) => (o as { type: string }).type === type).length;
 console.log(
   `✓ content/maps/${MAP_ID}.tmj (${width}x${height} tiles, ${COLS}x${ROWS} screens: ${count("enemy")} enemies, ` +
-    `${count("chest")} chests, ${count("vendor")} vendors, ${count("portal")} portals, ${count("arenaSpawn")} arena spawns)`,
+    `${count("chest")} chests, ${count("vendor")} vendors, ${count("portal")} portals, ${count("arenaSpawn")} arena spawns, ` +
+    `${[...propAt.values()].filter((k) => k === "bush").length} tall grass, ${[...propAt.values()].filter((k) => k === "pot").length} pots)`,
 );

@@ -325,14 +325,26 @@ export interface EnemyStats {
   shotDamage: number;
 }
 
-export function enemyStats(kind: EnemyKind, tier: number, elite: boolean): EnemyStats {
+/**
+ * Regular monsters of the overworld around the start (tiers 0 to 2) are weaker
+ * than the formula below gives, so new heroes get going: the share of health
+ * and damage they keep, by tier (rewards stay the same).
+ */
+export const START_AREA_SOFTENING: readonly number[] = [0.7, 0.75, 0.88];
+
+/**
+ * Stats of a monster. `overworld`: it lives outside the dungeons (only those
+ * get START_AREA_SOFTENING near the start; dungeon monsters and bosses don't).
+ */
+export function enemyStats(kind: EnemyKind, tier: number, elite: boolean, overworld = false): EnemyStats {
   const def = ENEMIES[kind];
   const t = Math.max(0, tier);
   const e = elite ? 1 : 0;
-  const damageMult = (1 + 0.15 * t) * (elite ? 1.5 : 1);
+  const soft = overworld && def.rank === "normal" ? (START_AREA_SOFTENING[Math.floor(t)] ?? 1) : 1;
+  const damageMult = (1 + 0.15 * t) * (elite ? 1.5 : 1) * soft;
   const rupeeMult = (1 + 0.2 * t) * (elite ? 3 : 1);
   return {
-    maxHp: Math.round(def.maxHp * (1 + 0.3 * t) * (elite ? 3 : 1)),
+    maxHp: Math.round(def.maxHp * (1 + 0.3 * t) * (elite ? 3 : 1) * soft),
     damage: Math.round(def.damage * damageMult),
     defense: def.defense + 0.5 * t + e,
     speed: def.speed * (elite ? 1.1 : 1),

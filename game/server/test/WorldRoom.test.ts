@@ -39,7 +39,7 @@ import {
 } from "@game/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rooms } from "../src";
-import { loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
+import { loadProps, loadWorldInfo, loadWorldObjects } from "../src/world/mapObjects";
 
 // The tests expect the default match timings, whatever the shell exports (runs before the imports).
 vi.hoisted(() => {
@@ -50,6 +50,7 @@ vi.hoisted(() => {
 const appConfig = createGameServer({ rooms, protocolVersion: PROTOCOL_VERSION });
 const v = { core: CORE_PROTOCOL_VERSION, game: PROTOCOL_VERSION };
 const objects = loadWorldObjects("overworld");
+const { props } = loadProps("overworld");
 const arena = arenaRect(loadWorldInfo("overworld"));
 /** The start square, where every match begins. */
 const START = { col: 8, row: 4 };
@@ -65,7 +66,10 @@ interface RoomInternals {
   matchStart: number;
   fightStart: number;
   map: { pixelWidth: number; pixelHeight: number };
+  rng: () => number;
+  regrowAt: Map<number, number>;
   giveRelic(id: string, player: Player, kind: string, rarity: number, source: string): void;
+  openLobby(): void;
 }
 const internals = (room: unknown) => room as RoomInternals;
 
@@ -322,6 +326,72 @@ describe("WorldRoom", () => {
     const heal = Math.round(player.maxHp * HEART_HEAL);
     expect(player.hp).toBe(10 + heal);
     await vi.waitFor(() => expect(picked).toContainEqual({ kind: "heart", value: heal }));
+  });
+
+  it("the sword cuts tall grass and breaks pots; some hold a heart or rupees; they come back unseen", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const hero = await joinAs(room, "knight");
+    const { client, player } = hero;
+    const bush = props.find((p) => p.kind === "bush");
+    const pot = props.find((p) => p.kind === "pot");
+    if (!bush || !pot) throw new Error("no props");
+    const broken = (id: number) => room.state.brokenProps.has(String(id));
+    const input = client.input<PlayerInput>({ mode: "reliable" });
+    /** Stands just north of a prop (out of reach of what falls out), facing it, and swings once with every random roll at `roll`. */
+    const swingAtProp = async (prop: { x: number; y: number }, roll = 0.99) => {
+      player.x = prop.x;
+      player.y = prop.y - 12;
+      player.facing = 2;
+      // The sword recovers as the hero's steps run (one per input).
+      await vi.waitFor(() => {
+        input.send();
+        expect(player.cooldown).toBe(0);
+      });
+      const rng = internals(room).rng;
+      internals(room).rng = () => roll;
+      input.data.attack = 1;
+      input.send();
+      input.data.attack = 0;
+      input.send();
+      for (let i = 0; i < 3; i++) await room.waitForNextTimestep();
+      internals(room).rng = rng;
+    };
+    const dropsOn = (prop: { x: number; y: number }) =>
+      [...room.state.pickups.values()].filter((p) => p.x === prop.x && p.y === prop.y);
+
+    // In the waiting room the world is frozen.
+    await swingAtProp(bush, 0);
+    expect(broken(bush.id)).toBe(false);
+
+    await play(room, hero);
+    await swingAtProp(bush, 0);
+    expect(broken(bush.id)).toBe(true);
+    await vi.waitFor(() => expect(client.state.brokenProps.get(String(bush.id))).toBe(0));
+    expect(dropsOn(bush)).toEqual([expect.objectContaining({ kind: "heart" })]);
+    // Already cut: nothing more in it.
+    await swingAtProp(bush, 0);
+    expect(dropsOn(bush)).toHaveLength(1);
+    // A pot with three rupees (the roll is past the heart's chance, within the rupees').
+    await swingAtProp(pot, 0.5);
+    expect(broken(pot.id)).toBe(true);
+    expect(dropsOn(pot)).toEqual([expect.objectContaining({ kind: "rupee", value: 3 })]);
+
+    // The tall grass is due back, but not while a hero is on its screen to see it pop up.
+    internals(room).regrowAt.set(bush.id, 0);
+    player.x = bush.x;
+    player.y = bush.y - 10;
+    for (let i = 0; i < TICK_RATE + 2; i++) await room.waitForNextTimestep();
+    expect(broken(bush.id)).toBe(true);
+    player.x = pot.x;
+    player.y = pot.y - 10;
+    await vi.waitFor(() => expect(broken(bush.id)).toBe(false), { timeout: 3000 });
+    await vi.waitFor(() => expect(client.state.brokenProps.has(String(bush.id))).toBe(false));
+
+    // The next match starts with everything whole.
+    expect(broken(pot.id)).toBe(true);
+    internals(room).openLobby();
+    expect(room.state.brokenProps.size).toBe(0);
   });
 
   it("enemies hurt players on contact, through defense, with knockback and invulnerability", async () => {

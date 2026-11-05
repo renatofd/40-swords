@@ -5,7 +5,7 @@ interface GameHook {
   locale: string;
 }
 
-/** Opens the game, types a name, picks a hero and the map (40 Swords' pre-join step) and joins a match. */
+/** Opens the game, types a name, picks a hero (40 Swords' pre-join step) and joins a match. */
 export async function joinMatch(page: Page, name: string, query = "lang=en", hero = "knight") {
   await page.goto(`/?${query}`);
   await page.locator(".ui-menu").waitFor();
@@ -17,10 +17,9 @@ export async function joinMatch(page: Page, name: string, query = "lang=en", her
   await expect(page.locator(".sw-status")).toBeVisible();
 }
 
-/** 40 Swords: picks a class and the map on the screen shown between Play and joining. */
+/** 40 Swords: picks a class on the screen shown between Play and joining (one map for now: that joins it). */
 export async function pickHero(page: Page, hero: string) {
   await page.locator(`.sw-select [data-class="${hero}"]`).click();
-  await page.locator('.sw-select [data-map="overworld"]').click();
 }
 
 export function sessionId(page: Page) {

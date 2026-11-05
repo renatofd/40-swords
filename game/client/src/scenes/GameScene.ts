@@ -31,7 +31,11 @@ import {
   type PlayerInput,
   type PlayerSimState,
   type Portal,
+  PROPS_LAYER,
   type ProjectileEndMessage,
+  type Prop,
+  type PropKind,
+  parseProps,
   parseWorldInfo,
   parseWorldObjects,
   type ReadyMessage,
@@ -57,8 +61,10 @@ import Phaser from "phaser";
 import {
   MUSIC_THEME,
   mapKey,
+  SFX_BREAK,
   SFX_CHEST,
   SFX_COIN,
+  SFX_CUT,
   SFX_FALL,
   SFX_HEART,
   SFX_HIT,
@@ -81,8 +87,10 @@ import {
   TEX_CHEST,
   TEX_CHEST_OPEN,
   TEX_HEART,
+  TEX_LEAF,
   TEX_MERCHANT,
   TEX_PEDESTAL,
+  TEX_SHARD,
 } from "../render/placeholderArt";
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
@@ -136,7 +144,8 @@ const SIM_FIELDS = [
 
 /**
  * The world scene: Tiled map shown one screen at a time, heroes, enemies,
- * projectiles, chests and cave vendors.
+ * projectiles, chests, cave vendors, and tall grass and pots (tile layer
+ * "props": the server says which are broken).
  *
  * The core starts it with a GameContext once the room is joined (the hero was
  * picked before joining, see ui/heroSelect.ts). Netcode (@colyseus/sdk/predict):
@@ -158,6 +167,12 @@ export class GameScene extends Phaser.Scene {
   private enemies = new Map<string, EnemyView>();
   private pickups = new Map<string, Phaser.GameObjects.Image>();
   private chests = new Map<string, Phaser.GameObjects.Image>();
+  /** Tall grass and pots: their tile layer, tiles, and each one by id (tile index). */
+  private propsLayer?: Phaser.Tilemaps.TilemapLayer;
+  private propTiles: Partial<Record<PropKind, { whole: number; broken: number }>> = {};
+  private props = new Map<number, Prop>();
+  /** Until then, props reported broken are drawn so without bits flying (the state as we joined). */
+  private quietPropsUntil = 0;
   private projectiles?: Projectiles;
   private status?: StatusHud;
   private labels?: WorldLabels;
@@ -203,6 +218,8 @@ export class GameScene extends Phaser.Scene {
     this.enemies = new Map();
     this.pickups = new Map();
     this.chests = new Map();
+    this.props = new Map();
+    this.propsLayer = undefined;
     this.shops = new Map();
     this.pedestals = [];
     this.predicted = undefined;
@@ -240,6 +257,9 @@ export class GameScene extends Phaser.Scene {
     callbacks.onRemove("pickups", (_p: Pickup, id: string) => this.removePickup(id));
     callbacks.onAdd("chests", (chest: Chest, id: string) => this.addChest(chest, id));
     callbacks.onRemove("chests", (_c: Chest, id: string) => this.removeChest(id));
+    this.quietPropsUntil = this.time.now + 1000;
+    callbacks.onAdd("brokenProps", (_kind: number, id: string) => this.setPropBroken(Number(id), true));
+    callbacks.onRemove("brokenProps", (_kind: number, id: string) => this.setPropBroken(Number(id), false));
 
     room.onMessage(Msg.damage, (m: DamageMessage) => {
       this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now);
@@ -346,12 +366,18 @@ export class GameScene extends Phaser.Scene {
     const tilesets = raw.tilesets
       .map((ts) => map.addTilesetImage(ts.name ?? "", tilesetKey(ts.image ?? "")))
       .filter((t): t is Phaser.Tilemaps.Tileset => t !== null);
-    for (const layer of map.layers) map.createLayer(layer.name, tilesets);
+    for (const layer of map.layers) {
+      const created = map.createLayer(layer.name, tilesets);
+      if (layer.name === PROPS_LAYER && created instanceof Phaser.Tilemaps.TilemapLayer) this.propsLayer = created;
+    }
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.cameras.main.setRoundPixels(true);
     this.gameMap = parseTiledMap(raw, { tileSize: TILE_SIZE });
     const objects = parseWorldObjects(raw);
+    const props = parseProps(raw);
+    this.propTiles = props.tiles;
+    this.props = new Map(props.props.map((p) => [p.id, p]));
     this.world = { grid: this.gameMap.collision, portals: objects.portals };
     this.vendors = objects.vendors;
     this.portals = objects.portals;
@@ -434,6 +460,41 @@ export class GameScene extends Phaser.Scene {
   private removeChest(id: string) {
     this.chests.get(id)?.destroy();
     this.chests.delete(id);
+  }
+
+  // ─── Tall grass and pots ──────────────────────────────────────────────────
+
+  /** Shows a prop broken (bits fly off it if the hero can see it) or whole again. */
+  private setPropBroken(id: number, broken: boolean) {
+    const prop = this.props.get(id);
+    const tiles = prop && this.propTiles[prop.kind];
+    if (!prop || !tiles || !this.propsLayer) return;
+    const tx = Math.floor(prop.x / TILE_SIZE);
+    const ty = Math.floor(prop.y / TILE_SIZE);
+    this.propsLayer.putTileAt(broken ? tiles.broken : tiles.whole, tx, ty);
+    if (!broken || this.time.now < this.quietPropsUntil || !this.cameras.main.worldView.contains(prop.x, prop.y))
+      return;
+    const pot = prop.kind === "pot";
+    this.sfx(pot ? SFX_BREAK : SFX_CUT, { volume: pot ? 0.8 : 0.6 }, 40, "props");
+    // Bits fly out (over what dropped, under the heroes) and fade at the end of their flight.
+    for (let i = 0; i < (pot ? 6 : 7); i++) {
+      const angle = ((i + Math.random() * 0.6) / (pot ? 6 : 7)) * Math.PI * 2;
+      const dist = 10 + Math.random() * 10;
+      const bit = this.add
+        .image(prop.x, prop.y - 3, pot ? TEX_SHARD : TEX_LEAF)
+        .setDepth(9.5)
+        .setAngle(Math.random() * 360);
+      this.tweens.add({
+        targets: bit,
+        x: prop.x + Math.cos(angle) * dist,
+        y: prop.y - 3 + Math.sin(angle) * dist * 0.7 + (pot ? 4 : 0),
+        angle: bit.angle + (Math.random() < 0.5 ? -1 : 1) * 240,
+        alpha: { value: 0, ease: "Cubic.easeIn" },
+        duration: 480 + Math.random() * 220,
+        ease: "Quad.easeOut",
+        onComplete: () => bit.destroy(),
+      });
+    }
   }
 
   // ─── Vendors ──────────────────────────────────────────────────────────────
@@ -607,6 +668,8 @@ export class GameScene extends Phaser.Scene {
         ui.toast(t("toast.matchStart"), 5000);
         this.warned.clear();
         this.summary?.hide();
+        // The countdown to PvP, big in the middle first (it then slides to its corner).
+        if (was === MatchPhase.starting) this.match?.intro();
       } else if (phase === MatchPhase.pvp) ui.toast(t("toast.pvpOn"), 6000);
       else if (phase === MatchPhase.prep) ui.toast(t("toast.arena"), 4000);
       else if (phase === MatchPhase.arena) ui.toast(t("toast.fight"), 2000);

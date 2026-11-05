@@ -71,6 +71,8 @@ export const SFX_LEVEL = "levelup";
 export const SFX_SHOOT = "shoot";
 export const SFX_FALL = "fall";
 export const SFX_WIN = "win";
+export const SFX_CUT = "cut";
+export const SFX_BREAK = "break";
 
 /** Texture key of a Tiled tileset, from its image path ("../tilesets/overworld.png" → "tileset:overworld"). */
 export const tilesetKey = (image: string) => `tileset:${fileKey(image)}`;

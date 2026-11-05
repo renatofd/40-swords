@@ -16,6 +16,9 @@ export const TEX_CHEST = "prop:chest";
 export const TEX_CHEST_OPEN = "prop:chest-open";
 export const TEX_MERCHANT = "npc:merchant";
 export const TEX_PEDESTAL = "prop:pedestal";
+/** Bits flying off cut tall grass and broken pots. */
+export const TEX_LEAF = "fx:leaf";
+export const TEX_SHARD = "fx:shard";
 export const projectileTexture = (weapon: string) => `shot:${weapon}`;
 export const hostileTexture = (style: string) => `hostile:${style}`;
 export const TEX_ELITE_GLOW = "fx:elite";
@@ -267,6 +270,18 @@ export function createPlaceholderArt(scene: Phaser.Scene) {
   g.fillStyle(0x55555f).fillRect(1, 2, 12, 6);
   g.fillStyle(0x9a9aa6).fillRect(0, 0, 14, 3);
   g.generateTexture(TEX_PEDESTAL, 14, 8);
+
+  // A blade of grass and a bit of clay, flying off what the sword cuts or breaks.
+  g.clear();
+  g.fillStyle(0x1d4a1b).fillRect(0, 0, 6, 4);
+  g.fillStyle(0xa8e07c).fillRect(1, 1, 4, 2);
+  g.fillStyle(0xe2f8c0).fillRect(1, 1, 2, 1);
+  g.generateTexture(TEX_LEAF, 6, 4);
+  g.clear();
+  g.fillStyle(0x3a1f10).fillRect(0, 0, 5, 5);
+  g.fillStyle(0xd07a48).fillRect(1, 1, 3, 3);
+  g.fillStyle(0xf0b080).fillRect(1, 1, 2, 1);
+  g.generateTexture(TEX_SHARD, 5, 5);
 
   // Weapon projectiles, pointing east (rotated at runtime).
   g.clear();

@@ -4,6 +4,12 @@ import { itemName } from "./relicText";
 
 const FEED_MS = 6000;
 const FEED_LINES = 4;
+/**
+ * The start of a match: how long the countdown stays big in the middle, then
+ * how long it takes to reach its corner (the slide itself: `.sw-match-settle` in styles.css).
+ */
+const INTRO_HOLD_MS = 2600;
+const INTRO_MOVE_MS = 800;
 
 /** What the match HUD shows, read from the synced state every frame. */
 export interface MatchView {
@@ -41,6 +47,8 @@ export const formatClock = (seconds: number): string => {
  * (top corner, above the scoreboard) with the heroes still standing, the
  * kill feed (bottom) and a banner for what matters most right now: the
  * winner, your fall (and who you watch), or a warning outside the safe zone.
+ * When a match starts, the countdown to PvP first shows big in the middle of
+ * the screen, then slides to its corner (`intro`).
  */
 export class MatchHud {
   readonly timer = h("div", { className: "sw-match", role: "status" });
@@ -50,6 +58,9 @@ export class MatchHud {
   private sub = h("div", { className: "sw-banner-sub" });
   private lastTimer = "";
   private lastBanner = "";
+  private introTimer: ReturnType<typeof setTimeout> | undefined;
+  /** `intro` was asked for: it runs once the timer shows the new phase (its size is measured). */
+  private introPending = false;
 
   constructor(private readonly t: Translate) {
     this.banner.append(this.title, this.sub);
@@ -88,6 +99,10 @@ export class MatchHud {
       this.timer.textContent = text;
       this.timer.dataset.phase = String(view.phase);
     }
+    if (this.introPending) {
+      this.introPending = false;
+      this.startIntro();
+    }
 
     let title = "";
     let sub = "";
@@ -118,6 +133,39 @@ export class MatchHud {
     this.sub.hidden = sub === "";
     this.banner.hidden = title === "";
     this.banner.dataset.kind = kind;
+  }
+
+  /**
+   * The countdown shows big in the middle of the screen for a moment, then
+   * slides back to its corner (on the next `update`, with the new text).
+   */
+  intro() {
+    this.introPending = true;
+  }
+
+  /** Measured on the page, so it works whichever corner the timer lives in (right to left languages too). */
+  private startIntro() {
+    const el = this.timer;
+    clearTimeout(this.introTimer);
+    el.classList.remove("sw-match-settle");
+    el.style.transform = "";
+    el.classList.add("sw-match-intro");
+    const parent = el.offsetParent?.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    if (!parent || rect.width === 0) {
+      el.classList.remove("sw-match-intro");
+      return;
+    }
+    const scale = Math.max(1, Math.min(2.4, (parent.width * 0.8) / rect.width));
+    const dx = parent.left + parent.width / 2 - (rect.left + rect.width / 2);
+    // Above the middle: the heroes start in the middle of the square.
+    const dy = parent.top + parent.height * 0.27 - (rect.top + rect.height / 2);
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    this.introTimer = setTimeout(() => {
+      el.classList.add("sw-match-settle");
+      el.style.transform = "";
+      this.introTimer = setTimeout(() => el.classList.remove("sw-match-intro", "sw-match-settle"), INTRO_MOVE_MS + 100);
+    }, INTRO_HOLD_MS);
   }
 
   /** A line in the kill feed (everyone sees every hero who falls, and why). */

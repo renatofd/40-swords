@@ -46,7 +46,7 @@ export interface BotSpot {
   id: string;
   x: number;
   y: number;
-  /** Pickups: "rupee" or "heart". */
+  /** Pickups: "rupee" or "heart"; props: "bush" or "pot". */
   kind?: string;
 }
 
@@ -82,6 +82,10 @@ export interface BotView {
   /** Closed chests. */
   chestsOn(screen: number): BotSpot[];
   pickupsOn(screen: number): BotSpot[];
+  /** Tall grass and pots still whole. */
+  propsOn(screen: number): BotSpot[];
+  /** Whether a prop (by the id `propsOn` gave it) is still whole. */
+  propWhole(id: string): boolean;
   vendorOn(screen: number): Spot | undefined;
   /** A bot's offers at a vendor (rolled when it walked onto the vendor's screen). */
   offers(id: string, vendor: Spot): readonly OfferMessage[] | undefined;
@@ -166,7 +170,7 @@ function dps(hero: Player, stats: Stats, defense: number): number {
   return total;
 }
 
-type Mode = "idle" | "travel" | "walk" | "fight" | "flee" | "rest";
+type Mode = "idle" | "travel" | "walk" | "fight" | "cut" | "flee";
 
 interface Walk {
   key: string;
@@ -185,8 +189,9 @@ interface Walk {
  * inside the safe zone and fight the closest hero; in PvP, fight heroes it can
  * beat and run from the others; run from monsters too strong for it (and keep
  * away from their screen for a while); buy a potion when hurt; buy relics;
- * open chests; fight the monsters it can handle; pick up rupees; otherwise
- * explore screens it hasn't seen lately, harder ones as it grows. Every tick
+ * open chests; fight the monsters it can handle; pick up rupees; cut the tall
+ * grass and break the pots close by (now and then); otherwise explore screens
+ * it hasn't seen lately, harder ones as it grows. Every tick
  * it steers toward that goal (around walls, through screen edges and portals)
  * and fights hit-and-run.
  */
@@ -216,6 +221,13 @@ export class BotBrain {
   /** What it gave up on (unreachable, taking too long), until a tick. */
   private readonly ignore = new Map<string, number>();
   private lastShop = Number.NEGATIVE_INFINITY;
+  /** Healing up (below half health, until 85%): no fights it can avoid. */
+  private recovering = false;
+  /** Strolling: when to pick the next spot. */
+  private roamUntil = 0;
+  /** The tall grass or pot it is cutting, until a tick. */
+  private prop: BotSpot | undefined;
+  private cutUntil = 0;
   private stuck = 0;
   private lastX = Number.NaN;
   private lastY = Number.NaN;
@@ -330,8 +342,8 @@ export class BotBrain {
       return;
     }
 
-    // Hurt: a heart lying on this screen, else rest where it's quiet (heroes heal out of
-    // combat), else a potion (here or at the nearest vendor).
+    // Hurt: a heart lying on this screen, else heal up away from fights, else a potion
+    // (here or at the nearest vendor).
     const pickups = view.pickupsOn(screen);
     if (me.hp < me.maxHp * 0.8) {
       const heart = this.closest(
@@ -346,11 +358,13 @@ export class BotBrain {
         return;
       }
     }
+    if (me.hp >= me.maxHp * 0.85) this.recovering = false;
+    else if (me.hp < me.maxHp * 0.5) this.recovering = true;
     const quiet =
       !enemies.some((e) => e.aggressive && Math.hypot(e.x - me.x, e.y - me.y) < 160) &&
       !(isPvpPhase(view.phase) && this.closestHero(view, me, screen, 200));
-    if (quiet && me.hp < me.maxHp * (this.mode === "rest" ? 0.85 : 0.5)) {
-      this.mode = "rest";
+    if (this.recovering && quiet) {
+      this.recover(view, me, screen, region, steps, comfort, enemies, reachable);
       return;
     }
     if (hurt && me.rupees >= POTION_PRICE) {
@@ -383,6 +397,16 @@ export class BotBrain {
       this.walkTo(view, coin.spot.id, coin.spot.x, coin.spot.y, PICKUP_RADIUS - 3, region);
       return;
     }
+    // Tall grass and pots close by: rupees, sometimes a heart (not every one: it has places to go).
+    const prop = this.mode === "cut" ? undefined : this.closest(view.propsOn(screen), me, reachable, tick, 72);
+    if (prop) {
+      if (this.rng() < 0.6) {
+        this.cut(view, prop.spot, region);
+        return;
+      }
+      this.ignore.set(prop.spot.id, tick + 30 * SECOND);
+    }
+    if (this.mode === "cut" && this.prop && view.propWhole(this.prop.id)) return;
 
     // Now and then, go spend the rupees.
     if (me.rupees >= 40 && tick - this.lastShop > 150 * SECOND) {
@@ -394,8 +418,64 @@ export class BotBrain {
       }
     }
     if (this.goal < 0 || this.goal === screen || tick > this.goalUntil || this.avoided(this.goal, tick))
-      this.explore(view, me, comfort);
+      this.explore(view, me, comfort, region, steps);
     else this.mode = "travel";
+  }
+
+  /**
+   * Heals up away from fights. Heroes heal out of combat even while walking, so
+   * it never just stands there: on a calm screen it cuts the tall grass and
+   * breaks the pots (a heart may be inside) or strolls around, else it heads
+   * for the closest easy screen (the start square and caves have no monsters).
+   */
+  private recover(
+    view: BotView,
+    me: Player,
+    screen: number,
+    region: Region,
+    steps: Field,
+    comfort: number,
+    enemies: readonly BotEnemy[],
+    reachable: (x: number, y: number) => boolean,
+  ) {
+    const { nav, tick } = view;
+    const easy = Math.max(0, comfort - 2);
+    if (nav.dangerOf(screen) <= easy || !enemies.some((e) => e.aggressive)) {
+      if (this.mode === "cut" && this.prop && view.propWhole(this.prop.id)) return;
+      const prop = this.closest(view.propsOn(screen), me, reachable, tick, 240);
+      if (prop) this.cut(view, prop.spot, region);
+      else this.roam(view, region, steps);
+      return;
+    }
+    const hops = nav.hops(nav.nodeAt(me.x, me.y), comfort + 1);
+    let best: number | undefined;
+    let bestHops = Number.POSITIVE_INFINITY;
+    for (const [s, h] of hops)
+      if (h > 0 && h < bestHops && nav.dangerOf(s) <= easy && !this.avoided(s, tick)) [best, bestHops] = [s, h];
+    if (best === undefined) this.roam(view, region, steps);
+    else if (this.goal !== best || this.mode !== "travel") this.travel(view, best, 60, comfort + 1);
+  }
+
+  /**
+   * Strolls to a random open spot of this screen, away from its edges, and
+   * lingers there a moment (healing, or nothing better to do: never a statue
+   * in a doorway).
+   */
+  private roam(view: BotView, region: Region, steps: Field) {
+    const { nav, tick } = view;
+    if (this.mode === "walk" && this.walk?.key.startsWith("roam:") && tick < this.roamUntil) return;
+    const ts = nav.tileSize;
+    for (let attempt = 0; attempt < 16; attempt++) {
+      const tx = region.tx + 2 + Math.floor(this.rng() * Math.max(1, region.w - 4));
+      const ty = region.ty + 2 + Math.floor(this.rng() * Math.max(1, region.h - 4));
+      const x = (tx + 0.5) * ts;
+      const y = (ty + 0.5) * ts;
+      if (nav.distanceAt(steps, x, y) < 3) continue;
+      this.walkTo(view, `roam:${tx},${ty}`, x, y, 4, region);
+      this.roamUntil = tick + (2 + Math.floor(this.rng() * 3)) * SECOND;
+      return;
+    }
+    this.mode = "idle";
   }
 
   /** In the arena: inside the safe zone, at the closest hero. */
@@ -438,7 +518,7 @@ export class BotBrain {
   }
 
   /** Picks a screen to go to: not seen lately, close, with monsters it can handle (the harder the better). */
-  private explore(view: BotView, me: Player, comfort: number) {
+  private explore(view: BotView, me: Player, comfort: number, region: Region, steps: Field) {
     const { nav, tick } = view;
     const node = nav.nodeAt(me.x, me.y);
     let best = -1;
@@ -455,12 +535,11 @@ export class BotBrain {
     }
     if (best < 0) {
       // Everything it can handle was seen lately: anywhere next door, but not back into trouble
-      // (out of a cave it fled into, the only way is back where the monster is: wait a little).
+      // (out of a cave it fled into, the only way is back where the monster is: stroll a little).
       const exits = nav.exitsOf(node).filter((e) => !this.avoided(e.screen, tick));
       const exit = exits[Math.floor(this.rng() * exits.length)];
       if (!exit) {
-        this.mode = "idle";
-        this.nextThink = tick + 2 * SECOND;
+        this.roam(view, region, steps);
         return;
       }
       best = exit.screen;
@@ -543,6 +622,17 @@ export class BotBrain {
     this.mode = "fight";
     this.target = id;
     this.targetHero = hero;
+    this.fightRegion = region;
+  }
+
+  /** Cuts tall grass or breaks a pot: up to it, then a swing at it. */
+  private cut(view: BotView, spot: BotSpot, region: Region) {
+    if (this.mode !== "cut" || this.prop?.id !== spot.id) {
+      this.cutUntil = view.tick + 6 * SECOND;
+      this.chase = undefined;
+    }
+    this.mode = "cut";
+    this.prop = spot;
     this.fightRegion = region;
   }
 
@@ -655,6 +745,8 @@ export class BotBrain {
         return this.walkInput(view, me);
       case "fight":
         return this.fightInput(view, me);
+      case "cut":
+        return this.cutInput(view, me);
       case "flee": {
         const [x, y] = octant(me.x - this.fleeFrom.x, me.y - this.fleeFrom.y);
         return move(x, y);
@@ -736,6 +828,26 @@ export class BotBrain {
     return IDLE;
   }
 
+  private cutInput(view: BotView, me: Player): PlayerInputLike {
+    const { prop } = this;
+    if (!prop || !view.propWhole(prop.id) || view.tick > this.cutUntil) {
+      // Done, or taking too long (something in the way): on to something else.
+      if (prop && view.propWhole(prop.id)) this.ignore.set(prop.id, view.tick + 60 * SECOND);
+      this.prop = undefined;
+      this.mode = "idle";
+      return this.soon(view);
+    }
+    const dx = prop.x - me.x;
+    const dy = prop.y - me.y;
+    const d = Math.hypot(dx, dy);
+    if (d <= view.stats(this.id).reach) {
+      if (me.cooldown > 0) return IDLE;
+      const [ox, oy] = octant(dx, dy);
+      return { moveX: ox, moveY: oy, attack: 1 };
+    }
+    return this.approach(view, me, prop.x, prop.y, d);
+  }
+
   private approach(view: BotView, me: Player, x: number, y: number, d: number): PlayerInputLike {
     if (d < 28) return toward(me, x, y, 1);
     const { nav } = view;
@@ -766,7 +878,14 @@ export class BotBrain {
     this.stuck = moved ? Math.max(0, this.stuck - 2) : this.stuck + 1;
     if (this.stuck < 15) return;
     this.stuck = 0;
-    const key = this.mode === "walk" ? this.walk?.key : this.mode === "fight" ? this.target : undefined;
+    const key =
+      this.mode === "walk"
+        ? this.walk?.key
+        : this.mode === "fight"
+          ? this.target
+          : this.mode === "cut"
+            ? this.prop?.id
+            : undefined;
     if (key) this.ignore.set(key, view.tick + 20 * SECOND);
     if (this.mode === "travel") this.goal = -1;
     this.walk = undefined;

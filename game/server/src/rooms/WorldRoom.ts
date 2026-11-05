@@ -37,6 +37,7 @@ import {
   HEART_DROP_CHANCE_ELITE,
   HEART_HEAL,
   HIT_INVULN_TICKS,
+  type Hitbox,
   type HitResult,
   hitboxTouches,
   INTEREST_EVERY_TICKS,
@@ -72,8 +73,12 @@ import {
   Player,
   PlayerInput,
   type PlayerInputLike,
+  PROP_HALF,
+  PROP_KINDS,
+  PROPS,
   PROTOCOL_VERSION,
   type ProjectileEndMessage,
+  type Prop,
   PVP_DAMAGE_FACTOR,
   projectileKey,
   REGEN_DELAY_SECONDS,
@@ -87,6 +92,7 @@ import {
   RosterEntry,
   rollHit,
   rollProjectileHit,
+  rollPropDrop,
   rollRarity,
   rollRupees,
   SCREEN_HEIGHT,
@@ -137,7 +143,11 @@ import {
 } from "../bots/BotBrain";
 import { botName } from "../bots/names";
 import { type Navigation, navigationFor } from "../bots/navigation";
-import { loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
+import { loadProps, loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
+
+/** Bots see props as spots with this id (no clash with monsters, chests and pickups). */
+const PROP_SPOT_PREFIX = "prop:";
+const propSpotId = (id: number) => `${PROP_SPOT_PREFIX}${id}`;
 
 export interface WorldCreateOptions {
   /** Set by the server in defineRoom (game/server/src/index.ts), never by clients. */
@@ -293,6 +303,11 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private lastSwing = new Map<string, number>();
   private lastVolley = new Map<string, number>();
   private chestMeta = new Map<string, ChestMeta>();
+  /** Tall grass and pots by id (tile index), and the ones on each screen (for the bots). */
+  private props = new Map<number, Prop>();
+  private propsByScreen = new Map<number, Prop[]>();
+  /** Broken props, by id: the tick each one may come back at. */
+  private regrowAt = new Map<number, number>();
   /** Vendor on each screen. */
   private vendorByScreen = new Map<number, Spot>();
   /** Per player: offers of each vendor, the screen they stand on and the offers they are touching. */
@@ -343,6 +358,13 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       this.chestMeta.set(c.id, { floor, dropped: false, at: 0 });
     }
     for (const v of this.objects.vendors) this.vendorByScreen.set(this.screenIndexAt(v.x, v.y), v);
+    for (const prop of loadProps(mapId).props) {
+      this.props.set(prop.id, prop);
+      const screen = this.screenIndexAt(prop.x, prop.y);
+      const list = this.propsByScreen.get(screen);
+      if (list) list.push(prop);
+      else this.propsByScreen.set(screen, [prop]);
+    }
     // How hard each screen is for the bots: its strongest monster.
     const danger = new Map<number, number>();
     for (const s of this.spawners) {
@@ -478,6 +500,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       this.stepPickups();
       this.stepRegen();
       this.stepChests();
+      this.stepProps();
       for (const [id, player] of this.state.players) this.stepShop(id, player);
     }
     this.stepSpawners();
@@ -548,7 +571,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     }
   }
 
-  /** Sword hits every enemy in the hitbox once, and other heroes while PvP is on. */
+  /** Sword hits every enemy in the hitbox once, tall grass and pots, and other heroes while PvP is on. */
   private resolveSwing(id: string, player: Player) {
     if (!isPlayingPhase(this.state.phase)) return;
     const stats = this.statsOf(id);
@@ -560,6 +583,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       const hit = rollHit(stats, brain.stats.defense, this.rng);
       this.damageEnemy(enemyId, enemy, brain, id, player, hit, player.x, player.y, ENEMY_KNOCK_SPEED);
     }
+    this.breakProps(box, stats.luck);
     if (!isPvpPhase(this.state.phase)) return;
     for (const [otherId, other] of this.state.players) {
       if (otherId === id || !this.canBeHurt(other) || !hitboxTouches(box, other.x, other.y, PLAYER_HALF)) continue;
@@ -999,6 +1023,14 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
           if (this.screenIndexAt(p.x, p.y) === screen) found.push({ id, x: p.x, y: p.y, kind: p.kind });
         return found;
       },
+      propsOn: (screen) =>
+        (this.propsByScreen.get(screen) ?? []).flatMap((p) =>
+          this.regrowAt.has(p.id) ? [] : [{ id: propSpotId(p.id), x: p.x, y: p.y, kind: p.kind }],
+        ),
+      propWhole: (id) => {
+        const prop = this.props.get(Number(id.slice(PROP_SPOT_PREFIX.length)));
+        return id.startsWith(PROP_SPOT_PREFIX) && prop !== undefined && !this.regrowAt.has(prop.id);
+      },
       vendorOn: (screen) => this.vendorByScreen.get(screen),
       offers: (id, vendor) => this.shops.get(id)?.get(vendor.id)?.offers,
       stats: (id) => this.statsOf(id),
@@ -1173,6 +1205,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     }
     s.pickups.clear();
     this.pickupExpiry.clear();
+    s.brokenProps.clear();
+    this.regrowAt.clear();
     for (const [id, meta] of this.chestMeta) {
       const chest = s.chests.get(id);
       if (meta.dropped || !chest) {
@@ -1354,7 +1388,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const def = ENEMIES[kind];
     const chance = dungeon ? ELITE_CHANCE_DUNGEON : ELITE_CHANCE;
     const elite = def.rank === "normal" && !summoned && this.rng() < chance;
-    const stats = enemyStats(kind, tier, elite);
+    const stats = enemyStats(kind, tier, elite, !dungeon);
     const id = `e${this.nextId++}`;
     const { col, row } = screenOf(x, y);
     this.state.enemies.set(id, new Enemy({ kind, x, y, hp: stats.maxHp, maxHp: stats.maxHp, elite }));
@@ -1651,6 +1685,40 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     for (const p of this.state.players.values())
       if (!p.out && (p.x - x) ** 2 + (p.y - y) ** 2 < radius * radius) return true;
     return false;
+  }
+
+  // ─── Props ────────────────────────────────────────────────────────────────
+
+  /** The sword cuts tall grass and breaks pots in its hitbox; some hold rupees or a heart. */
+  private breakProps(box: Hitbox, luck: number) {
+    const reach = box.r + PROP_HALF;
+    const columns = this.map.collision.width;
+    const x0 = Math.max(0, Math.floor((box.x - reach) / TILE_SIZE));
+    const x1 = Math.min(columns - 1, Math.floor((box.x + reach) / TILE_SIZE));
+    const y0 = Math.floor((box.y - reach) / TILE_SIZE);
+    const y1 = Math.floor((box.y + reach) / TILE_SIZE);
+    for (let ty = y0; ty <= y1; ty++)
+      for (let tx = x0; tx <= x1; tx++) {
+        const prop = this.props.get(ty * columns + tx);
+        if (!prop || this.regrowAt.has(prop.id) || !hitboxTouches(box, prop.x, prop.y, PROP_HALF)) continue;
+        this.state.brokenProps.set(String(prop.id), PROP_KINDS.indexOf(prop.kind));
+        this.regrowAt.set(prop.id, this.tick + PROPS[prop.kind].regrowSeconds * TICK_RATE);
+        const drop = rollPropDrop(prop.kind, luck, this.rng);
+        if (drop) this.dropPickup(drop.kind, drop.value, prop.x, prop.y);
+      }
+  }
+
+  /** Once a second, broken props come back when their time is up, unless a hero is on their screen to see it. */
+  private stepProps() {
+    if (this.tick % TICK_RATE !== 0 || this.regrowAt.size === 0) return;
+    const watched = new Set<number>();
+    for (const p of this.state.players.values()) if (!p.out) watched.add(this.screenIndexAt(p.x, p.y));
+    for (const [id, at] of this.regrowAt) {
+      const prop = this.props.get(id);
+      if (this.tick < at || (prop && watched.has(this.screenIndexAt(prop.x, prop.y)))) continue;
+      this.regrowAt.delete(id);
+      this.state.brokenProps.delete(String(id));
+    }
   }
 
   // ─── Pickups ──────────────────────────────────────────────────────────────
