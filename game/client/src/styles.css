@@ -1,5 +1,187 @@
-/* Game-specific DOM HUD styles. Core UI variables (--ui-*) can be overridden here too. */
-.arena-hint {
+/* 40 Swords DOM HUD and hero select. Core UI variables (--ui-*) can be overridden here too. */
+:root {
+  --ui-accent: #f2c94a;
+  --ui-accent-fg: #2a1f05;
+}
+
+/* ─── Status (HP, level, XP, rupees) ───────────────────────────────────── */
+
+.sw-status {
+  position: absolute;
+  inset-block-start: max(56px, calc(var(--ui-safe-top) + 48px));
+  inset-inline-start: max(8px, var(--ui-safe-inline-start));
+  display: grid;
+  gap: 4px;
+  inline-size: 180px;
+  padding: 6px 8px;
+  background: rgb(16 16 24 / 0.6);
+  border: 2px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  font-size: 12px;
+  text-shadow: 0 1px 0 #000;
+}
+
+.sw-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sw-level {
+  font-weight: bold;
+  color: var(--ui-accent);
+  min-inline-size: 3.5em;
+}
+
+.sw-bar {
+  position: relative;
+  flex: 1;
+  block-size: 12px;
+  background: #2a1a1a;
+  border: 1px solid #000;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sw-bar-fill {
+  block-size: 100%;
+  inline-size: 0;
+  background: #e04848;
+  transition: inline-size 0.15s;
+}
+
+.sw-xp {
+  block-size: 5px;
+  background: #1a1a2a;
+}
+
+.sw-xp .sw-bar-fill {
+  background: #6aa8ff;
+}
+
+.sw-bar-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.sw-rupee-icon {
+  inline-size: 8px;
+  block-size: 12px;
+  background: #3fe07a;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+
+.sw-rupees {
+  font-weight: bold;
+}
+
+/* ─── Hero and map select ─────────────────────────────────────────────── */
+
+.sw-select {
+  position: absolute;
+  /* Starts below the core HUD bar (menu, chat), which stays usable; covers the touch controls. */
+  inset: max(56px, calc(var(--ui-safe-top) + 48px)) 0 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px 16px;
+  overflow: auto;
+  background: rgb(8 8 14 / 0.82);
+  pointer-events: auto;
+}
+
+.sw-select-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.sw-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-inline-size: 760px;
+}
+
+.sw-card {
+  --sw-class: var(--ui-accent);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  inline-size: 220px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ui-fg);
+  text-align: start;
+  background: var(--ui-bg);
+  border: 2px solid var(--ui-border);
+  border-block-start: 4px solid var(--sw-class);
+  border-radius: var(--ui-radius);
+  cursor: pointer;
+}
+
+.sw-card:hover,
+.sw-card:focus-visible {
+  border-color: var(--sw-class);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.sw-card-swatch {
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: 4px;
+  background: var(--sw-class);
+  box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.3);
+}
+
+.sw-card-title {
+  font-size: 17px;
+}
+
+.sw-card-desc {
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.sw-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.sw-stats dt {
+  color: var(--ui-muted);
+}
+
+.sw-stats dd {
+  margin: 0;
+  font-weight: bold;
+  text-align: end;
+}
+
+.sw-map {
+  inline-size: 280px;
+}
+
+.sw-map .ui-button {
+  margin-block-start: 6px;
+  text-align: center;
+}
+
+/* ─── Hint ────────────────────────────────────────────────────────────── */
+
+.sw-hint {
   position: absolute;
   inset-block-end: max(16px, var(--ui-safe-bottom));
   inset-inline: 0;
@@ -12,4 +194,81 @@
   border-radius: var(--ui-radius);
   font-size: 13px;
   text-align: center;
+}
+
+@media (max-height: 420px) {
+  .sw-select {
+    justify-content: flex-start;
+  }
+  .sw-card {
+    inline-size: 190px;
+    padding: 8px;
+  }
+  .sw-stats {
+    font-size: 11px;
+  }
+}
+
+/* ─── World labels (names, damage numbers) ───────────────────────────── */
+
+.sw-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Positioned with a physical translate from the canvas, so these anchor at left/top in any direction. */
+.sw-name,
+.sw-dmg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.sw-name > span,
+.sw-dmg > span {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow:
+    0 1px 0 #000,
+    1px 0 0 #000,
+    -1px 0 0 #000,
+    0 -1px 0 #000;
+}
+
+.sw-name-self > span {
+  color: #fff7a8;
+}
+
+.sw-dmg > span {
+  font-size: 14px;
+  font-weight: bold;
+  animation: sw-float 0.7s ease-out forwards;
+}
+
+.sw-dmg-crit > span {
+  font-size: 19px;
+  color: #ffe04a;
+}
+
+.sw-dmg-player > span {
+  color: #ff5a5a;
+}
+
+@keyframes sw-float {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 -28px;
+  }
 }

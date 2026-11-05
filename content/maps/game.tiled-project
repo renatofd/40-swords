@@ -18,6 +18,23 @@
             "useAs": [
                 "object"
             ]
+        },
+        {
+            "color": "#ffd04a4a",
+            "drawFill": true,
+            "id": 2,
+            "members": [
+                {
+                    "name": "kind",
+                    "type": "string",
+                    "value": "slime"
+                }
+            ],
+            "name": "enemy",
+            "type": "class",
+            "useAs": [
+                "object"
+            ]
         }
     ]
 }

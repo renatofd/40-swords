@@ -1,5 +1,7 @@
 # 40 Swords
 
+> **40 Swords** é um RPG de ação top-down multiplayer (estilo aventura clássica, com roguelite e PvP). Regras, controles, classes, mapa e roteiro do jogo: [`docs/JOGO.md`](docs/JOGO.md). O restante deste README descreve o template em que o jogo se baseia.
+
 Base para jogos online web: começa como um jogo estilo `.io` e foi organizada para poder crescer até um multiplayer massivo.
 
 **Stack:** Phaser 4 · TypeScript · Tiled · Pixel art (nearest-neighbor, zoom inteiro) · Colyseus 0.18 (servidor autoritativo) · Vite · pnpm · Biome · Vitest

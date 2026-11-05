@@ -7,14 +7,14 @@
 import { discoverAudio, discoverSprites, loadAudio, loadSprites } from "@core/client";
 import type Phaser from "phaser";
 
-/** "…/content/maps/arena.tmj" → "arena". */
+/** "…/content/maps/overworld.tmj" → "overworld". */
 const fileKey = (path: string) => path.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
 const byFileKey = (urls: Record<string, string>) =>
   Object.fromEntries(Object.entries(urls).map(([path, url]) => [fileKey(path), url]));
 
 /**
  * Every content/tilesets/*.png. A Tiled tileset is matched by the file name of
- * its image ("../tilesets/terrain.png" → "terrain"), so its name in Tiled is free.
+ * its image ("../tilesets/overworld.png" → "overworld"), so its name in Tiled is free.
  */
 const TILESETS = import.meta.glob<string>("@content/tilesets/*.png", {
   eager: true,
@@ -61,10 +61,9 @@ export const MUSIC_THEME = "theme";
 export const SFX_JOIN = "join";
 export const SFX_UI = "ui";
 
-/** Texture key of a Tiled tileset, from its image path ("../tilesets/terrain.png" → "tileset:terrain"). */
+/** Texture key of a Tiled tileset, from its image path ("../tilesets/overworld.png" → "tileset:overworld"). */
 export const tilesetKey = (image: string) => `tileset:${fileKey(image)}`;
 export const mapKey = (id: string) => `map:${id}`;
-export const SPRITE_PLAYER = "player";
 
 export function preloadAssets(scene: Phaser.Scene) {
   for (const [path, url] of Object.entries(TILESETS)) scene.load.image(tilesetKey(path), url);
