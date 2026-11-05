@@ -97,6 +97,14 @@ export class WorldLabels {
     this.remove(`name:${id}`);
   }
 
+  /** Floating heal number (green, "+25"). */
+  heal(x: number, y: number, amount: number, time: number) {
+    const el = h("div", { className: "sw-anchor" }, h("span", { className: "sw-dmg sw-dmg-heal" }, `+${amount}`));
+    this.el.append(el);
+    this.floating.push({ el, x, y: y - 8, until: time + DAMAGE_MS });
+    this.place(el, x, y - 8);
+  }
+
   /** Floating damage number. Crits are bigger and yellow; damage taken by players is red. */
   damage(x: number, y: number, amount: number, crit: boolean, player: boolean, time: number) {
     const className = `sw-dmg${crit ? " sw-dmg-crit" : ""}${player ? " sw-dmg-player" : ""}`;

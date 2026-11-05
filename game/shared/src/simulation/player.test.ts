@@ -1,6 +1,6 @@
 import type { CollisionGrid } from "@core/shared";
 import { describe, expect, it } from "vitest";
-import { PLAYER_HALF, SWING_LOCK_TICKS, TICK_DT, TILE_SIZE } from "../constants";
+import { PLAYER_HALF, SWING_LOCK_TICKS, SWING_MOVE_FACTOR, TICK_DT, TILE_SIZE } from "../constants";
 import { scaledCooldown, WEAPONS } from "../weapons";
 import { facingFromDir, facingVector } from "./facing";
 import { type PlayerSimState, type SimWorld, stepPlayer } from "./player";
@@ -102,21 +102,28 @@ describe("stepPlayer", () => {
     expect(p.vx).toBe(0);
   });
 
-  it("swings in the direction pressed, roots the player, then waits for the cooldown", () => {
+  it("swings in the direction pressed, slows the player down meanwhile, then waits for the cooldown", () => {
+    const slow = stats.speed * SWING_MOVE_FACTOR * TICK_DT;
     const p = fresh();
     stepPlayer(p, { moveX: -1, moveY: 0, attack: 1 }, TICK_DT, open);
     expect(p.swing).toBe(1);
     expect(p.facing).toBe(4);
-    expect(p.x).toBe(centre); // no step on the swing tick
+    expect(p.x).toBeCloseTo(centre - slow); // half a step on the swing tick
     expect(p.lock).toBe(SWING_LOCK_TICKS);
 
-    // Rooted while the swing lasts, even when pushing a direction.
+    // While the swing lasts: half speed, still facing the swing, even when pushing another way.
+    const x = p.x;
     for (let i = 0; i < SWING_LOCK_TICKS; i++) stepPlayer(p, { moveX: 1, moveY: 0, attack: 1 }, TICK_DT, open);
-    expect(p.x).toBe(centre);
+    expect(p.x).toBeCloseTo(x + slow * SWING_LOCK_TICKS);
+    expect(p.facing).toBe(4);
     expect(p.swing).toBe(1);
+    // Then full speed again, facing the way it walks.
+    stepPlayer(p, { moveX: 1, moveY: 0, attack: 0 }, TICK_DT, open);
+    expect(p.x).toBeCloseTo(x + slow * SWING_LOCK_TICKS + stats.speed * TICK_DT);
+    expect(p.facing).toBe(0);
 
     // Holding attack swings again exactly when the cooldown ends.
-    let ticks = SWING_LOCK_TICKS;
+    let ticks = SWING_LOCK_TICKS + 1;
     while (p.swing === 1) {
       stepPlayer(p, { moveX: 0, moveY: 0, attack: 1 }, TICK_DT, open);
       ticks++;

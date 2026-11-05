@@ -25,7 +25,8 @@
     "pack:client": "pnpm --filter @tools/release pack-client",
     "e2e": "pnpm --filter @tools/e2e test",
     "content:validate": "pnpm --filter @tools/assets validate-content",
-    "assets:sprites": "pnpm --filter @tools/assets export-aseprite"
+    "assets:sprites": "pnpm --filter @tools/assets export-aseprite",
+    "sfx": "pnpm --filter @tools/sfx generate"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

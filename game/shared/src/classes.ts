@@ -114,5 +114,9 @@ export function statsFor(classId: ClassId, level: number): Stats {
 /** Highest reachable level. */
 export const MAX_LEVEL = 30;
 
-/** XP needed to go from `level` to `level + 1`. */
-export const xpToNext = (level: number): number => 10 + level * 10;
+/**
+ * XP needed to go from `level` to `level + 1`. The quadratic part slows the
+ * last levels down: stronger heroes also hunt stronger monsters (more XP each),
+ * so a straight line let the best reach the top level within a few minutes.
+ */
+export const xpToNext = (level: number): number => 10 + level * 10 + 2 * level * level;

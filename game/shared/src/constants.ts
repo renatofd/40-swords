@@ -2,7 +2,7 @@
  * Bump whenever schemas, inputs or messages in this game change in a way old
  * clients can't handle. Mismatched clients are told to reload.
  */
-export const PROTOCOL_VERSION = 9;
+export const PROTOCOL_VERSION = 10;
 
 /** Simulation rate in Hz. One input advances exactly one fixed step. */
 export const TICK_RATE = 30;
@@ -25,8 +25,11 @@ export const SCREEN_HEIGHT = SCREEN_TILES_Y * TILE_SIZE;
 /** Player collision box half-extent in pixels (box is 2 * PLAYER_HALF wide). */
 export const PLAYER_HALF = 5;
 
-/** Ticks a sword swing roots the player in place. */
+/** Ticks a sword swing lasts: the hero keeps facing the same way and moves slower meanwhile. */
 export const SWING_LOCK_TICKS = 5;
+
+/** Share of the walking speed left while swinging (the swing slows the hero down instead of rooting it). */
+export const SWING_MOVE_FACTOR = 0.5;
 
 /** Ticks of invulnerability after taking a hit (the sprite blinks). */
 export const HIT_INVULN_TICKS = 24;
@@ -47,6 +50,20 @@ export const PICKUP_LIFETIME_SECONDS = 30;
 
 /** Distance (px) at which a player collects a pickup. */
 export const PICKUP_RADIUS = 10;
+
+/** Chance a monster drops a heart (elites more often; bosses and mini-bosses always). */
+export const HEART_DROP_CHANCE = 0.1;
+export const HEART_DROP_CHANCE_ELITE = 0.5;
+
+/** Share of max health a heart restores. Only a hurt hero picks one up. */
+export const HEART_HEAL = 0.25;
+
+/** Hits between heroes (PvP) deal this share of their damage: fights last long enough to run away. */
+export const PVP_DAMAGE_FACTOR = 0.5;
+
+/** Out of combat (this long without taking damage), heroes slowly heal: a share of max health per second. Not in the arena. */
+export const REGEN_DELAY_SECONDS = 6;
+export const REGEN_PER_SECOND = 0.01;
 
 /** Distance (px) at which a player opens a chest or buys an offer by walking onto it. */
 export const TOUCH_RADIUS = 10;

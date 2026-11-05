@@ -443,6 +443,10 @@
   color: #ff5a5a;
 }
 
+.sw-dmg-heal {
+  color: #6ef08a;
+}
+
 @keyframes sw-float {
   from {
     opacity: 1;

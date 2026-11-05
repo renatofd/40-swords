@@ -33,6 +33,9 @@ import {
   enemyStats,
   facingFromDir,
   type GainMessage,
+  HEART_DROP_CHANCE,
+  HEART_DROP_CHANCE_ELITE,
+  HEART_HEAL,
   HIT_INVULN_TICKS,
   type HitResult,
   hitboxTouches,
@@ -59,7 +62,9 @@ import {
   PASSIVE_IDS,
   PICKUP_LIFETIME_SECONDS,
   PICKUP_RADIUS,
+  type PickedMessage,
   Pickup,
+  type PickupKind,
   PLAYER_HALF,
   PLAYER_KNOCK_SPEED,
   PLAYER_KNOCK_TICKS,
@@ -68,7 +73,10 @@ import {
   type PlayerInputLike,
   PROTOCOL_VERSION,
   type ProjectileEndMessage,
+  PVP_DAMAGE_FACTOR,
   projectileKey,
+  REGEN_DELAY_SECONDS,
+  REGEN_PER_SECOND,
   RELIC_IDS,
   RESULTS_SECONDS,
   type ReadyMessage,
@@ -115,7 +123,15 @@ import {
   ZONE_DAMAGE_PER_SECOND,
   zoneRadius,
 } from "@game/shared";
-import { BotBrain, type BotEnemy, type BotView, enemyDanger, rollPersonality, THINK_TICKS } from "../bots/BotBrain";
+import {
+  BotBrain,
+  type BotEnemy,
+  type BotSpot,
+  type BotView,
+  enemyDanger,
+  rollPersonality,
+  THINK_TICKS,
+} from "../bots/BotBrain";
 import { botName } from "../bots/names";
 import { type Navigation, navigationFor } from "../bots/navigation";
 import { loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
@@ -252,6 +268,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   /** Enemy ids per active screen, rebuilt every tick (hit tests only look at nearby enemies). */
   private buckets = new Map<number, string[]>();
   private pickupExpiry = new Map<string, number>();
+  /** Tick each hero last took damage (out of combat, heroes slowly heal). */
+  private lastHurt = new Map<string, number>();
   private projectiles: Projectile[] = [];
   private hostiles: Hostile[] = [];
   /** Attributes of each hero (class, level and relics), recomputed when one of them changes. */
@@ -365,6 +383,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.touching.delete(id);
     this.inputBudget.delete(id);
     this.bots.delete(id);
+    this.lastHurt.delete(id);
   }
 
   /** A dropped connection keeps its seat for a while (GameRoom); meanwhile the waiting room doesn't wait for it. */
@@ -439,6 +458,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     if (playing) {
       for (const [id, enemy] of this.state.enemies) this.stepEnemy(id, enemy, ctx.dt);
       this.stepPickups();
+      this.stepRegen();
       this.stepChests();
       for (const [id, player] of this.state.players) this.stepShop(id, player);
     }
@@ -662,6 +682,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const rupees = rollRupees(brain.stats.rupees, this.statsOf(killerId).luck, this.rng);
     this.dropPickup("rupee", rupees, enemy.x, enemy.y);
     const { rank } = brain.def;
+    const heart = rank !== "normal" ? 1 : enemy.elite ? HEART_DROP_CHANCE_ELITE : HEART_DROP_CHANCE;
+    if (this.rng() < heart) this.dropPickup("heart", 1, enemy.x + 8, enemy.y);
     if (rank !== "normal") {
       this.dropChest(enemy.x, enemy.y, rank === "boss" ? BOSS_CHEST_RARITY : MINIBOSS_CHEST_RARITY);
       const message: BossDownMessage = { kind: brain.kind, by: killer.name };
@@ -714,7 +736,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.damagePlayer(id, player, mitigate(raw, this.statsOf(id).defense), false, fromX, fromY, "monster");
   }
 
-  /** A hero hit by another hero (PvP phases): life steal for the attacker, loot if it was the last blow. */
+  /**
+   * A hero hit by another hero (PvP phases): PVP_DAMAGE_FACTOR of the damage, life steal
+   * for the attacker, loot if it was the last blow.
+   */
   private pvpHit(
     attackerId: string,
     attacker: Player,
@@ -724,8 +749,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     fromX: number,
     fromY: number,
   ) {
-    if (hit.heal > 0 && !attacker.dead) attacker.hp = Math.min(attacker.maxHp, attacker.hp + hit.heal);
-    this.damagePlayer(victimId, victim, hit.amount, hit.crit, fromX, fromY, "hero", attackerId);
+    const amount = Math.max(1, Math.round(hit.amount * PVP_DAMAGE_FACTOR));
+    const heal = hit.heal * PVP_DAMAGE_FACTOR;
+    if (heal > 0 && !attacker.dead) attacker.hp = Math.min(attacker.maxHp, attacker.hp + heal);
+    this.damagePlayer(victimId, victim, amount, hit.crit, fromX, fromY, "hero", attackerId);
   }
 
   private damagePlayer(
@@ -740,6 +767,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   ) {
     player.hp = Math.max(0, player.hp - amount);
     player.invuln = HIT_INVULN_TICKS;
+    this.lastHurt.set(id, this.tick);
     const dx = player.x - fromX;
     const dy = player.y - fromY;
     const len = Math.hypot(dx, dy) || 1;
@@ -916,12 +944,6 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   /** What bots see (refreshed every tick in `step`). */
   private createBotView(): BotView {
     const { state } = this;
-    const onScreen = <T extends { x: number; y: number }>(items: Iterable<[string, T]>, screen: number) => {
-      const found: { id: string; x: number; y: number }[] = [];
-      for (const [id, item] of items)
-        if (this.screenIndexAt(item.x, item.y) === screen) found.push({ id, x: item.x, y: item.y });
-      return found;
-    };
     return {
       tick: 0,
       phase: 0,
@@ -936,12 +958,18 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       heroes: () => this.standing(),
       enemy: (id) => this.botEnemy(id),
       enemiesOn: (screen) => (this.buckets.get(screen) ?? []).flatMap((id) => this.botEnemy(id) ?? []),
-      chestsOn: (screen) =>
-        onScreen(
-          [...state.chests].filter(([, c]) => !c.open),
-          screen,
-        ),
-      pickupsOn: (screen) => onScreen(state.pickups, screen),
+      chestsOn: (screen) => {
+        const found: BotSpot[] = [];
+        for (const [id, c] of state.chests)
+          if (!c.open && this.screenIndexAt(c.x, c.y) === screen) found.push({ id, x: c.x, y: c.y });
+        return found;
+      },
+      pickupsOn: (screen) => {
+        const found: BotSpot[] = [];
+        for (const [id, p] of state.pickups)
+          if (this.screenIndexAt(p.x, p.y) === screen) found.push({ id, x: p.x, y: p.y, kind: p.kind });
+        return found;
+      },
       vendorOn: (screen) => this.vendorByScreen.get(screen),
       offers: (id, vendor) => this.shops.get(id)?.get(vendor.id)?.offers,
       stats: (id) => this.statsOf(id),
@@ -958,8 +986,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const brain = this.brains.get(id);
     if (!enemy || !brain) return undefined;
     const { half, defense, damage } = brain.stats;
-    const danger = enemyDanger(brain.def.rank, brain.tier, enemy.elite);
-    return { id, x: enemy.x, y: enemy.y, hp: enemy.hp, half, defense, damage, danger };
+    const { def } = brain;
+    const danger = enemyDanger(def.rank, brain.tier, enemy.elite);
+    const aggressive = def.aggroRange > 0 || def.behaviour === "hop" || def.attacks.length > 0;
+    return { id, x: enemy.x, y: enemy.y, hp: enemy.hp, half, defense, damage, danger, aggressive };
   }
 
   /** Everyone was ready: the room closes and the match starts, everyone at the centre. */
@@ -1564,20 +1594,42 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
 
   // ─── Pickups ──────────────────────────────────────────────────────────────
 
-  private dropPickup(kind: string, value: number, x: number, y: number) {
+  private dropPickup(kind: PickupKind, value: number, x: number, y: number) {
     if (value <= 0) return;
     const id = `r${this.nextId++}`;
     this.state.pickups.set(id, new Pickup({ kind, value, x, y }));
     this.pickupExpiry.set(id, this.tick + PICKUP_LIFETIME_SECONDS * TICK_RATE);
   }
 
+  /** Once a second, heroes out of combat for a while heal a little (not in the arena: the storm decides there). */
+  private stepRegen() {
+    const phase = this.state.phase;
+    if (this.tick % TICK_RATE !== 0 || phase === MatchPhase.prep || phase === MatchPhase.arena) return;
+    for (const [id, player] of this.state.players) {
+      if (player.dead || player.hp >= player.maxHp) continue;
+      if (this.tick - (this.lastHurt.get(id) ?? 0) < REGEN_DELAY_SECONDS * TICK_RATE) continue;
+      player.hp = Math.min(player.maxHp, player.hp + Math.max(1, Math.round(player.maxHp * REGEN_PER_SECOND)));
+    }
+  }
+
+  /** Rupees go to whoever touches them; a heart only to a hurt hero (it stays for the others). */
   private stepPickups() {
     for (const [id, pickup] of this.state.pickups) {
       let taken = false;
-      for (const player of this.state.players.values()) {
+      for (const [playerId, player] of this.state.players) {
         if (player.dead) continue;
         if ((player.x - pickup.x) ** 2 + (player.y - pickup.y) ** 2 > PICKUP_RADIUS * PICKUP_RADIUS) continue;
-        if (pickup.kind === "rupee") player.rupees += pickup.value;
+        let message: PickedMessage;
+        if (pickup.kind === "heart") {
+          if (player.hp >= player.maxHp) continue;
+          const heal = Math.min(player.maxHp - player.hp, Math.round(player.maxHp * HEART_HEAL));
+          player.hp += heal;
+          message = { kind: "heart", value: heal };
+        } else {
+          player.rupees += pickup.value;
+          message = { kind: "rupee", value: pickup.value };
+        }
+        this.clientOf(playerId)?.send(Msg.picked, message);
         taken = true;
         break;
       }

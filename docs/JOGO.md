@@ -16,6 +16,7 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 8. **Elites** (dourados e maiores): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
 9. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
 10. Ao subir de nível, os atributos melhoram e a vida enche. **Cuidado: é uma vida só.** Quem cai (para um monstro, outro herói ou a tempestade) está fora da partida e passa a assistir. Se foi outro herói, ele leva **uma relíquia sua, sorteada, e todos os seus rupees**.
+11. **Curar:** monstros às vezes deixam cair um **coração** ❤ (10%; elites 50%; chefes e minichefes sempre), que devolve 25% da vida (só um herói ferido o pega; com a vida cheia ele fica no chão para os outros). Fora de combate (6 s sem levar dano) a vida também volta devagar, 1% por segundo, menos na arena. E há as poções das lojas.
 
 | Ação | Teclado | Controle | Toque |
 |---|---|---|---|
@@ -26,7 +27,7 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 
 Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um quadro.
 
-> Segurar o botão de ataque dispara as armas sem parar, mas cada golpe de espada prende o herói por um instante. Andar segurando o botão é mais lento: para correr, solte o ataque.
+> Segurar o botão de ataque dispara as armas sem parar. Durante o golpe de espada o herói continua andando, mas a meia velocidade e virado para o golpe: dá para bater e recuar. Para correr, solte o ataque.
 
 ## A partida
 
@@ -36,7 +37,7 @@ O relógio no canto superior direito mostra a fase atual, quanto falta para a pr
 |---|---|---|
 | Sala de espera | antes da partida | Os jogadores entram e andam à vontade; monstros parados, nada fere, baús e lojas fechados. Cada um aperta **Pronto**. Com **todos** prontos: contagem de 5 s (se alguém cancelar ou um jogador novo entrar, a contagem para). |
 | Calmaria | 0 a 5 min | A sala **fecha**: ninguém mais entra. Todos começam na praça, no nível 1. Só monstros: explore, junte relíquias e rupees, compre nas cavernas. Heróis não se ferem. |
-| PvP | 5 a 30 min | Heróis podem se ferir com a espada e com as armas; os nomes dos rivais ficam vermelhos. Quem vence a luta leva **uma relíquia sorteada e todos os rupees** do derrotado. |
+| PvP | 5 a 30 min | Heróis podem se ferir com a espada e com as armas (golpes entre heróis tiram **metade** do dano, para dar tempo de fugir); os nomes dos rivais ficam vermelhos. Quem vence a luta leva **uma relíquia sorteada e todos os rupees** do derrotado. |
 | Arena | aos 30 min, se ainda houver mais de um | Os heróis ainda de pé vão para a **arena**, com a vida cheia, espalhados num anel. Contagem de 5 s sem dano, e então: battle royale. A câmera acompanha o herói. |
 | Tempestade | durante a luta na arena | A zona segura (o círculo) fecha dos cantos até o centro em 2 min 30 s. Fora dela, o herói perde 10% da vida máxima por segundo (ignora defesa). |
 | Resultado | quando sobra 1 (a qualquer momento) | O último de pé vence (se os últimos caírem juntos, ninguém vence). O resultado fica 15 s na tela e todos voltam para a **sala de espera**: nível 1, sem relíquias nem rupees, mundo renovado (inimigos, baús, lojas), e a sala volta a aceitar jogadores. |
@@ -77,6 +78,18 @@ O caminho usa um grafo das partes transitáveis de cada tela (ligadas pelas bord
 
 O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (calmaria, PvP, arena) com 39 bots e confere que eles se espalham, sobem de nível, se enfrentam e que alguém vence.
 
+**Equilíbrio medido com os bots** (partidas simuladas de 30 min com 40 bots, tempos padrão):
+
+| Momento | Heróis de pé | Níveis |
+|---|---|---|
+| 5 min (começa o PvP) | 38–39 | 2 a 11 |
+| 10 min | 24–27 | 4 a 18 |
+| 15 min | 18–19 | 9 a 22 |
+| 20 min | 15–16 | 15 a 26 |
+| 30 min (arena) | 11–14 | 22 a 30 |
+
+Antes dos ajustes da etapa 5B, os melhores chegavam ao nível 30 em 7 minutos, cerca de 1 em cada 5 heróis caía para monstros na calmaria e o começo do PvP derrubava 2/3 dos heróis em 5 minutos.
+
 ## Classes
 
 | Atributo | Cavaleiro | Ladino | Bárbaro |
@@ -92,7 +105,7 @@ O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (ca
 | Roubo de vida | 0% | 3% | 6% |
 | Sorte | 2 | 8 | 3 |
 
-Por nível, cada classe ganha vida, dano, defesa e um pouco de chance de crítico (`game/shared/src/classes.ts`). XP para o próximo nível: `10 + nível × 10`. Nível máximo: 30.
+Por nível, cada classe ganha vida, dano, defesa e um pouco de chance de crítico (`game/shared/src/classes.ts`). XP para o próximo nível: `10 + nível × 10 + 2 × nível²` (os últimos níveis custam bem mais: quem é forte caça monstros mais fortes, que dão mais XP). Nível máximo: 30.
 
 - **Dano:** `força × (dano crítico, se critar) − defesa do alvo`, no mínimo 1. Vale para a espada e para os projéteis.
 - **Roubo de vida:** cura uma parte do dano causado (espada e armas).
@@ -203,7 +216,7 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 - **Heróis e inimigos:** exporte do Aseprite para `content/sprites/<nome>.png + .json` com as tags `idle` e `walk`, usando os nomes `knight`, `rogue`, `barbarian` e os dos inimigos (`slime`, `goblin`, `bat`, `skeleton`, `scorpion`, `wolf`, `lurker`, `brute`, `hexer`, `warden`, `witch`, `matriarch`, `colossus`). O jogo passa a usar o sprite no lugar da forma provisória automaticamente (`game/client/src/render/placeholderArt.ts`).
 - **Baús, vendedor, pedestais, projéteis (dos heróis e dos inimigos) e o brilho dos elites:** desenhados em `game/client/src/render/placeholderArt.ts`.
 - **Ícones de relíquias e itens:** emojis em `game/client/src/ui/relicText.ts`.
-- **Sons:** arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`).
+- **Sons:** arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`). Os efeitos provisórios (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota e vitória) são sintetizados por `pnpm sfx` (`tools/sfx/src/generate.ts`); para trocar um, coloque um arquivo com o mesmo nome (`swing.ogg`, por exemplo) e apague o `.wav`.
 
 ## Onde fica cada coisa
 
@@ -222,6 +235,7 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Bots: decisões, combate e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
 | Bots: caminhos (partes das telas, bordas, portais, mapas de distância) | `game/server/src/bots/navigation.ts` |
 | Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
+| Efeitos sonoros provisórios | `tools/sfx/src/generate.ts` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
 | Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis | `game/client/src/scenes/GameScene.ts` |
 | Relógio da partida, feed de derrotas, faixa de vitória/eliminação | `game/client/src/ui/matchHud.ts` |
@@ -236,4 +250,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 2. ✅ **Relíquias e lojas:** relíquias com raridade (sorte), armas com recarga e multiplicação de projéteis, baús, vendedores em cavernas.
 3. ✅ **Mundo:** mapa grande (16×8 telas) com cavernas e masmorras, minichefes, chefes com baú, inimigos de elite e minimapa.
 4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.
-5. 🚧 **Bots, equilíbrio e progressão:** ✅ bots com IA que completam a partida até 40 heróis; ⏳ combate e equilíbrio (medidos com os bots); ⏳ progressão entre partidas.
+5. 🚧 **Bots, equilíbrio e progressão:** ✅ bots com IA que completam a partida até 40 heróis; ✅ combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); ⏳ progressão entre partidas.

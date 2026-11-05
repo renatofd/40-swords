@@ -1,6 +1,6 @@
 import { Callbacks, type InputHandle } from "@colyseus/sdk";
 import { Predict } from "@colyseus/sdk/predict";
-import { type GameContext, h } from "@core/client";
+import { type GameContext, h, type SfxOptions } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
 import {
   areaAt,
@@ -25,6 +25,7 @@ import {
   OFFER_SLOTS,
   type OfferMessage,
   offerPosition,
+  type PickedMessage,
   type Pickup,
   type Player,
   type PlayerInput,
@@ -52,7 +53,23 @@ import {
   weaponCountKey,
 } from "@game/shared";
 import Phaser from "phaser";
-import { MUSIC_THEME, mapKey, SFX_JOIN, SFX_UI, tilesetKey } from "../assets";
+import {
+  MUSIC_THEME,
+  mapKey,
+  SFX_CHEST,
+  SFX_COIN,
+  SFX_FALL,
+  SFX_HEART,
+  SFX_HIT,
+  SFX_HURT,
+  SFX_JOIN,
+  SFX_LEVEL,
+  SFX_SHOOT,
+  SFX_SWING,
+  SFX_UI,
+  SFX_WIN,
+  tilesetKey,
+} from "../assets";
 import { EnemyView } from "../render/EnemyView";
 import { PlayerView } from "../render/PlayerView";
 import { Projectiles } from "../render/Projectiles";
@@ -61,6 +78,7 @@ import {
   rupeeTexture,
   TEX_CHEST,
   TEX_CHEST_OPEN,
+  TEX_HEART,
   TEX_MERCHANT,
   TEX_PEDESTAL,
 } from "../render/placeholderArt";
@@ -165,6 +183,10 @@ export class GameScene extends Phaser.Scene {
   /** An attack press waiting for the next simulation step (so quick taps are never lost). */
   private attackQueued = false;
   private lastVolley = 0;
+  /** Own health last frame (a drop means a hit: sound and shake); -1 before the first frame. */
+  private lastHp = -1;
+  /** When each sound effect last played (busy fights would otherwise be noise). */
+  private sfxAt = new Map<string, number>();
 
   constructor() {
     super(GAME_SCENE_KEY);
@@ -215,25 +237,37 @@ export class GameScene extends Phaser.Scene {
     callbacks.onAdd("chests", (chest: Chest, id: string) => this.addChest(chest, id));
     callbacks.onRemove("chests", (_c: Chest, id: string) => this.removeChest(id));
 
-    room.onMessage(Msg.damage, (m: DamageMessage) =>
-      this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now),
-    );
+    room.onMessage(Msg.damage, (m: DamageMessage) => {
+      this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now);
+      // Blows landing on monsters in view (the hero's own hurt sound comes from its health, see update).
+      if (!m.player && this.cameras.main.worldView.contains(m.x, m.y))
+        this.sfx(SFX_HIT, { volume: m.crit ? 0.9 : 0.55, rate: m.crit ? 0.85 : 1 }, 50);
+    });
     room.onMessage(Msg.levelUp, (m: LevelUpMessage) => {
       this.ctx.ui.toast(t("toast.levelUp", { level: m.level }));
-      this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.3 });
+      this.sfx(SFX_LEVEL);
+    });
+    room.onMessage(Msg.picked, (m: PickedMessage) => {
+      if (m.kind === "heart") {
+        this.sfx(SFX_HEART);
+        const self = room.state.players.get(room.sessionId);
+        if (self) this.labels?.heal(self.x, self.y - 6, m.value, this.time.now);
+      } else this.sfx(SFX_COIN, { volume: 0.6 }, 40);
     });
     room.onMessage(Msg.shot, (m: ShotMessage) => this.projectiles?.spawnVolley(m, this.time.now));
     room.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => this.projectiles?.spawnHostile(m, this.time.now));
     room.onMessage(Msg.bossDown, (m: BossDownMessage) => {
       this.ctx.ui.toast(t("toast.bossDown", { boss: t(`enemy.${m.kind}`), name: m.by }), 4000);
-      this.ctx.audio.playSfx(SFX_JOIN, { rate: 0.7 });
+      this.sfx(SFX_CHEST, { rate: 0.75 });
     });
     room.onMessage(Msg.projectileEnd, (m: ProjectileEndMessage) => {
       for (const key of m.keys) this.projectiles?.end(key);
     });
     room.onMessage(Msg.gain, (m: GainMessage) => {
       this.gains?.show(m);
-      this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.6 });
+      if (m.kind === "potion") this.sfx(SFX_HEART, { rate: 0.85 });
+      else if (m.source === "shop") this.sfx(SFX_COIN, { rate: 0.8 });
+      else this.sfx(SFX_CHEST, { rate: m.source === "loot" ? 1.15 : 1 });
     });
     room.onMessage(Msg.shop, (m: ShopMessage) => {
       this.shops.set(m.vendor, m.offers);
@@ -244,8 +278,8 @@ export class GameScene extends Phaser.Scene {
       this.match?.kill(m);
       const loot = this.match?.lootText(m, room.sessionId);
       if (loot) this.ctx.ui.toast(loot, 4000);
-      if (m.killer === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 1.2 });
-      else if (m.victim === room.sessionId) this.ctx.audio.playSfx(SFX_JOIN, { rate: 0.6 });
+      if (m.killer === room.sessionId) this.sfx(SFX_LEVEL, { rate: 1.2 });
+      else if (m.victim === room.sessionId) this.sfx(SFX_FALL);
     });
 
     this.labels = new WorldLabels(this);
@@ -367,7 +401,8 @@ export class GameScene extends Phaser.Scene {
 
   private addPickup(pickup: Pickup, id: string) {
     if (this.pickups.has(id)) return;
-    const image = this.add.image(pickup.x, pickup.y, rupeeTexture(pickup.value)).setDepth(8);
+    const texture = pickup.kind === "heart" ? TEX_HEART : rupeeTexture(pickup.value);
+    const image = this.add.image(pickup.x, pickup.y, texture).setDepth(8);
     this.tweens.add({ targets: image, y: pickup.y - 2, yoyo: true, repeat: -1, duration: 500, ease: "Sine.easeInOut" });
     this.pickups.set(id, image);
   }
@@ -565,7 +600,8 @@ export class GameScene extends Phaser.Scene {
       else if (phase === MatchPhase.arena) ui.toast(t("toast.fight"), 2000);
       else if (phase === MatchPhase.lobby && was === MatchPhase.ended) ui.toast(t("toast.lobby"), 5000);
       // No sound for a countdown that got cancelled or started.
-      if (was >= 0 && phase !== MatchPhase.lobby && phase !== MatchPhase.starting)
+      if (phase === MatchPhase.ended && this.ctx.room.state.winner === this.ctx.room.sessionId) audio.playSfx(SFX_WIN);
+      else if (was >= 0 && phase !== MatchPhase.lobby && phase !== MatchPhase.starting)
         audio.playSfx(SFX_UI, { rate: phase === MatchPhase.ended ? 0.7 : 1 });
     }
     if (
@@ -595,6 +631,26 @@ export class GameScene extends Phaser.Scene {
     const message: BotsMessage = { on: !room.state.bots };
     room.send(Msg.bots, message);
     this.ctx.audio.playSfx(SFX_UI);
+  }
+
+  /**
+   * Plays a sound effect with a slight random pitch. With `gapMs`, at most once
+   * per that many ms on `channel` (a busy fight would otherwise be noise).
+   */
+  private sfx(key: string, options: SfxOptions = {}, gapMs = 0, channel = key) {
+    const now = this.time.now;
+    if (gapMs > 0 && now - (this.sfxAt.get(channel) ?? Number.NEGATIVE_INFINITY) < gapMs) return;
+    this.sfxAt.set(channel, now);
+    this.ctx.audio.playSfx(key, { ...options, rate: (options.rate ?? 1) * (0.95 + Math.random() * 0.1) });
+  }
+
+  /** The own hero got hurt: a sound and a camera shake as strong as the blow. */
+  private watchHealth(self: Player) {
+    const drop = this.lastHp - self.hp;
+    this.lastHp = self.hp;
+    if (drop <= 0.5 || self.dead || self.maxHp <= 0) return;
+    this.sfx(SFX_HURT, {}, 80);
+    this.cameras.main.shake(140, Math.min(0.012, 0.003 + (drop / self.maxHp) * 0.04));
   }
 
   /** Who is in the waiting room, and who is ready (the roster reaches everyone, unlike the AoI-filtered players). */
@@ -678,6 +734,7 @@ export class GameScene extends Phaser.Scene {
         input$.send(); // steps the prediction right away
         if (sim.vseq !== this.lastVolley) {
           this.lastVolley = sim.vseq;
+          this.sfx(SFX_SHOOT, { volume: 0.5 }, 60);
           this.projectiles?.spawnVolley(
             {
               owner: room.sessionId,
@@ -715,6 +772,8 @@ export class GameScene extends Phaser.Scene {
       if (state.swing !== this.lastSwing.get(id)) {
         this.lastSwing.set(id, state.swing);
         view.playSwing(state.facing, statsFor(isClassId(player.classId) ? player.classId : "knight", 1).reach);
+        if (isSelf) this.sfx(SFX_SWING, { volume: 0.7 });
+        else if (this.cameras.main.worldView.contains(x, y)) this.sfx(SFX_SWING, { volume: 0.25 }, 90, "swing:others");
       }
     }
 
@@ -735,6 +794,8 @@ export class GameScene extends Phaser.Scene {
     const entries = this.lobbyEntries();
     this.lobby?.update(isLobbyPhase(state.phase), entries, room.sessionId, state.bots);
     if (self) {
+      if (this.lastHp >= 0) this.watchHealth(self);
+      else this.lastHp = self.hp;
       const x = predict.value(self, "x");
       const y = predict.value(self, "y");
       // Out of the match: the server keeps us next to the hero we watch; attack switches to the next one.

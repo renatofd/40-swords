@@ -9,6 +9,7 @@ import {
   DEFAULT_MATCH_TIMES,
   type EnemyShotMessage,
   type GainMessage,
+  HEART_HEAL,
   INTEREST_RADIUS,
   inRect,
   type KillMessage,
@@ -16,6 +17,7 @@ import {
   MatchPhase,
   Msg,
   offerPosition,
+  type PickedMessage,
   type Player,
   type PlayerInput,
   POTION_PRICE,
@@ -261,8 +263,8 @@ describe("WorldRoom", () => {
     expect(room.state.roster.get(client.sessionId)?.level).toBe(player.level);
 
     // The drop lies where the enemy died; walk onto it.
-    const drop = [...room.state.pickups.values()][0];
-    expect(drop?.kind).toBe("rupee");
+    const drop = [...room.state.pickups.values()].find((p) => p.kind === "rupee");
+    expect(drop).toBeDefined();
     const value = drop?.value ?? 0;
     expect(value).toBeGreaterThanOrEqual(1);
     input.data.attack = 0;
@@ -272,7 +274,44 @@ describe("WorldRoom", () => {
       await room.waitForNextTimestep();
     }
     await vi.waitFor(() => expect(player.rupees).toBe(value));
-    expect(room.state.pickups.size).toBe(0);
+    // (A heart may have dropped too: it stays, the hero has full health.)
+    expect([...room.state.pickups.values()].filter((p) => p.kind === "rupee")).toHaveLength(0);
+  });
+
+  it("monsters drop hearts now and then (bosses always); only a hurt hero picks one up", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const hero = await joinAs(room, "knight");
+    await play(room, hero);
+    const { client, player } = hero;
+    const picked: PickedMessage[] = [];
+    client.onMessage(Msg.picked, (m: PickedMessage) => picked.push(m));
+
+    const { id, enemy } = pinEnemy(room, room.state, player.x, player.y + 12, { kind: "brute" });
+    enemy.hp = 1;
+    player.facing = 2;
+    const input = client.input<PlayerInput>({ mode: "reliable" });
+    input.data.attack = 1;
+    input.send();
+    await vi.waitFor(() => expect(room.state.enemies.has(id)).toBe(false));
+    input.data.attack = 0;
+    input.send();
+    const heart = [...room.state.pickups.values()].find((p) => p.kind === "heart");
+    if (!heart) throw new Error("no heart");
+
+    // With full health (the kill levelled the hero up) the heart stays on the ground.
+    expect(player.hp).toBe(player.maxHp);
+    player.x = heart.x;
+    player.y = heart.y;
+    for (let i = 0; i < 3; i++) await room.waitForNextTimestep();
+    expect([...room.state.pickups.values()]).toContain(heart);
+
+    // Hurt, the hero takes it: a quarter of its health back.
+    player.hp = 10;
+    await vi.waitFor(() => expect([...room.state.pickups.values()]).not.toContain(heart));
+    const heal = Math.round(player.maxHp * HEART_HEAL);
+    expect(player.hp).toBe(10 + heal);
+    await vi.waitFor(() => expect(picked).toContainEqual({ kind: "heart", value: heal }));
   });
 
   it("enemies hurt players on contact, through defense, with knockback and invulnerability", async () => {

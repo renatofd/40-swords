@@ -37,13 +37,17 @@ export interface BotEnemy {
   damage: number;
   /** How hard it is (see `enemyDanger`). */
   danger: number;
+  /** Goes after heroes (chases, hops at them or shoots); the others only hurt whoever walks into them. */
+  aggressive: boolean;
 }
 
-/** Something to walk onto: a chest or a rupee. */
+/** Something to walk onto: a chest, a rupee or a heart. */
 export interface BotSpot {
   id: string;
   x: number;
   y: number;
+  /** Pickups: "rupee" or "heart". */
+  kind?: string;
 }
 
 export interface BotRect {
@@ -106,7 +110,7 @@ export interface BotPersonality {
 export function rollPersonality(rng: Rng): BotPersonality {
   return {
     boldness: rng() < 0.35 ? 1 : 0,
-    courage: 0.9 + rng() * 0.6,
+    courage: 1.2 + rng() * 0.6,
     caution: 0.3 + rng() * 0.2,
     skill: 0.25 + rng() * 0.35,
   };
@@ -162,7 +166,7 @@ function dps(hero: Player, stats: Stats, defense: number): number {
   return total;
 }
 
-type Mode = "idle" | "travel" | "walk" | "fight" | "flee";
+type Mode = "idle" | "travel" | "walk" | "fight" | "flee" | "rest";
 
 interface Walk {
   key: string;
@@ -270,9 +274,8 @@ export class BotBrain {
       this.decideArena(view, view.arena, me, stats, hurt);
       return;
     }
+    // Screens it explores: easier while hurt.
     const comfort = this.comfort(me) - (hurt ? 1 : 0);
-    // The monsters it takes on: a bit harder while in good health, and only ones it can beat as it is.
-    const limit = comfort + (me.hp >= me.maxHp * 0.7 ? 1 : 0);
     const region = nav.screenRegion(screen);
     const steps = nav.field(region, [nav.tileOf(me.x, me.y)]);
     const reachable = (x: number, y: number) => nav.distanceAt(steps, x, y) >= 0;
@@ -298,26 +301,58 @@ export class BotBrain {
       }
     }
 
-    // Monsters: after the ones it can handle, away from the others.
+    // Monsters: after the ones it can handle, away from the others. The ones coming after
+    // heroes nearby fight together: each fight is judged against all of them.
+    const enemies = view.enemiesOn(screen);
+    const near = enemies.filter((e) => e.aggressive && Math.hypot(e.x - me.x, e.y - me.y) < 140);
     let prey: BotEnemy | undefined;
     let preyDist = Number.POSITIVE_INFINITY;
     let threat: BotEnemy | undefined;
     let threatDist = Number.POSITIVE_INFINITY;
-    for (const enemy of view.enemiesOn(screen)) {
+    for (const enemy of enemies) {
       const d = Math.hypot(enemy.x - me.x, enemy.y - me.y);
-      if (enemy.danger > limit || !this.canBeat(me, stats, enemy)) {
-        if (d < threatDist) [threat, threatDist] = [enemy, d];
-      } else if (d < preyDist && !this.ignored(enemy.id, tick) && reachable(enemy.x, enemy.y))
-        [prey, preyDist] = [enemy, d];
+      const pack = enemy.aggressive && d < 140 ? near.length : near.length + 1;
+      // Monsters it can beat with the health it has now (even hurt, the weak ones: hearts and levels heal).
+      if (enemy.danger <= comfort + 2 && this.canBeat(me, stats, enemy, pack)) {
+        if (d < preyDist && !this.ignored(enemy.id, tick) && reachable(enemy.x, enemy.y)) [prey, preyDist] = [enemy, d];
+      } else if ((enemy.aggressive || d < 32) && d < threatDist) {
+        // Too strong: worth running from if it comes after heroes, or is about to touch.
+        [threat, threatDist] = [enemy, d];
+      }
     }
     if (threat && threatDist < (hurt ? 110 : 80)) {
-      // Too much for it: away, and around this screen for a while.
+      // Too much for it: away from the pack, and around this screen for a while.
       this.avoid.set(screen, tick + 40 * SECOND);
-      this.flee(view, me, threat.x, threat.y, comfort);
+      const pack = near.length > 0 ? near : [threat];
+      const x = pack.reduce((sum, e) => sum + e.x, 0) / pack.length;
+      const y = pack.reduce((sum, e) => sum + e.y, 0) / pack.length;
+      this.flee(view, me, x, y, comfort);
       return;
     }
 
-    // Hurt: a potion, here or at the nearest vendor.
+    // Hurt: a heart lying on this screen, else rest where it's quiet (heroes heal out of
+    // combat), else a potion (here or at the nearest vendor).
+    const pickups = view.pickupsOn(screen);
+    if (me.hp < me.maxHp * 0.8) {
+      const heart = this.closest(
+        pickups.filter((p) => p.kind === "heart"),
+        me,
+        reachable,
+        tick,
+        200,
+      );
+      if (heart) {
+        this.walkTo(view, heart.spot.id, heart.spot.x, heart.spot.y, PICKUP_RADIUS - 3, region);
+        return;
+      }
+    }
+    const quiet =
+      !enemies.some((e) => e.aggressive && Math.hypot(e.x - me.x, e.y - me.y) < 160) &&
+      !(isPvpPhase(view.phase) && this.closestHero(view, me, screen, 200));
+    if (quiet && me.hp < me.maxHp * (this.mode === "rest" ? 0.85 : 0.5)) {
+      this.mode = "rest";
+      return;
+    }
     if (hurt && me.rupees >= POTION_PRICE) {
       if (this.shop(view, me, screen, reachable, true)) return;
       const vendor = this.nearestVendor(view, me, screen);
@@ -337,7 +372,13 @@ export class BotBrain {
       this.fight(view, prey.id, false, region);
       return;
     }
-    const coin = this.closest(view.pickupsOn(screen), me, reachable, tick, 160);
+    const coin = this.closest(
+      pickups.filter((p) => p.kind !== "heart"),
+      me,
+      reachable,
+      tick,
+      160,
+    );
     if (coin) {
       this.walkTo(view, coin.spot.id, coin.spot.x, coin.spot.y, PICKUP_RADIUS - 3, region);
       return;
@@ -443,7 +484,12 @@ export class BotBrain {
       if (mine < 0) continue;
       const theirs = nav.distanceAt(field, x, y);
       const worse = nav.dangerOf(exit.screen) > comfort + 1 || this.avoided(exit.screen, tick);
-      const score = (theirs < 0 ? 40 : theirs) - mine - (worse ? 60 : 0);
+      // Not back into a dead end it just came out of (a cave): the monster would be waiting at the door.
+      const seen = this.visited.get(exit.screen);
+      const trap = nav.exitsOf(exit.to).length <= 1 && seen !== undefined && tick - seen < 30 * SECOND;
+      // Toward easier screens: it can't see what waits on the other side.
+      const harder = Math.max(0, nav.dangerOf(exit.screen) - (comfort - 2)) * 6;
+      const score = (theirs < 0 ? 40 : theirs) - mine - harder - (worse ? 60 : 0) - (trap ? 40 : 0);
       if (score > bestScore) [best, bestScore] = [exit, score];
     }
     if (best) {
@@ -577,12 +623,13 @@ export class BotBrain {
 
   /**
    * Whether it beats a monster with health to spare: the swings it needs
-   * (hit-and-run, so not every cooldown), and about one touch every 1.5 s meanwhile.
+   * (hit-and-run, so not every cooldown), and about one touch every 1.5 s
+   * meanwhile from each of the `pack` monsters coming after it.
    */
-  private canBeat(me: Player, stats: Stats, enemy: BotEnemy): boolean {
+  private canBeat(me: Player, stats: Stats, enemy: BotEnemy, pack = 1): boolean {
     const swings = Math.ceil(enemy.hp / Math.max(1, stats.damage - enemy.defense));
     const ticks = swings * stats.attackCooldownTicks * 1.5;
-    const taken = Math.max(1, enemy.damage - stats.defense) * (1 + ticks / 45);
+    const taken = Math.max(1, enemy.damage - stats.defense) * (1 + ticks / 45) * Math.max(1, pack);
     return taken < me.hp * 0.6;
   }
 
@@ -625,7 +672,11 @@ export class BotBrain {
     if (this.path?.from !== node) {
       const avoid = new Set<number>();
       for (const [screen, until] of this.avoid) if (until > tick && screen !== this.goal) avoid.add(screen);
-      this.path = this.via?.from === node ? this.via : nav.route(node, this.goal, this.limit, avoid);
+      // (Avoided screens are a preference: when the only way goes through one, take it.)
+      this.path =
+        this.via?.from === node
+          ? this.via
+          : (nav.route(node, this.goal, this.limit, avoid) ?? nav.route(node, this.goal, this.limit));
     }
     const dir = this.path && nav.stepToward(me.x, me.y, this.path);
     if (!dir) {

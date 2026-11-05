@@ -12,10 +12,10 @@ content/
 │   └── src/                 Seus arquivos .aseprite (fonte); heróis e inimigos ainda são desenhados em código
 └── audio/
     ├── music/theme.wav      Música (carregada sozinha, chave "theme")
-    └── sfx/join.wav, ui.wav Efeitos (chaves "join", "ui")
+    └── sfx/*.wav            Efeitos (a chave é o nome do arquivo: "join", "ui", "swing", "hit"...)
 ```
 
-A arte e os sons atuais são **provisórios**: o mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja [`docs/JOGO.md`](../docs/JOGO.md)), os sons de `pnpm assets:placeholder`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
+A arte e os sons atuais são **provisórios**: o mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja [`docs/JOGO.md`](../docs/JOGO.md)), a música e os sons `join` e `ui` de `pnpm assets:placeholder`, e os efeitos do jogo (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória) de `pnpm sfx`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
 
 `pnpm content:validate` confere mapas, sprites e áudio. Ele roda na CI e no `pnpm check`.
 

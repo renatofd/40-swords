@@ -1,0 +1,15 @@
+{
+  "name": "@tools/sfx",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GAME (40 Swords): synthesizes the placeholder sound effects (content/audio/sfx).",
+  "scripts": {
+    "generate": "tsx src/generate.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.15"
+  }
+}
