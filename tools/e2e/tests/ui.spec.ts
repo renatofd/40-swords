@@ -340,3 +340,48 @@ test("the status panel writes nothing when nothing changes, and little during a 
     expect(n, w).toBeLessThanOrEqual(16);
   }
 });
+
+test("the found box types its text, stays 5 s, queues the next item and closes on a second click", async ({ page }) => {
+  await openGallery(page, "lang=pt&section=found");
+  const show = (m: { kind: string; rarity: number; source: string }) =>
+    page.evaluate((msg) => {
+      (window as unknown as { __uiGallery: { found: { show(m: unknown): void } } }).__uiGallery.found.show(msg);
+    }, m);
+  const box = page.locator(".sw-found");
+  const typed = () =>
+    box.locator(".sw-found-text").evaluate((el) => {
+      // What is visible: the text minus the not-yet-typed rest.
+      const clone = el.cloneNode(true) as HTMLElement;
+      for (const rest of clone.querySelectorAll(".sw-found-rest")) rest.remove();
+      return clone.textContent ?? "";
+    });
+
+  await show({ kind: "haste", rarity: 4, source: "chest" });
+  const shownAt = Date.now();
+  await expect(box).toBeVisible();
+  // The sentence, the name in the rarity colour, the description and the effect; screen readers get it at once.
+  await expect(page.locator(".sw-sr-only")).toHaveText(
+    "Você encontrou Bússola do Tempo! Lendário Ela dobra o tempo: suas armas recarregam mais rápido. Recarga −20%",
+  );
+  expect((await typed()).length).toBeLessThan(40);
+  await expect
+    .poll(typed, { timeout: 4000 })
+    .toBe("Você encontrou Bússola do Tempo!LendárioEla dobra o tempo: suas armas recarregam mais rápido.Recarga −20%");
+  await expect(box.locator(".sw-found-name")).toHaveCSS("color", "rgb(255, 231, 55)");
+  // Gone after 5 s (with its fade), not before.
+  await page.waitForTimeout(Math.max(0, 4500 - (Date.now() - shownAt)));
+  await expect(box).toBeVisible();
+  await expect(box).toBeHidden({ timeout: 1500 });
+
+  // Two at once: the second waits; a click shows the whole text, a second click moves on.
+  await show({ kind: "dagger", rarity: 1, source: "shop" });
+  await show({ kind: "fang", rarity: 3, source: "loot" });
+  await expect(box).toContainText("Você comprou");
+  await box.click();
+  expect(await typed()).toContain("Adagas de Arremesso");
+  await box.click();
+  await expect(box).toContainText("Você tomou", { timeout: 1500 });
+  expect(
+    await page.evaluate(() => (window as unknown as { __uiGallery: { errors: string[] } }).__uiGallery.errors),
+  ).toEqual([]);
+});

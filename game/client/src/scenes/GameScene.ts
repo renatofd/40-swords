@@ -89,7 +89,7 @@ import { Projectiles } from "../render/Projectiles";
 import { createProceduralArt, rarityRingTexture, shadowTexture } from "../render/proceduralArt";
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
-import { GainCards } from "../ui/gainCard";
+import { FoundPanel } from "../ui/foundPanel";
 import { icon } from "../ui/icons";
 import { type LobbyEntry, LobbyPanel } from "../ui/lobby";
 import { MatchHud } from "../ui/matchHud";
@@ -217,7 +217,10 @@ export class GameScene extends Phaser.Scene {
   private projectiles?: Projectiles;
   private status?: StatusHud;
   private labels?: WorldLabels;
-  private gains?: GainCards;
+  private found?: FoundPanel;
+  /** Top centre column: the boss bar, then the found box under it. */
+  private topStack?: HTMLElement;
+  private topResize?: ResizeObserver;
   private bossBar?: BossBar;
   private minimap?: Minimap;
   private match?: MatchHud;
@@ -353,7 +356,7 @@ export class GameScene extends Phaser.Scene {
       for (const key of m.keys) this.projectiles?.end(key);
     });
     room.onMessage(Msg.gain, (m: GainMessage) => {
-      this.gains?.show(m);
+      this.found?.show(m);
       this.showItemGet(m.kind, m.rarity);
       if (m.kind === "potion") this.sfx(SFX_HEART, { rate: 0.85 });
       else if (m.source === "shop") this.sfx(SFX_COIN, { rate: 0.8 });
@@ -374,7 +377,7 @@ export class GameScene extends Phaser.Scene {
 
     this.labels = new WorldLabels(this);
     this.status = new StatusHud(t);
-    this.gains = new GainCards(t);
+    this.found = new FoundPanel(t);
     this.bossBar = new BossBar();
     this.minimap = new Minimap(this.info, this.portals, t("hud.map"));
     this.status.addWidget(this.minimap.el);
@@ -385,12 +388,19 @@ export class GameScene extends Phaser.Scene {
       () => this.toggleReady(),
       () => this.toggleBots(),
     );
+    this.topStack = h("div", { className: "sw-top" }, this.bossBar.el, this.found.el);
+    // The banner keeps clear of the top column (boss bar, found box): --sw-top-bottom (styles.css).
+    const topStack = this.topStack;
+    this.topResize = new ResizeObserver(() =>
+      hud.style.setProperty("--sw-top-bottom", `${topStack.offsetTop + topStack.offsetHeight}px`),
+    );
+    this.topResize.observe(topStack);
     hud.append(
       this.lobby.el,
       this.labels.el,
       this.status.el,
-      this.gains.el,
-      this.bossBar.el,
+      this.topStack,
+      this.found.announcer,
       this.match.timer,
       this.match.feed,
       this.match.banner,
@@ -407,6 +417,7 @@ export class GameScene extends Phaser.Scene {
       for (const view of this.players.values()) view.destroy();
       for (const view of this.enemies.values()) view.destroy();
       this.projectiles?.destroy();
+      this.topResize?.disconnect();
       this.players.clear();
       this.enemies.clear();
       this.pickups.clear();
@@ -1208,6 +1219,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.projectiles?.update(now);
+    this.found?.update(now);
 
     const pvp = isPvpPhase(room.state.phase);
     for (const [id, player] of room.state.players) {

@@ -35,7 +35,7 @@ import {
 import { messages } from "./messages";
 import { BossBar } from "./ui/bossBar";
 import { creditsPanel } from "./ui/credits";
-import { GainCards } from "./ui/gainCard";
+import { FoundPanel } from "./ui/foundPanel";
 import { chooseHero } from "./ui/heroSelect";
 import { ICON_SHEET, type IconName } from "./ui/iconMap";
 import { icon } from "./ui/icons";
@@ -60,6 +60,8 @@ interface GalleryState {
     maxCd: Record<(typeof WEAPON_IDS)[number], number>;
     update(values: StatusValues): void;
   };
+  /** `section=found`: the found box live (driven each frame), for the timing tests. */
+  found?: { show(m: GainMessage): void };
 }
 
 declare global {
@@ -188,17 +190,6 @@ function fakeWorld(): { info: WorldInfo; explore: (m: Minimap) => void } {
   };
 }
 
-/** Runs `fn` with setTimeout disabled (gain cards would fade out; the gallery keeps them). */
-function withoutTimers(fn: () => void) {
-  const real = globalThis.setTimeout;
-  globalThis.setTimeout = (() => 0) as unknown as typeof setTimeout;
-  try {
-    fn();
-  } finally {
-    globalThis.setTimeout = real;
-  }
-}
-
 const group = (title: string, ...children: (Node | false | null | undefined)[]) =>
   h("section", { className: "g-group", "data-group": title }, h("h4", {}, title), ...children);
 const row = (...children: (Node | false | null | undefined)[]) => h("div", { className: "g-row" }, ...children);
@@ -262,17 +253,20 @@ function gainsGroup(t: Translate) {
   return group(
     "gains",
     row(
-      ...messagesOf.map((list) => {
-        const cards = new GainCards(t);
-        // Shown oldest first: the newest is on top, as in the game.
-        withoutTimers(() => {
-          for (const m of [...list].reverse()) cards.show(m);
-        });
-        for (const card of cards.el.children) (card as HTMLElement).dataset.check = "";
-        return box(cards.el);
+      ...messagesOf.flat().map((m) => {
+        const panel = foundPanel(t, m);
+        return box(panel);
       }),
     ),
   );
+}
+
+/** The "You found…" box with its whole text (typing finished), as GameScene shows it. */
+function foundPanel(t: Translate, m: GainMessage): HTMLElement {
+  const panel = new FoundPanel(t);
+  panel.show(m);
+  panel.finishTyping();
+  return panel.el;
 }
 
 /** Shop cards as GameScene builds them (§2.5): details (when near) over the price chip. */
@@ -672,12 +666,8 @@ function hudScreen(t: Translate, i18n: I18n, open: boolean, state: GalleryState)
     },
     { id: "me", outsideZone: false, out: false, place: 0 },
   );
-  const gains = new GainCards(t);
-  withoutTimers(() => {
-    gains.show({ kind: "eye", rarity: 1, source: "chest" });
-    gains.show({ kind: "nova", rarity: 4, source: "shop" });
-    gains.show({ kind: "heart", rarity: 3, source: "loot" });
-  });
+  // The top column as GameScene builds it: the found box (here a legendary weapon from the shop).
+  const top = h("div", { className: "sw-top" }, foundPanel(t, { kind: "nova", rarity: 4, source: "shop" }));
   const lobby = new LobbyPanel(
     t,
     () => undefined,
@@ -715,7 +705,24 @@ function hudScreen(t: Translate, i18n: I18n, open: boolean, state: GalleryState)
   );
   status.hidden = false;
   scoreboard.hidden = false;
-  inner.append(status, scoreboard, match.timer, gains.el, lobby.el, chat, touch);
+  inner.append(status, scoreboard, match.timer, top, lobby.el, chat, touch);
+  return root;
+}
+
+// ─── The found box live: typing, 5 s on screen, queue, click ────────────────
+
+function foundScreen(t: Translate, state: GalleryState) {
+  const root = h("div", { className: "ui-hud g-hud" });
+  const inner = h("div", { className: "ui-hud-inner" });
+  root.append(inner);
+  const panel = new FoundPanel(t);
+  inner.append(h("div", { className: "sw-top" }, panel.el), panel.announcer);
+  const frame = (now: number) => {
+    panel.update(now);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  state.found = { show: (m) => panel.show(m) };
   return root;
 }
 
@@ -790,6 +797,7 @@ export async function startUiGallery(mount: HTMLElement = document.body): Promis
   const section = params.get("section");
   if (section === "status") root.append(hudScreen(t, i18n, params.has("details"), state));
   else if (section === "pixels") root.append(pixelsScreen());
+  else if (section === "found") root.append(foundScreen(t, state));
   else {
     const page = h("div", { className: "g-page" });
     root.append(page);

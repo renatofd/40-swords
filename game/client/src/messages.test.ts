@@ -21,7 +21,13 @@ describe("game messages", () => {
 
   it("name every item, and item names carry no emoji (the pack icons show the item)", () => {
     const items: OfferItem[] = [...RELIC_IDS, "potion"];
-    for (const kind of items) expect(messages.en[`item.${kind}`], kind).toBeTypeOf("string");
+    for (const kind of items) {
+      expect(messages.en[`item.${kind}`], kind).toBeTypeOf("string");
+      // The found box (ui/foundPanel.ts) says what the item is.
+      expect(messages.en[`item.${kind}.desc`], `${kind}.desc`).toBeTypeOf("string");
+    }
+    // One sentence per way of getting an item (GainMessage.source), around the item's name.
+    for (const source of ["chest", "shop", "loot"]) expect(messages.en[`found.${source}`]).toContain("{item}");
     for (const locale of LOCALES) {
       for (const [key, value] of Object.entries(messages[locale] ?? {})) {
         if (!key.startsWith("item.")) continue;
