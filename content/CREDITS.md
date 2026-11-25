@@ -36,6 +36,48 @@ Assim como a licença do pacote exige, o `content/tilesets/world.png` e a arte d
 
 A CC BY-SA 4.0 cobre a arte que vem do pacote e as obras derivadas dela. O código do jogo, o desenho dos mapas e os sons não vêm do pacote e não estão sob essa licença por causa dele.
 
+## Personagens, efeitos e projéteis
+
+Heróis, inimigos, chefes, o vendedor, os golpes das armas, os efeitos visuais e os projéteis vêm do mesmo pacote (*#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, CC BY-SA 4.0).
+
+### Arquivos de origem
+
+Ficam em `content/src/notzelda/`, com os nomes de pasta e de arquivo do pacote. Foram copiados como vieram e não vão para o jogo: são a fonte do importador (`pnpm art`, `tools/art`).
+
+| Pasta do pacote | Arquivos | Uso no jogo |
+|---|---|---|
+| `Characters/Humanoid/` | `Character Gigante Sample/Gigante.png`, `Character Green Gal Sample/Gal Green.png`, `Colt/colt.png` | Heróis: cavaleiro (`knight`), ladina (`rogue`) e bárbaro (`barbarian`) |
+| `Characters/Humanoid/` | `Character The Fool Sample/TheFool.png` | Vendedor (`merchant`) |
+| `Characters/Humanoid/` | `SkeletonMage/SkeletonMage.png` | Minichefe *hexer* |
+| `Characters/Humanoid/Attack FX/` | `Slash/Slash Wooden Sword 48x48.png`, `Slash/Slash Kukri 48x48.png`, `Slash/Slash Axe 48x48.png` | Golpe de espada de cada classe (`fx-slash-<classe>`) |
+| `Characters/Humanoid/Attack FX/` | `Bowshot and Spells/Green Staff 48x48.png`, `Unsynced Attacks/Grass.png` | Cajado do *hexer* (`fx-staff-green`) e mato cortado (`fx-grass`) |
+| `Characters/Small/` | `Goo/Goo.png`, `Goo/Blue Goo.png`, `Goo/Gold Goo.png`, `Beasts/Beast.png`, `Bones/Bones.png`, `Bat/Bat.png`, `Bat/BrownBat.png`, `EyeBat/GoldEye.png`, `Snakes/Fang/fang {side,up,down}.png`, `Snakes/HoodFang/hoodfang {side,up,down}.png`, `Rat/Rat-Sheet.png`, `FrogFlower/FrogFlower.png`, `FrogFlower/Black FrogFlower.png` | Inimigos comuns e suas variações (`slime`, `goblin`, `skeleton`, `bat`, `scorpion`, `wolf`, `lurker`...) |
+| `Characters/Large/` | `BigBeast/BigBeast.png`, `CentaurKnite/CentaurKnite.png`, `TenguMask/TenguMask.png`, `TurtleDragon/TurtleDragon.png`, `BatwingButtStomper/BatwingButtstomper.png` | Minichefe *brute* e chefes *warden*, *witch*, *matriarch* e *colossus* |
+| `Visual FX/` | `Smoke/Smoke 16x16.png`, `Smoke/Smoke 32x32.png`, `Smoke/Smoke Small 16x16.png`, `Hit Effect 16x16.png`, `Spark 16x16.png`, `Shine 16x16.png`, `Bolt 40x40.png`, `Dust20x40.png`, `magicOrb 16x16.png`, `Looping Fire/Fireball 16x16.png`, `Looping Fire/FireSmall 12x12.png`, `Explosions/{Small Explosion, Small Blue Explosion, Small Pink Explosion} 16x16.png`, `Explosions/{Explosion, MagicExplosion, GreenExplosion} 32x32.png`, `Explosions/Big Explosion 48x48.png` | Fumaça, golpes, faíscas, explosões, poeira e as bolas de fogo e de magia |
+| `Items/` | `Weapons.png`, `Tools.png`, `Pickups.png`, `1 Bit/Weapons/Femur.png` | Projéteis: adaga, flecha, cristal da nova e osso |
+| `Environments/` | `Overworld.png` (já usado pelo mundo) | A pedra arremessada (`hostile-rock`) |
+
+### O que vai para o jogo e como foi modificado
+
+O importador (`tools/art/src/manifest.ts` diz o que entra; `tools/art/src/sheet.ts` faz o trabalho) escreve `content/sprites/<nome>.png` + `<nome>.json`, que são obras derivadas:
+
+- **Recortado e reorganizado:** só entram os quadros usados. Cada animação vira uma sequência de quadros numa folha nova, com 1 px transparente entre eles; quadros iguais são guardados uma vez. Nas folhas de humanoides, a fileira virada para a esquerda não entra (é o espelho da direita; o jogo espelha na hora).
+- **Girado:** a flecha e o cristal da nova foram girados 90° para apontar para a direita; o osso e a pedra ganharam cópias giradas de 90° em 90° para a animação de giro.
+- **Cores trocadas** (por cores da própria paleta do pacote):
+  - o golpe do cavaleiro (`Slash Wooden Sword`): a espada de madeira virou aço (cinzas) e as folhas do cabo foram apagadas;
+  - o projétil venenoso dos inimigos (`hostile-sting`): a bola de fogo (`Fireball`) em verdes;
+  - o osso (`Femur`, branco puro no pacote): em cor de osso, com contorno escuro de 1 px;
+  - a pedra (`hostile-rock`): um pedaço do pedregulho do tile 1602 do `Overworld.png`, sem a sombra, em cinzas e com contorno escuro de 1 px.
+- O resto (heróis, inimigos, chefes, vendedor, golpes do *rogue* e do *barbarian*, efeitos, adaga, bola de fogo e bola de magia) tem os pixels do pacote sem mudança.
+
+No jogo, algumas folhas também têm cores trocadas na hora (sem gerar arquivos): as cores dos heróis (`game/client/src/render/heroPalettes.ts`) e os inimigos de elite em tons de ouro (`render/enemyLooks.ts`, exceto a geleca e o morcego, que usam as folhas douradas do próprio pacote, *Gold Goo* e *GoldEye*).
+
+O `game/client/src/render/spriteAnchors.json` também sai do importador: só o tamanho dos quadros e o ponto de apoio (os pés) de cada sprite.
+
+### Licença das obras derivadas
+
+Os arquivos de `content/sprites/` gerados pelo `pnpm art` são compartilhados sob a mesma licença, **CC BY-SA 4.0**, com crédito a *#NotZelda Overhead Adventure Tiles* e a Raphael Azcueta.
+
 ## Demais arte e sons
 
-Heróis, inimigos, baús, vendedor, projéteis e efeitos visuais ainda são desenhados em código (`game/client/src/render/placeholderArt.ts`). Os sons são sintetizados pelas ferramentas do repositório (`pnpm sfx` e `pnpm assets:placeholder`). Nada disso vem do pacote.
+Baús, pedestais, corações, rupees e ícones de itens ainda são provisórios: desenhados em código (`game/client/src/render/placeholderArt.ts`) ou emojis. Os sons são sintetizados pelas ferramentas do repositório (`pnpm sfx` e `pnpm assets:placeholder`). Nada disso vem do pacote.

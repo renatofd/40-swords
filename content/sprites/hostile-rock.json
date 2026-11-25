@@ -1,0 +1,117 @@
+{
+  "frames": [
+    {
+      "filename": "0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "sourceSize": {
+        "w": 13,
+        "h": 13
+      },
+      "duration": 90
+    },
+    {
+      "filename": "1",
+      "frame": {
+        "x": 14,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "sourceSize": {
+        "w": 13,
+        "h": 13
+      },
+      "duration": 90
+    },
+    {
+      "filename": "2",
+      "frame": {
+        "x": 0,
+        "y": 14,
+        "w": 13,
+        "h": 13
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "sourceSize": {
+        "w": 13,
+        "h": 13
+      },
+      "duration": 90
+    },
+    {
+      "filename": "3",
+      "frame": {
+        "x": 14,
+        "y": 14,
+        "w": 13,
+        "h": 13
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 13
+      },
+      "sourceSize": {
+        "w": 13,
+        "h": 13
+      },
+      "duration": 90
+    }
+  ],
+  "meta": {
+    "app": "tools/art (40 Swords)",
+    "version": "1",
+    "image": "hostile-rock.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 27,
+      "h": 27
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "spin",
+        "from": 0,
+        "to": 3,
+        "direction": "forward"
+      },
+      {
+        "name": "idle",
+        "from": 0,
+        "to": 3,
+        "direction": "forward"
+      }
+    ]
+  }
+}

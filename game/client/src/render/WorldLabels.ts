@@ -2,6 +2,8 @@ import { h } from "@core/client";
 import type Phaser from "phaser";
 
 const DAMAGE_MS = 700;
+/** Floating numbers start this far above the position they are given (over the head of a 32 px sprite). */
+const NUMBER_RISE = 12;
 
 interface Floating {
   el: HTMLElement;
@@ -101,8 +103,8 @@ export class WorldLabels {
   heal(x: number, y: number, amount: number, time: number) {
     const el = h("div", { className: "sw-anchor" }, h("span", { className: "sw-dmg sw-dmg-heal" }, `+${amount}`));
     this.el.append(el);
-    this.floating.push({ el, x, y: y - 8, until: time + DAMAGE_MS });
-    this.place(el, x, y - 8);
+    this.floating.push({ el, x, y: y - NUMBER_RISE, until: time + DAMAGE_MS });
+    this.place(el, x, y - NUMBER_RISE);
   }
 
   /** Floating damage number. Crits are bigger and yellow; damage taken by players is red. */
@@ -110,7 +112,7 @@ export class WorldLabels {
     const className = `sw-dmg${crit ? " sw-dmg-crit" : ""}${player ? " sw-dmg-player" : ""}`;
     const el = h("div", { className: "sw-anchor" }, h("span", { className }, crit ? `${amount}!` : String(amount)));
     this.el.append(el);
-    this.floating.push({ el, x, y: y - 8, until: time + DAMAGE_MS });
-    this.place(el, x, y - 8);
+    this.floating.push({ el, x, y: y - NUMBER_RISE, until: time + DAMAGE_MS });
+    this.place(el, x, y - NUMBER_RISE);
   }
 }

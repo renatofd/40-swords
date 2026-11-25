@@ -16,7 +16,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate && pnpm art --check",
     "assets:placeholder": "pnpm --filter @tools/assets placeholder-art",
     "loadtest": "pnpm --filter @tools/loadtest start",
     "init-game": "pnpm --filter @tools/template init-game",
@@ -26,7 +26,8 @@
     "e2e": "pnpm --filter @tools/e2e test",
     "content:validate": "pnpm --filter @tools/assets validate-content",
     "assets:sprites": "pnpm --filter @tools/assets export-aseprite",
-    "sfx": "pnpm --filter @tools/sfx generate"
+    "sfx": "pnpm --filter @tools/sfx generate",
+    "art": "pnpm --filter @tools/art generate"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

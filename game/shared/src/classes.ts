@@ -76,7 +76,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       reach: 15,
     },
     perLevel: { maxHp: 8, damage: 1.2, defense: 0.2, critChance: 0.005 },
-    color: 0x5ad18a,
+    color: 0xd45ac0,
   },
   /** Heavy hitter: slow wide swings, huge crits and life steal. */
   barbarian: {
@@ -93,7 +93,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       reach: 21,
     },
     perLevel: { maxHp: 11, damage: 2, defense: 0.3, critChance: 0.003 },
-    color: 0xe0703c,
+    color: 0xc08048,
   },
 };
 

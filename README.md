@@ -2,7 +2,7 @@
 
 > **40 Swords** é um RPG de ação top-down multiplayer (estilo aventura clássica, com roguelite e PvP). Regras, controles, classes, mapa e roteiro do jogo: [`docs/JOGO.md`](docs/JOGO.md). O restante deste README descreve o template em que o jogo se baseia.
 >
-> **Arte do mundo:** [#NotZelda Overhead Adventure Tiles](content/src/notzelda/ReadMe.txt), de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo (`content/tilesets/world.png`) é uma obra derivada sob a mesma licença. Créditos e mudanças: [`content/CREDITS.md`](content/CREDITS.md).
+> **Arte (mundo, heróis, inimigos, efeitos e projéteis):** [#NotZelda Overhead Adventure Tiles](content/src/notzelda/ReadMe.txt), de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo (`content/tilesets/world.png`) e os sprites (`content/sprites/`, gerados por `pnpm art`) são obras derivadas sob a mesma licença. Créditos e mudanças: [`content/CREDITS.md`](content/CREDITS.md).
 
 Base para jogos online web: começa como um jogo estilo `.io` e foi organizada para poder crescer até um multiplayer massivo.
 
@@ -62,7 +62,8 @@ Abra http://localhost:3000 em **duas ou mais abas** para ver os jogadores sincro
 | `pnpm pack:client` | Gera o `.zip` do cliente para GamePush/itch.io (depois do build) |
 | `pnpm e2e` | Testes ponta a ponta com navegadores reais (Playwright) |
 | `pnpm loadtest` | Bots para teste de carga |
-| `pnpm assets:placeholder --force` | Volta a arte, os sons e o mapa provisórios (sobrescreve os arquivos em `content/`) |
+| `pnpm art` | Importa os sprites do pacote de arte (`content/src/notzelda`) para `content/sprites` (veja `docs/JOGO.md`) |
+| `pnpm assets:placeholder --force` | Volta a arte, os sons e o mapa provisórios do template (sobrescreve os arquivos em `content/`; no 40 Swords, não use: veja `content/README.md`) |
 | `pnpm init-game --name "Meu Jogo"` | Renomeia o projeto ao criar um jogo novo |
 
 ## Estrutura
@@ -72,7 +73,7 @@ packages/core-*   NÚCLEO do template: servidor base, telas, idiomas, input, pla
 game/*            O JOGO: regras (shared), salas (server), cenas e textos (client)
 apps/*            Entradas finas que ligam núcleo + jogo
 content/          Mapas (.tmj), tilesets, sprites
-tools/            Arte provisória, validação de mapas, bots, init-game
+tools/            Importador de sprites (art), gerador do mundo (world-gen), sons, validação de conteúdo, bots, e2e, init-game
 docs/             Arquitetura, pesquisa, testes, uso do template, decisões
 ```
 
