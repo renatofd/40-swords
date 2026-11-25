@@ -22,6 +22,8 @@ jobs:
         run: pnpm typecheck
       - name: Validate content (maps, sprites, audio)
         run: pnpm content:validate
+      - name: Sprites up to date with tools/art
+        run: pnpm art --check
       - name: Unit & integration tests
         run: pnpm test
       - name: Build

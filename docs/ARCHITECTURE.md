@@ -45,6 +45,7 @@ online-game-template/
 │
 ├── content/                          Mapas (.tmj), tilesets, sprites (do jogo)
 ├── tools/
+│   ├── art/                          Importador de sprites do pacote (pnpm art)
 │   ├── assets/                       Arte provisória, validação de mapas
 │   ├── loadtest/                     Bots (comportamento em game/client/src/bot.ts)
 │   ├── e2e/                          Testes ponta a ponta (Playwright)

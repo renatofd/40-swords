@@ -1,6 +1,6 @@
 import { Callbacks, type InputHandle } from "@colyseus/sdk";
 import { Predict } from "@colyseus/sdk/predict";
-import { type GameContext, h, type SfxOptions } from "@core/client";
+import { animKey, type GameContext, h, type SfxOptions } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
 import {
   areaAt,
@@ -47,7 +47,6 @@ import {
   type Spot,
   type SummaryMessage,
   screenOf,
-  statsFor,
   stepPlayer,
   TILE_SIZE,
   WEAPON_IDS,
@@ -77,19 +76,20 @@ import {
   tilesetKey,
 } from "../assets";
 import { recordMatch } from "../career";
+import { feetOrigin, setFlipAnchored } from "../render/anim";
+import { actorDepth, DEPTH } from "../render/depth";
 import { EnemyView } from "../render/EnemyView";
-import { PlayerView } from "../render/PlayerView";
+import { playFx } from "../render/fx";
+import { HERO_HEAD, PlayerView } from "../render/PlayerView";
 import { Projectiles } from "../render/Projectiles";
 import {
   createPlaceholderArt,
   rupeeTexture,
+  shadowTexture,
   TEX_CHEST,
   TEX_CHEST_OPEN,
   TEX_HEART,
-  TEX_LEAF,
-  TEX_MERCHANT,
   TEX_PEDESTAL,
-  TEX_SHARD,
 } from "../render/placeholderArt";
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
@@ -111,13 +111,30 @@ export const ACTION_READY = "ready";
 const AXIS_THRESHOLD = 0.38;
 /** Camera slide between neighbouring screens, in ms. */
 const SCREEN_PAN_MS = 320;
-/** Tile layer drawn over the heroes (tools/world-gen/src/skin/common.ts), and its depth. */
+/** Tile layer drawn over the heroes (tools/world-gen/src/skin/common.ts). */
 const ABOVE_LAYER = "above";
-const DEPTH_ABOVE = 20;
 /** A position jump larger than this between two snapshots is a teleport (cave, respawn): cut, don't slide. */
 const TELEPORT_PX = 48;
 /** Within this distance of an offer, its card shows the details. */
 const OFFER_DETAILS_PX = 26;
+/** Vendors' sheet; they stand with their feet this far below their spot, and turn to a hero this close. */
+const MERCHANT = "merchant";
+const MERCHANT_HALF = 4;
+const MERCHANT_LOOK_PX = 56;
+const MERCHANT_ORIGIN_X = feetOrigin(MERCHANT, MERCHANT_HALF)[0];
+/** Half-extents (feet below the centre) of chests and pickups, for sorting them with the actors. */
+const CHEST_HALF = 6;
+const PICKUP_HALF = 4;
+/** An enemy removed this soon after a blow (or after its boss fell) died; otherwise it left the area of interest. */
+const DEATH_AFTER_HIT_MS = 600;
+/**
+ * Hit sparks start past the effect's dark first frame: on the rings for a
+ * normal blow, on the solid white disc only for a crit (it would cover small
+ * enemies on every blow).
+ */
+const HIT_FX = "fx-hit";
+/** Damage and enemy shots come from where the enemy stood on the server: it is the one this close in the last state. */
+const HIT_MATCH_PX = 16;
 /** Sides of the polygon drawing the arena storm. */
 const ZONE_SEGMENTS = 96;
 
@@ -167,6 +184,9 @@ export class GameScene extends Phaser.Scene {
   private players = new Map<string, PlayerView>();
   private lastSwing = new Map<string, number>();
   private enemies = new Map<string, EnemyView>();
+  /** When a boss or mini-boss last fell (its summoned minions vanish with it). */
+  private bossDownAt = Number.NEGATIVE_INFINITY;
+  private merchants: Phaser.GameObjects.Sprite[] = [];
   private pickups = new Map<string, Phaser.GameObjects.Image>();
   private chests = new Map<string, Phaser.GameObjects.Image>();
   /** Tall grass and pots: their tile layer, the broken look of each whole look, and each one by id (tile index). */
@@ -218,6 +238,8 @@ export class GameScene extends Phaser.Scene {
     this.players = new Map();
     this.lastSwing = new Map();
     this.enemies = new Map();
+    this.merchants = [];
+    this.bossDownAt = Number.NEGATIVE_INFINITY;
     this.pickups = new Map();
     this.chests = new Map();
     this.props = new Map();
@@ -239,9 +261,9 @@ export class GameScene extends Phaser.Scene {
     createPlaceholderArt(this);
     this.buildMap(room.state.mapId);
     this.projectiles = new Projectiles(this, this.gameMap.collision);
-    for (const v of this.vendors) this.add.image(v.x, v.y - 4, TEX_MERCHANT).setDepth(9);
+    this.addMerchants();
     // The storm tints the ground outside the safe zone (players stay on top).
-    this.zone = this.add.graphics().setDepth(5);
+    this.zone = this.add.graphics().setDepth(DEPTH.zone);
 
     const predict = Predict.get(room);
     this.predict = predict;
@@ -254,7 +276,7 @@ export class GameScene extends Phaser.Scene {
     callbacks.onAdd("players", (player: Player, id: string) => this.addPlayer(player, id));
     callbacks.onRemove("players", (_p: Player, id: string) => this.removePlayer(id));
     callbacks.onAdd("enemies", (enemy: Enemy, id: string) => this.addEnemy(enemy, id));
-    callbacks.onRemove("enemies", (_e: Enemy, id: string) => this.removeEnemy(id));
+    callbacks.onRemove("enemies", (enemy: Enemy, id: string) => this.removeEnemy(id, enemy.hp));
     callbacks.onAdd("pickups", (pickup: Pickup, id: string) => this.addPickup(pickup, id));
     callbacks.onRemove("pickups", (_p: Pickup, id: string) => this.removePickup(id));
     callbacks.onAdd("chests", (chest: Chest, id: string) => this.addChest(chest, id));
@@ -265,6 +287,7 @@ export class GameScene extends Phaser.Scene {
 
     room.onMessage(Msg.damage, (m: DamageMessage) => {
       this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now);
+      this.hitSpark(m);
       // Blows landing on monsters in view (the hero's own hurt sound comes from its health, see update).
       if (!m.player && this.cameras.main.worldView.contains(m.x, m.y))
         this.sfx(SFX_HIT, { volume: m.crit ? 0.9 : 0.55, rate: m.crit ? 0.85 : 1 }, 50);
@@ -276,7 +299,8 @@ export class GameScene extends Phaser.Scene {
     // The match is over for this hero: how it went, into the career saved in this browser.
     room.onMessage(Msg.summary, (m: SummaryMessage) => {
       const { career, unlocked } = recordMatch(m);
-      this.summary?.show(m, career, unlocked);
+      const classId = room.state.players.get(room.sessionId)?.classId;
+      this.summary?.show(m, career, unlocked, isClassId(classId) ? classId : undefined);
     });
     room.onMessage(Msg.picked, (m: PickedMessage) => {
       if (m.kind === "heart") {
@@ -286,8 +310,12 @@ export class GameScene extends Phaser.Scene {
       } else this.sfx(SFX_COIN, { volume: 0.6 }, 40);
     });
     room.onMessage(Msg.shot, (m: ShotMessage) => this.projectiles?.spawnVolley(m, this.time.now));
-    room.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => this.projectiles?.spawnHostile(m, this.time.now));
+    room.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => {
+      this.projectiles?.spawnHostile(m, this.time.now);
+      (this.enemyAt(m.x, m.y, HIT_MATCH_PX) ?? this.nearestEnemy(m.x, m.y, 32))?.fired(m.angles, this.time.now);
+    });
     room.onMessage(Msg.bossDown, (m: BossDownMessage) => {
+      this.bossDownAt = this.time.now;
       this.ctx.ui.toast(t("toast.bossDown", { boss: t(`enemy.${m.kind}`), name: m.by }), 4000);
       this.sfx(SFX_CHEST, { rate: 0.75 });
     });
@@ -372,8 +400,8 @@ export class GameScene extends Phaser.Scene {
       const created = map.createLayer(layer.name, tilesets);
       if (!(created instanceof Phaser.Tilemaps.TilemapLayer)) continue;
       if (layer.name === PROPS_LAYER) this.propsLayer = created;
-      // Tree tops, arch tops, statue heads: over heroes (10-11), enemies, shots (12) and prop bits.
-      if (layer.name === ABOVE_LAYER) created.setDepth(DEPTH_ABOVE);
+      // Tree tops, arch tops, statue heads: over heroes, enemies, shots and prop bits.
+      if (layer.name === ABOVE_LAYER) created.setDepth(DEPTH.above);
     }
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -424,7 +452,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private removePlayer(id: string) {
-    this.players.get(id)?.destroy();
+    this.players.get(id)?.destroy(true);
     this.players.delete(id);
     this.lastSwing.delete(id);
     this.labels?.removeName(id);
@@ -432,19 +460,111 @@ export class GameScene extends Phaser.Scene {
 
   private addEnemy(enemy: Enemy, id: string) {
     if (this.enemies.has(id)) return;
-    const boss = isEnemyKind(enemy.kind) && ENEMIES[enemy.kind].rank !== "normal";
-    this.enemies.set(id, new EnemyView(this, enemy.kind, enemy.elite, boss));
+    this.enemies.set(id, new EnemyView(this, enemy.kind, enemy.elite));
   }
 
-  private removeEnemy(id: string) {
-    this.enemies.get(id)?.destroy();
+  /**
+   * The server removes an enemy when it dies and when it leaves this player's
+   * area of interest. A death leaves smoke (explosions for bosses): its health
+   * reached 0, or it vanished on screen right after a blow (the last health
+   * update and the removal often come together) or with its boss.
+   */
+  private removeEnemy(id: string, hp: number) {
+    const view = this.enemies.get(id);
+    if (!view) return;
     this.enemies.delete(id);
+    view.hp = Math.min(view.hp, hp);
+    const now = this.time.now;
+    const onScreen = this.cameras.main.worldView.contains(view.x, view.y);
+    const died =
+      view.hp <= 0 ||
+      (onScreen && (now - view.lastHitAt < DEATH_AFTER_HIT_MS || now - this.bossDownAt < DEATH_AFTER_HIT_MS));
+    view.destroy(died);
+  }
+
+  /** The enemy view closest to (x, y) within `radius` px. */
+  private nearestEnemy(x: number, y: number, radius: number): EnemyView | undefined {
+    let best: EnemyView | undefined;
+    let bestD = radius;
+    for (const view of this.enemies.values()) {
+      const d = Math.hypot(view.x - x, view.y - y);
+      if (d <= bestD) {
+        best = view;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * The view of the enemy standing at (x, y) on the server: matched on the
+   * latest state, not on the interpolated views (they lag, so in a crowd the
+   * nearest view is often a neighbour).
+   */
+  private enemyAt(x: number, y: number, radius: number): EnemyView | undefined {
+    let best: EnemyView | undefined;
+    let bestD = radius;
+    for (const [id, enemy] of this.ctx.room.state.enemies) {
+      const d = Math.hypot(enemy.x - x, enemy.y - y);
+      const view = d <= bestD ? this.enemies.get(id) : undefined;
+      if (view) {
+        best = view;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Sparks where a blow lands (in view), and marks the enemy as just hit (see
+   * removeEnemy): the killing blow's hurt rise comes with the removal, so the
+   * view never sees it.
+   */
+  private hitSpark(m: DamageMessage) {
+    let x = m.x;
+    let y = m.y - 4;
+    if (!m.player) {
+      const view = this.enemyAt(m.x, m.y, HIT_MATCH_PX) ?? this.nearestEnemy(m.x, m.y, 32);
+      if (view) {
+        view.lastHitAt = this.time.now;
+        ({ x, y } = view.centre());
+      }
+    }
+    if (!this.cameras.main.worldView.contains(x, y)) return;
+    const jitter = () => Math.round((Math.random() * 2 - 1) * 3);
+    playFx(this, HIT_FX, x + jitter(), y + jitter(), { startFrame: m.crit ? 1 : 2 });
+    if (m.crit) playFx(this, "fx-spark", x + jitter(), y + jitter() - 2);
+  }
+
+  /** Vendors at their spots (cave shops), sorted with the actors; they turn to a hero next to them. */
+  private addMerchants() {
+    const [ox, oy] = feetOrigin(MERCHANT, MERCHANT_HALF);
+    for (const v of this.vendors) {
+      const x = Math.round(v.x);
+      const y = Math.round(v.y);
+      const depth = actorDepth(y, MERCHANT_HALF);
+      this.add.image(x, y + MERCHANT_HALF - 1, shadowTexture(this, 12)).setDepth(DEPTH.groundShadow);
+      const sprite = this.add.sprite(x, y, MERCHANT).setOrigin(ox, oy).setDepth(depth);
+      if (this.anims.exists(animKey(MERCHANT, "idle-down"))) sprite.play(animKey(MERCHANT, "idle-down"));
+      this.merchants.push(sprite);
+    }
+  }
+
+  private updateMerchants(heroX: number, heroY: number) {
+    for (const sprite of this.merchants) {
+      const dx = heroX - sprite.x;
+      const dy = heroY - sprite.y;
+      const side = Math.hypot(dx, dy) < MERCHANT_LOOK_PX && Math.abs(dx) > Math.abs(dy) + 4;
+      const anim = animKey(MERCHANT, side ? "idle-right" : "idle-down");
+      setFlipAnchored(sprite, side && dx < 0, MERCHANT_ORIGIN_X);
+      if (sprite.anims.currentAnim?.key !== anim && this.anims.exists(anim)) sprite.play(anim);
+    }
   }
 
   private addPickup(pickup: Pickup, id: string) {
     if (this.pickups.has(id)) return;
     const texture = pickup.kind === "heart" ? TEX_HEART : rupeeTexture(pickup.value);
-    const image = this.add.image(pickup.x, pickup.y, texture).setDepth(8);
+    const image = this.add.image(pickup.x, pickup.y, texture).setDepth(actorDepth(pickup.y, PICKUP_HALF));
     this.tweens.add({ targets: image, y: pickup.y - 2, yoyo: true, repeat: -1, duration: 500, ease: "Sine.easeInOut" });
     this.pickups.set(id, image);
   }
@@ -459,7 +579,8 @@ export class GameScene extends Phaser.Scene {
 
   private addChest(chest: Chest, id: string) {
     if (this.chests.has(id)) return;
-    this.chests.set(id, this.add.image(chest.x, chest.y, chest.open ? TEX_CHEST_OPEN : TEX_CHEST).setDepth(7));
+    const texture = chest.open ? TEX_CHEST_OPEN : TEX_CHEST;
+    this.chests.set(id, this.add.image(chest.x, chest.y, texture).setDepth(actorDepth(chest.y, CHEST_HALF)));
   }
 
   private removeChest(id: string) {
@@ -482,24 +603,22 @@ export class GameScene extends Phaser.Scene {
       return;
     const pot = prop.kind === "pot";
     this.sfx(pot ? SFX_BREAK : SFX_CUT, { volume: pot ? 0.8 : 0.6 }, 40, "props");
-    // Bits fly out (over what dropped, under the heroes) and fade at the end of their flight.
-    for (let i = 0; i < (pot ? 6 : 7); i++) {
-      const angle = ((i + Math.random() * 0.6) / (pot ? 6 : 7)) * Math.PI * 2;
-      const dist = 10 + Math.random() * 10;
-      const bit = this.add
-        .image(prop.x, prop.y - 3, pot ? TEX_SHARD : TEX_LEAF)
-        .setDepth(9.5)
-        .setAngle(Math.random() * 360);
-      this.tweens.add({
-        targets: bit,
-        x: prop.x + Math.cos(angle) * dist,
-        y: prop.y - 3 + Math.sin(angle) * dist * 0.7 + (pot ? 4 : 0),
-        angle: bit.angle + (Math.random() < 0.5 ? -1 : 1) * 240,
-        alpha: { value: 0, ease: "Cubic.easeIn" },
-        duration: 480 + Math.random() * 220,
-        ease: "Quad.easeOut",
-        onComplete: () => bit.destroy(),
-      });
+    // A puff of clay dust, or grass clippings scattering over what dropped.
+    if (pot) {
+      playFx(this, "fx-smoke-small", prop.x, prop.y - 3);
+      return;
+    }
+    for (let i = 0; i < 3; i++) {
+      const angle = ((i + Math.random() * 0.5) / 3) * Math.PI * 2;
+      const bit = playFx(this, "fx-grass", prop.x, prop.y - 4, { flipX: i % 2 === 1 });
+      if (bit)
+        this.tweens.add({
+          targets: bit,
+          x: Math.round(prop.x + Math.cos(angle) * 7),
+          y: Math.round(prop.y - 4 + Math.sin(angle) * 5),
+          duration: 240,
+          ease: "Quad.easeOut",
+        });
     }
   }
 
@@ -516,7 +635,7 @@ export class GameScene extends Phaser.Scene {
     const { t } = this.ctx;
     offers.slice(0, OFFER_SLOTS).forEach((offer, slot) => {
       const at = offerPosition(vendor, slot);
-      this.pedestals.push(this.add.image(at.x, at.y + 4, TEX_PEDESTAL).setDepth(6));
+      this.pedestals.push(this.add.image(at.x, at.y + 4, TEX_PEDESTAL).setDepth(DEPTH.pedestal));
       this.labels?.anchor(`offer:${vendorId}:${slot}`, at.x, at.y + 1, () =>
         h(
           "div",
@@ -844,7 +963,7 @@ export class GameScene extends Phaser.Scene {
       if (!view) continue;
       const isSelf = id === room.sessionId;
       // Out of the match: gone until the next one.
-      view.setVisible(!player.out);
+      view.setVisible(!player.out, player.dead);
       if (player.out) {
         this.labels?.removeName(id);
         continue;
@@ -852,21 +971,19 @@ export class GameScene extends Phaser.Scene {
       const state = isSelf && sim ? sim : player;
       const x = predict.value(player, "x");
       const y = predict.value(player, "y");
-      this.labels?.name(id, player.name, x, y - 9, isSelf, pvp && !isSelf);
+      this.labels?.name(id, player.name, x, y - HERO_HEAD - 1, isSelf, pvp && !isSelf);
       view.update(x, y, { facing: state.facing, dead: state.dead, invuln: player.invuln }, time);
       // Own swings come from prediction (instant feedback); others' from the server.
       if (state.swing !== this.lastSwing.get(id)) {
         this.lastSwing.set(id, state.swing);
-        view.playSwing(state.facing, statsFor(isClassId(player.classId) ? player.classId : "knight", 1).reach);
+        view.playSwing(state.facing);
         if (isSelf) this.sfx(SFX_SWING, { volume: 0.7 });
         else if (this.cameras.main.worldView.contains(x, y)) this.sfx(SFX_SWING, { volume: 0.25 }, 90, "swing:others");
       }
     }
 
     for (const [id, enemy] of room.state.enemies) {
-      this.enemies
-        .get(id)
-        ?.update(predict.value(enemy, "x"), predict.value(enemy, "y"), enemy.hp, enemy.maxHp, enemy.hurt, time);
+      this.enemies.get(id)?.update(predict.value(enemy, "x"), predict.value(enemy, "y"), enemy, time);
     }
     for (const [id, chest] of room.state.chests) {
       const image = this.chests.get(id);
@@ -892,6 +1009,7 @@ export class GameScene extends Phaser.Scene {
       this.updateCamera(focusX, focusY);
       if (this.minimap) this.minimap.el.hidden = this.cameraMode === "arena";
       this.updateShopCards(x, y);
+      this.updateMerchants(x, y);
       this.minimap?.update(x, y, time);
       this.updateBossBar(x, y);
       this.announceArea(x, y);

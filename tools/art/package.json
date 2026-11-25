@@ -1,0 +1,17 @@
+{
+  "name": "@tools/art",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GAME (40 Swords): imports the character, FX and shot sheets of the pack (content/src/notzelda) into content/sprites as Aseprite-format sprites.",
+  "scripts": {
+    "generate": "tsx src/import.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pngjs": "^6.0.5",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.23.15"
+  }
+}

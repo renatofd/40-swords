@@ -1,5 +1,6 @@
 import { h, type Translate } from "@core/client";
-import { type Career, PALETTES, type SummaryMessage } from "@game/shared";
+import { type Career, type ClassId, PALETTES, type SummaryMessage } from "@game/shared";
+import { heroPortrait } from "./heroPortrait";
 import { hexColor } from "./palette";
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -20,7 +21,8 @@ export class SummaryPanel {
 
   constructor(private readonly t: Translate) {}
 
-  show(m: SummaryMessage, career: Career, unlocked: number[]) {
+  /** `classId`: the hero played, shown in each colour just unlocked. */
+  show(m: SummaryMessage, career: Career, unlocked: number[], classId?: ClassId) {
     const { t } = this;
     const won = m.place === 1;
     const rows: [string, string][] = [
@@ -53,7 +55,9 @@ export class SummaryPanel {
         h(
           "p",
           { className: "sw-summary-unlock" },
-          h("span", { className: "sw-swatch", style: `--sw-swatch: ${hexColor(PALETTES[i]?.color ?? 0)}` }),
+          classId
+            ? heroPortrait(classId, i, true)
+            : h("span", { className: "sw-swatch", style: `--sw-swatch: ${hexColor(PALETTES[i]?.color ?? 0)}` }),
           t("summary.unlocked", { colour: t(`palette.${PALETTES[i]?.id}`) }),
         ),
       ),

@@ -43,6 +43,10 @@ const SPRITES = discoverSprites(
   import.meta.glob<string>("@content/sprites/*.json", { eager: true, query: "?url", import: "default" }),
 );
 
+/** URLs of a sprite's sheet and Aseprite json (DOM previews draw from the same files as the game). */
+export const spriteFiles = (key: string): { image: string; data: string } | undefined =>
+  SPRITES.find((s) => s.key === key);
+
 /**
  * Every content/audio/music/* and content/audio/sfx/* file, keyed by file name
  * ("theme", "join"...). Several formats of the same name (theme.ogg + theme.mp3)

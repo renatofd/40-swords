@@ -78,8 +78,6 @@ export interface EnemyDef {
   aggroRange: number;
   /** Seconds before its spawner brings it back. */
   respawnSeconds: number;
-  /** Placeholder colour. */
-  color: number;
   attacks: AttackDef[];
 }
 
@@ -101,7 +99,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "wander",
     aggroRange: 0,
     respawnSeconds: 20,
-    color: 0x6fd64f,
   }),
   goblin: normal({
     maxHp: 34,
@@ -114,7 +111,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 80,
     respawnSeconds: 25,
-    color: 0xc94a4a,
   }),
   bat: normal({
     maxHp: 12,
@@ -127,7 +123,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "erratic",
     aggroRange: 0,
     respawnSeconds: 18,
-    color: 0x8a6ad0,
   }),
   skeleton: normal({
     maxHp: 40,
@@ -140,7 +135,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 110,
     respawnSeconds: 30,
-    color: 0xe8e4d0,
     attacks: [
       { type: "aimed", cooldownTicks: 75, count: 1, spreadDeg: 0, speed: 120, range: 140, damage: 8, style: "bone" },
     ],
@@ -156,7 +150,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 90,
     respawnSeconds: 25,
-    color: 0xd08a30,
     attacks: [{ type: "charge", cooldownTicks: 90, speed: 160, ticks: 8 }],
   }),
   wolf: normal({
@@ -170,7 +163,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 110,
     respawnSeconds: 25,
-    color: 0x8a8a96,
   }),
   lurker: normal({
     maxHp: 26,
@@ -183,7 +175,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "hop",
     aggroRange: 0,
     respawnSeconds: 25,
-    color: 0x4ab09a,
   }),
   // ─── Mini-bosses (guard the middle of each dungeon) ─────────────────────
   brute: {
@@ -198,7 +189,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 220,
     respawnSeconds: 180,
-    color: 0x9a6a4a,
     attacks: [
       { type: "charge", cooldownTicks: 100, speed: 190, ticks: 12 },
       { type: "aimed", cooldownTicks: 120, count: 3, spreadDeg: 30, speed: 110, range: 180, damage: 10, style: "rock" },
@@ -216,7 +206,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "wander",
     aggroRange: 240,
     respawnSeconds: 180,
-    color: 0x6a4ab0,
     attacks: [
       { type: "ring", cooldownTicks: 90, count: 10, speed: 90, range: 170, damage: 9, style: "orb" },
       { type: "aimed", cooldownTicks: 60, count: 3, spreadDeg: 20, speed: 120, range: 200, damage: 8, style: "orb" },
@@ -236,7 +225,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 320,
     respawnSeconds: 300,
-    color: 0xd8d0b8,
     attacks: [
       { type: "aimed", cooldownTicks: 45, count: 5, spreadDeg: 40, speed: 130, range: 220, damage: 10, style: "bone" },
       { type: "summon", cooldownTicks: 240, kind: "skeleton", count: 2, max: 4 },
@@ -255,7 +243,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "guard",
     aggroRange: 320,
     respawnSeconds: 300,
-    color: 0x58a04a,
     attacks: [
       { type: "ring", cooldownTicks: 70, count: 14, speed: 90, range: 200, damage: 10, style: "orb" },
       { type: "aimed", cooldownTicks: 50, count: 3, spreadDeg: 24, speed: 130, range: 220, damage: 9, style: "orb" },
@@ -275,7 +262,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 320,
     respawnSeconds: 300,
-    color: 0xc07a28,
     attacks: [
       { type: "charge", cooldownTicks: 110, speed: 210, ticks: 14 },
       { type: "aimed", cooldownTicks: 55, count: 5, spreadDeg: 60, speed: 160, range: 200, damage: 11, style: "sting" },
@@ -294,7 +280,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     behaviour: "chase",
     aggroRange: 320,
     respawnSeconds: 300,
-    color: 0x8a8070,
     attacks: [
       { type: "ring", cooldownTicks: 80, count: 16, speed: 110, range: 220, damage: 13, style: "rock" },
       { type: "charge", cooldownTicks: 180, speed: 150, ticks: 18 },

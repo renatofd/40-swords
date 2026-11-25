@@ -14,6 +14,7 @@ import {
   TICK_RATE,
 } from "@game/shared";
 import { loadCareer, savedPalette, savePalette, useCareerStorage } from "../career";
+import { heroPortrait } from "./heroPortrait";
 import { heroColor, hexColor, unlockText } from "./palette";
 import { careerLine } from "./summary";
 
@@ -145,7 +146,7 @@ export function chooseHero(ctx: BeforeJoinContext): Promise<JoinChoice | null> {
                     ctx.show(render);
                   },
                 },
-                h("span", { className: "sw-card-swatch", "aria-hidden": "true" }),
+                h("span", { className: "sw-card-swatch", "aria-hidden": "true" }, heroPortrait(id, palette)),
                 h("strong", { className: "sw-card-title" }, t(`class.${id}`)),
                 h("span", { className: "sw-card-desc" }, t(`class.${id}.desc`)),
                 h(

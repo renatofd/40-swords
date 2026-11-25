@@ -140,10 +140,13 @@
 }
 
 .sw-card-swatch {
-  inline-size: 24px;
-  block-size: 24px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  inline-size: 72px;
+  block-size: 72px;
   border-radius: 4px;
-  background: var(--sw-class);
+  background: color-mix(in srgb, var(--sw-class) 30%, rgb(0 0 0 / 0.35));
   box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.3);
 }
 
@@ -867,4 +870,19 @@
 .sw-lobby-wins {
   margin-inline-start: 2px;
   color: #ffe68a;
+}
+
+/* Hero sprites in the DOM (ui/heroPortrait.ts): 20 px canvases scaled 3x / 2x (inline sizes in JS round them to whole device pixels). */
+.sw-portrait {
+  display: block;
+  inline-size: 60px;
+  block-size: 60px;
+  image-rendering: pixelated;
+}
+
+.sw-portrait-small {
+  display: inline-block;
+  inline-size: 40px;
+  block-size: 40px;
+  vertical-align: middle;
 }
