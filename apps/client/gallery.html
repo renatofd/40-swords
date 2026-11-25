@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>40 Swords: enemy gallery (dev)</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body {
+        margin: 0;
+        background: #101018;
+        color: #ddd;
+        font: 11px/1.2 system-ui, sans-serif;
+      }
+      #wrap {
+        position: relative;
+        display: inline-block;
+      }
+      #labels {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .label {
+        position: absolute;
+        padding-inline: 2px;
+        color: #fff;
+        text-shadow: 0 1px 0 #000;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Dev only: `vite build` bundles index.html alone, so this page never ships (see game/client/src/gallery.ts). -->
+    <div id="wrap">
+      <div id="gallery"></div>
+      <div id="labels"></div>
+    </div>
+    <script type="module">
+      import { startGallery } from "@game/client/gallery";
+
+      startGallery();
+    </script>
+  </body>
+</html>

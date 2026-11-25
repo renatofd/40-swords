@@ -16,7 +16,9 @@
  *   ;  dungeon floor   #  dungeon wall   I  statue   J  block (2x2 J: a big block)
  *   n  arena sand   l  arena line   N  arena wall   u  arena pillar   x  arena spawn
  *   enemies: e slime  g goblin  b bat  k skeleton  z scorpion  w wolf  f lurker
+ *            t shroom  p spider  i wisp  v eye  a archer  r raider  j lancer  c cobra  h axeman  y kultist
  *            1 the dungeon's mini-boss   2 the dungeon's boss
+ *   (enemy glyphs are lowercase, so build.ts isWalkable treats them as floor)
  *
  * Props (tile layer "props", placed after the layout with their own random
  * stream, so they never change the rest of the world): clumps of tall grass on
@@ -126,6 +128,16 @@ const GLYPHS: Record<string, Glyph> = {
   z: { enemy: "scorpion" },
   w: { enemy: "wolf" },
   f: { enemy: "lurker" },
+  t: { enemy: "shroom" },
+  p: { enemy: "spider" },
+  i: { enemy: "wisp" },
+  v: { enemy: "eye" },
+  a: { enemy: "archer" },
+  r: { enemy: "raider" },
+  j: { enemy: "lancer" },
+  c: { enemy: "cobra" },
+  h: { enemy: "axeman" },
+  y: { enemy: "kultist" },
   "1": { enemy: "miniboss" },
   "2": { enemy: "boss" },
 };

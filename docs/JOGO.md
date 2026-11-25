@@ -99,7 +99,7 @@ O que um bot faz, em ordem de prioridade (decide 5 vezes por segundo):
 
 1. **Na arena:** fica dentro da zona segura e luta com o herói mais perto (recua se estiver fraco).
 2. **No PvP:** luta com heróis que consegue vencer (compara vida, dano, defesa e armas) e foge dos mais fortes.
-3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo. Quando foge, vai até a outra tela antes de decidir de novo.
+3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo. Quando foge, vai até a outra tela antes de decidir de novo. Durante a luta, sai da frente dos ataques anunciados (veja "Bots contra os inimigos da etapa 8B").
 4. **Vida baixa:** pega os corações da tela. Abaixo da metade da vida, se recupera longe das lutas até 85%: numa tela calma, corta o mato e quebra os potes (pode sair coração) ou passeia pela tela; numa tela perigosa, vai para a tela fácil mais perto. Se tiver rupees, vai comprar poção na loja mais perto que consegue alcançar sem passar por telas difíceis demais.
 5. **Loja, baús e rupees:** compra a melhor relíquia que pode pagar (sem pisar nas outras ofertas), abre baús e pega rupees da tela.
 6. **Mato e potes:** corta boa parte dos que estão perto (não todos: tem para onde ir).
@@ -133,6 +133,36 @@ Na etapa 6 (mapa antigo, 3 partidas) a medida tinha dado 39, 25–29, 20–23, 1
 - **Vai e volta:** ao fugir de um monstro forte, o bot dava meia-volta para lutar com um monstro fácil ao lado do perigo assim que saía do alcance, e ficava indo e voltando por minutos. Numa das partidas, 23 bots ficaram assim, quase todos no lago ao lado da praça.
 
 Agora o bot só escolhe lojas que consegue alcançar e, quando foge, vai até a outra tela antes de decidir de novo. Nas 6 partidas, o maior tempo parado de um bot foi de 4 s, e só 2 bots passaram 30 s numa área de 40×40 px, os dois numa luta. Antes da correção, eram até 23 bots por partida. O teste dos bots também confere que nenhum fica parado 10 s.
+
+**Bots contra os inimigos da etapa 8B.** Os bots veem o que o jogador vê: a preparação de cada ataque (a mesma do brilho na tela) vira uma "ameaça" com a área que vai ser atingida (uma faixa para tiros e investidas, um círculo para golpes, saltos e anéis) e quanto falta para ela chegar.
+
+- **Esquiva:** quando uma ameaça está para chegar, o bot sorteia uma vez se reage (35% de base mais o reflexo dele, `BOT_DODGE_BASE` em `BotBrain.ts`, um botão de equilíbrio só dos bots) e, se reagir, dá alguns passos para a direção livre que mais o afasta da área, sem entrar no corpo de um monstro.
+- **Interromper:** se o próprio alvo está se preparando ao alcance da espada e a espada está pronta, ele bate em vez de fugir (inimigos comuns, não elites).
+- **Lanceiro:** vai para o lado dele e só bate fora do escudo.
+- **Bruxa de pedra e colosso no ar:** o bot circula em volta, sem bater e sem ficar parado, e cuida dos ajudantes primeiro.
+- **Teia:** preso numa teia, o bot foge mais cedo.
+- **Vai e volta na borda:** um bot fugindo de outro herói podia atravessar a borda entre duas telas, decidir de novo do outro lado e voltar, com o perseguidor atrás, por mais de um minuto. Agora, depois de voltar duas vezes pela mesma borda em 10 s, ele segue em frente.
+
+**Equilíbrio medido na etapa 8B** (8 partidas simuladas de 30 min com 40 bots, sementes 1 a 8, `balance.test.ts`; "antes" é o `main` da etapa 8A, 28 partidas medidas do mesmo jeito):
+
+| | Antes (8A) | Etapa 8B |
+|---|---|---|
+| Heróis de pé aos 5 min | 37,5 | 38,2 (32 a 40) |
+| 10 min | 22,1 | 24,6 (19 a 29) |
+| 15 min | 18,0 | 19,9 (14 a 25) |
+| 20 min | 16,5 | 16,8 (13 a 22) |
+| 30 min (arena) | 14,5 | 14,9 (10 a 18) |
+| Heróis derrubados por monstros, por partida | 7,9 | 5,2 (3 a 10) |
+| ... nos primeiros 5 min | 2,6 | 1,8 (7 de 8 partidas com 2 ou menos; uma com 8) |
+| Tipo que mais derruba | goblin, 32% | goblin, 26% |
+| Chefes e minichefes vencidos, por partida | 28,5 | 19,5 |
+| Nível mediano aos 10 min | 10,2 | 9,3 |
+| Maior tempo parado de um bot | 3,7 s | 3,7 s |
+
+- **Por que menos chefes vencidos:** os chefes agora avisam e punem (salto do colosso, pedra da bruxa, golpes em área), e a segunda fase aperta. Eles continuam caindo em toda partida, mais para o fim (o primeiro guardião por volta dos 21 min, o colosso em 5 de 8 partidas).
+- **A variação entre partidas** vem quase toda do PvP: duas sementes podem diferir em 5 heróis aos 15 min com os mesmos monstros.
+- **Ajustes feitos com essas medidas:** as listas de inimigos de longe ganharam inimigos fáceis (slime, morcego, goblin), o machadeiro só aparece a cinco telas ou mais, e o lobo bate 7 (era 9).
+- **Medir de novo:** `BALANCE=1 BALANCE_SEED=1 BALANCE_PORT=2601 pnpm --filter @game/server exec vitest run test/balance.test.ts` (uma linha JSON por partida em `BALANCE_OUT`). O `pnpm check` pula esse teste.
 
 Antes dos ajustes da etapa 5B, os melhores chegavam ao nível 30 em 7 minutos, cerca de 1 em cada 5 heróis caía para monstros na calmaria e o começo do PvP derrubava 2/3 dos heróis em 5 minutos.
 
@@ -200,28 +230,67 @@ Valores de base (nível 0, perto da praça). Cada nível de dificuldade soma +30
 
 Os monstros comuns do centro são mais fracos, para o começo ser mais tranquilo: nos níveis 0, 1 e 2 (até duas telas da praça) eles têm 30%, 25% e 12% menos vida e dano, com o mesmo XP e os mesmos rupees. Nas masmorras, nos minichefes e nos chefes, nada muda (`START_AREA_SOFTENING` em `game/shared/src/enemies.ts`).
 
-| Inimigo | Onde | Vida | Dano | Comportamento | XP |
-|---|---|---|---|---|---|
-| Slime | prados, lagos, pântano, florestas, praia | 18 | 6 | vagueia | 4 |
-| Goblin | colinas, montanhas, prados | 34 | 10 | persegue | 10 |
-| Morcego | florestas, montanhas, cemitério, masmorras | 12 | 5 | voo errático e rápido | 5 |
-| Esqueleto | cemitério, montanhas | 40 | 9 | persegue e atira ossos | 14 |
-| Escorpião | colinas, praia | 30 | 12 | persegue e dá investidas | 12 |
-| Lobo | florestas, prados | 28 | 9 | persegue rápido | 12 |
-| Espreitador | pântano, lagos, floresta vermelha, praia | 26 | 10 | anda aos saltos | 11 |
+### Como os inimigos atacam (etapa 8B)
 
-**Minichefes:** Bruto (investidas e pedras) e Feiticeiro (anéis de magia, rajadas e teleporte).
+Cada inimigo se move e ataca do jeito que o sprite dele mostra: quem pula, pula; quem tem arco, mira e atira; quem tem lança, investe em linha reta. Todo ataque segue a mesma sequência, que o servidor manda para o cliente num único campo (`Enemy.act`):
+
+1. **Preparação** (de 1/3 a 2/3 de segundo): o inimigo para e faz a pose de preparo (puxa o arco, ergue o machado, se encolhe para pular). Nos últimos instantes aparece um **brilho branco** na arma ou na cabeça. A regra é uma só: **brilho = golpe vindo**. A direção do golpe fica travada nos últimos 6 ticks (0,2 s): sair da linha nessa hora funciona.
+2. **Ação:** o tiro sai, o golpe acerta a área na frente, a investida corre.
+3. **Recuperação:** um instante parado antes de voltar a andar.
+
+Outras regras:
+
+- **Interromper:** um golpe de espada durante a preparação cancela o ataque de um inimigo comum (elites, minichefes e chefes aguentam firme). Os humanoides mostram a pose de tontura por um instante, e aquele ataque espera metade da recarga para voltar.
+- **Atordoado:** quem investe contra uma parede (lanceiro, Bruto, Guardião) fica um tempo parado com **estrelinhas amarelas** girando na cabeça: é a hora de bater. As estrelinhas nunca são o brilho branco.
+- **Linha de visão:** tiros mirados, investidas e golpes só começam se o caminho até o herói estiver livre, e um golpe não atravessa parede (só a onda de choque do salto do colosso passa por cima).
+- **Teia:** a teia da aranha deixa o herói **lento** (60% da velocidade) por 1,5 s; a teia aparece nos pés dele. Depois disso, outra teia só machuca, sem prender, por mais 1 s.
+- **Escudo do lanceiro:** golpes pela frente (±60°) causam só 30% do dano e não empurram; aparece uma faísca e o número cinza. Pelos lados, por trás, durante a investida ou com ele atordoado, o dano é inteiro. O lanceiro só vira para uma direção nova depois de 0,4 s, então dá para contorná-lo.
+- **Dormentes:** morcegos e aranhas ficam parados (o morcego pendurado) até um herói chegar perto, ou até levarem um golpe.
+- **Segunda fase:** minichefes e chefes, com metade da vida ou menos, têm recargas 25% mais curtas, andam 15% mais rápido e trocam alguns ataques por versões maiores.
+
+| Inimigo | Onde | Vida | Dano | Como age | XP |
+|---|---|---|---|---|---|
+| Slime | todo o mundo, mais perto da praça | 18 | 6 | anda aos pulinhos, sem perseguir | 4 |
+| Goblin | colinas, montanhas, prados, florestas | 34 | 10 | persegue | 10 |
+| Morcego | quase todo o mundo, cripta, covil | 12 | 5 | dorme até um herói chegar perto; voo errático e rápido | 5 |
+| Lobo | prados, colinas, florestas | 28 | 7 | persegue em arrancadas | 12 |
+| Espreitador | lagos, pântano, florestas, covil | 26 | 10 | se encolhe e salta no herói | 11 |
+| Cogumelo | prados, florestas, lagos, covil | 30 | 6 | anda devagar; de perto solta um anel de esporos | 8 |
+| Esqueleto | montanhas, colinas, cemitério, cripta | 40 | 9 | persegue e atira ossos | 14 |
+| Escorpião | prados, colinas, praia, tumba | 30 | 12 | anda em linhas retas; investe quando alinhado | 12 |
+| Machadeiro | montanhas (longe), tumba, salão | 44 | 11 | persegue e arremessa o machado | 18 |
+| Aranha | florestas (longe), floresta vermelha, pântano, covil | 36 | 10 | dorme até um herói chegar perto; salta e atira teia | 16 |
+| Fogo-fátuo | pântano, cemitério, cripta, salão | 24 | 10 | ricocheteia pelas paredes; só machuca encostando | 12 |
+| Olho | montanhas (longe), tumba, salão | 34 | 6 | ricocheteia devagar e atira raios | 16 |
+| Arqueiro | montanhas e florestas (longe), cemitério, praia, tumba | 30 | 6 | mantém distância e atira flechas | 14 |
+| Saqueador | florestas (longe), floresta vermelha, praia, salão | 40 | 8 | persegue e golpeia com a espada longa na frente | 16 |
+| Lanceiro | montanhas (longe), salão | 48 | 12 | anda em linhas retas; escudo na frente; investe com a lança | 20 |
+| Naja | pântano, praia, covil, tumba | 32 | 8 | mantém distância; cospe 3 ferrões quando alinhada | 13 |
+| Cultista | cemitério, cripta | 34 | 7 | mantém distância, se teletransporta e lança maldições | 16 |
+
+"Longe" quer dizer a cinco telas ou mais da praça. Perto da praça (até duas telas) só há slime, goblin, morcego, cogumelo, espreitador e lobo; a três ou quatro telas entram esqueleto e escorpião; o resto só aparece mais longe e nas masmorras. A cor de alguns muda com o lugar (só no cliente): fogos-fátuos amarelos, ciano ou magenta, arqueiros esqueletos na cripta e no cemitério.
+
+**Minichefes** (um por masmorra; nunca são empurrados nem interrompidos):
+
+| Masmorra | Minichefe | Ataques |
+|---|---|---|
+| Cripta das Cinzas | Feiticeiro | mantém distância, teletransporte, rajadas de 3 orbes; na 2ª fase, anel de orbes |
+| Covil da Bruxa | Dragão do Charco | mantém distância, sopro de 3 ferrões verdes; na 2ª fase, anel de ferrões |
+| Tumba Soterrada | Bruto | rola em investida (fica atordoado se bater na parede), arremesso de 3 pedras |
+| Salão do Colosso | Senhor da Guerra Escamoso | golpe de martelo na frente, investida; na 2ª fase, chama 2 saqueadores |
 
 **Chefes** (um por masmorra):
 
 | Masmorra | Chefe | Ataques |
 |---|---|---|
-| Cripta das Cinzas | Guardião de Ossos | rajadas de ossos, investida, invoca esqueletos |
-| Covil da Bruxa | Bruxa do Brejo | anéis e rajadas de magia, teleporte, invoca espreitadores |
-| Tumba Soterrada | Matriarca das Areias | investidas, rajadas de ferrões, invoca escorpiões |
-| Salão do Colosso | Colosso de Pedra | anéis de pedras, investida, rajadas de pedras |
+| Cripta das Cinzas | Guardião de Ossos | golpe de alabarda em volta, galope em investida (atordoado na parede), arremesso de lança (3 lanças na 2ª fase), invoca esqueletos |
+| Covil da Bruxa | Bruxa do Brejo | anéis e rajadas de orbes (5 na 2ª fase), teleporte, invoca fogos-fátuos. Com 66% e 33% da vida ela **vira pedra** por 4 s: nada a fere, chegam fogos-fátuos e, ao acordar, ela solta um anel de orbes. Um golpe só nunca pula uma dessas marcas |
+| Tumba Soterrada | Matriarca das Areias | investida girando no casco (ricocheteia nas paredes duas vezes), leque de 5 ferrões, invoca escorpiões |
+| Salão do Colosso | Colosso de Pedra | pisão em volta, **salto**: voa até onde o herói estava (no ar, nada o atinge) e cai com uma onda de choque e um anel de pedras; um **círculo vermelho** no chão mostra toda a área atingida. Rajadas de orbes (5 na 2ª fase) |
 
-Cada inimigo fica na tela onde nasceu e só age quando há um herói por perto. Dados em `game/shared/src/enemies.ts`.
+Cada inimigo fica na tela onde nasceu e só age quando há um herói na tela. Dados em `game/shared/src/enemies.ts`; a IA fica em `game/server/src/enemies/` (pura e determinística: todo sorteio vem do gerador da sala).
+
+**Galeria de inimigos:** com `pnpm dev`, abra `http://localhost:3000/gallery.html` para ver todos os tipos e skins andando e atacando sem servidor (só em desenvolvimento; o pacote do cliente recusa ser gerado com ela). Parâmetros: `zoom=<n>`, `facing=<0-7>`, `only=<tipos>`, `debug` (caixas de colisão) e, para capturas, `seg=<segmento>&at=<ms>` (lista no começo de `game/client/src/gallery.ts`).
 
 ## Lojas
 
@@ -340,14 +409,20 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
   - **Depois:** rode o gerador e o `render` para conferir.
 - **Heróis, inimigos, efeitos e projéteis:** vêm do mesmo pacote. As folhas ficam em `content/src/notzelda/Characters`, `Visual FX` e `Items`, e o importador `pnpm art` (`tools/art`) as transforma em `content/sprites/<nome>.png + .json` (formato do Aseprite, com uma tag por animação). Não edite esses arquivos à mão: o `pnpm art` os refaz e apaga os que saíram da lista.
   - **Lista e animações:** `tools/art/src/manifest.ts`. Cada sprite diz a folha de origem, o tamanho do quadro e as tags (quadros, duração, repetição). Tags com direção se chamam `<animação>-<direção>` (`up`, `right`, `down`; a esquerda é a direita espelhada, a não ser que exista `-left`), e todo sprite tem a tag `idle`.
-  - **Nomes:** heróis e inimigos usam o id do jogo (`knight`, `rogue`, `barbarian`, `slime`, `goblin`, `bat`, `skeleton`, `scorpion`, `wolf`, `lurker`, `brute`, `hexer`, `warden`, `witch`, `matriarch`, `colossus`), e as variações ganham um sufixo (`slime-gold`). Efeitos começam com `fx-`, projéteis dos heróis com `shot-` e dos inimigos com `hostile-`.
+  - **Nomes:** heróis e inimigos usam o id do jogo (`knight`, `rogue`, `barbarian` e os 25 tipos de `ENEMY_KINDS`, de `slime` a `warlord`), e as variações ganham um sufixo (`slime-gold`, `wisp-cyan`, `archer-skeleton`). Efeitos começam com `fx-` (as armas dos humanoides inimigos são sobreposições `fx-bow`, `fx-sword-long`, `fx-hammer`, `fx-staff-green`), projéteis dos heróis com `shot-` e dos inimigos com `hostile-<estilo>`. Os humanoides têm, além de `attack-<direção>`, as tags `aim-`, `strike-` e `charge-<direção>`; os andarilhos 4×4 ganham `strike-<direção>` (coluna 3).
   - **Heróis em jogo** (`game/client/src/render/PlayerView.ts`): andam e ficam parados nas quatro direções (as diagonais usam a vista de lado, e a esquerda é a direita espelhada). A cada golpe o corpo toca `attack-<direção>` e a arma da classe (`fx-slash-<classe>`) acompanha quadro a quadro, presa na mão (girada 90° para cima e para baixo, e atrás do corpo quando o herói olha para cima). Ao levar dano aparece o quadro vermelho e depois o pisca-pisca da invulnerabilidade; um herói derrotado some numa nuvem de fumaça. Os heróis são desenhados pela altura dos pés (`render/depth.ts`): quem está mais embaixo na tela fica na frente.
-  - **Inimigos em jogo** (`game/client/src/render/EnemyView.ts`; a tabela de cada tipo fica em `render/enemyLooks.ts`): cada tipo usa a sua folha, com os pés na base da caixa de colisão e virado para onde anda (linhas por direção, ou a vista de lado espelhada). Andam ou ficam parados conforme se movem; a geleca quica, o sapo (`lurker`) pula a cada salto, o morcego voa acima da sombra. Investidas aparecem como animação própria (o brutamontes rola, a matriarca gira, o colosso bate as asas, o guardião galopa). Quando um inimigo atira, o mais próximo do ponto de onde saíram os projéteis faz a pose de ataque (arremesso, magia com o cajado, feitiço da bruxa, pisão do colosso com poeira), com o quadro em que a arte solta o golpe junto dos projéteis. O teletransporte (hexer e bruxa) deixa fumaça nos dois pontos. Golpes soltam faíscas (o clarão branco cheio só no crítico); o inimigo pisca em branco (a matriarca mostra o próprio quadro vermelho, rápido e no máximo a cada 250 ms, para não esconder os movimentos dela). Os elites são dourados: geleca e morcego têm folhas douradas do pacote; nos outros, as cores da folha viram tons de ouro na hora (`goldRecolor`). Ao morrer, um inimigo comum vira fumaça (o elite explode); chefes e minichefes piscam sob uma série de explosões. Como o servidor também tira do estado os inimigos que saem da área de interesse, o cliente só mostra a morte se o inimigo sumiu na tela logo depois de levar um golpe (ou junto com o chefe dele). O golpe é atribuído pelo próprio inimigo (o `hurt` dele subiu) ou, no golpe final, pela posição do inimigo no último estado recebido (não pela posição desenhada, que vem atrasada), para não marcar o vizinho numa multidão.
-  - **Projéteis** (`render/Projectiles.ts`): adaga, flecha e cristal giram na direção do voo, desenhados em passos de 45° (girar poucos graus estraga a pixel art; o voo segue o ângulo exato); bola de fogo, osso, pedra, orbe e ferrão não giram (alguns têm animação própria). Cada um deixa um pequeno efeito onde para.
+  - **Inimigos em jogo** (`game/client/src/render/EnemyView.ts`; a tabela de cada tipo fica em `render/enemyLooks.ts`): cada tipo usa a sua folha, com os pés na base da caixa de colisão e virado para onde anda (linhas por direção, ou a vista de lado espelhada). O campo `act` que o servidor manda (ataque, fase e atordoado) comanda o resto:
+    - **Preparação:** a tag de preparo é esticada para durar exatamente a preparação, a arte treme 1 px e o brilho `fx-shine` aparece no ponto do golpe (na arma, por direção) cerca de 0,2 s antes; ele some quando o golpe sai ou é cancelado. Andarilhos sem quadro de ataque mostram o item na mão acima da cabeça (osso, maldição). Os humanoides usam a arma sobreposta quadro a quadro: o golpe sai na coluna 10 do corpo, junto com o quadro 2 da arma, como manda o modelo do pacote.
+    - **Golpe:** tiros saem quando chega `Msg.enemyShot`, que diz quem atirou (`from`); o resto vem do `act`. As tags de ação de um quadro tocam até o fim antes da recuperação.
+    - **Atordoado:** pose própria e estrelinhas (`fx-spark`, tag `twinkle`) em volta da cabeça; nunca o brilho.
+    - **Saltos:** slime, espreitador e aranha se encolhem, voam num arco acima da sombra e pousam. O colosso voa 24 px acima do chão com a sombra no chão; um círculo vermelho piscando marca toda a área que a queda vai atingir.
+    - **Bruxa de pedra:** clarão, pose de pedra e uma explosão mágica ao acordar.
+    - **Detalhes:** o morcego pousa quando para, a aranha parada respira mais devagar, o espreitador cai antes de virar fumaça. O teletransporte (feiticeiro, cultista e bruxa) deixa fumaça nos dois pontos. Golpes soltam faíscas (o clarão branco cheio só no crítico); um golpe no escudo do lanceiro ou na pedra mostra as estrelinhas e o número cinza. O inimigo pisca em branco (nenhum golpe corta uma ação no meio). Os elites são dourados: geleca e morcego têm folhas douradas do pacote; nos outros, as cores da folha viram tons de ouro na hora (`goldRecolor`). Ao morrer, um inimigo comum vira fumaça (o elite explode); chefes e minichefes piscam sob uma série de explosões. Como o servidor também tira do estado os inimigos que saem da área de interesse, o cliente só mostra a morte se o inimigo sumiu na tela logo depois de levar um golpe (ou junto com o chefe dele).
+    - **Galeria:** `apps/client/gallery.html` (`game/client/src/gallery.ts`) mostra todos os tipos e skins sem servidor; o teste `tools/e2e/tests/gallery.spec.ts` falha se faltar folha, tag ou direção, ou se a página der erro.
+  - **Projéteis** (`render/Projectiles.ts`): adaga, flecha e cristal dos heróis, e flecha, lança e raio dos inimigos, apontam na direção do voo, desenhados em passos de 45° (girar poucos graus estraga a pixel art; o voo segue o ângulo exato); osso, pedra e machado rodopiam na própria animação, e bola de fogo, orbe, ferrão, teia, maldição e esporo não giram. Cada um deixa um pequeno efeito onde para. O herói preso numa teia mostra a teia nos pés enquanto estiver lento.
   - **Vendedor e cenário:** o vendedor das cavernas é o monge do pacote e se vira para o herói que chega perto. Mato cortado solta pedaços de grama e o pote quebrado, uma nuvem de pó. Vendedor, baús e itens no chão também são desenhados pela altura dos pés.
   - **Pés no lugar certo:** o importador também escreve `game/client/src/render/spriteAnchors.json` (o ponto dos pés de cada sprite); `render/anim.ts` usa esse ponto para pôr os pés na base da caixa de colisão. Ao espelhar, o Phaser 4 inverte a arte dentro do retângulo do quadro (não em volta da origem), então quem espelha um sprite usa `setFlipAnchored`, que espelha a origem junto: sem isso, folhas com o ponto fora do meio do quadro (lobo, sapo, cajado do hexer) pulam de lado ao virar.
   - **Conferir:** `pnpm art --check` falha se algum sprite estiver desatualizado; ele roda no `pnpm check` e na CI. Depois de mudar a lista, atualize `content/CREDITS.md`.
-  - **Folhas já preparadas para a etapa 8B:** `slime-blue`, `bat-brown`, `scorpion-hood`, `lurker-black`, `fx-bolt`, `fx-explosion-magic`, `fx-explosion-green` e `fx-fire-small` já são geradas (e carregadas pelo cliente), mas ainda não são usadas: vão servir aos novos inimigos e ataques.
   - **Acrescentar ou trocar um sprite:** copie a folha do pacote para `content/src/notzelda/` (com o nome de pasta do pacote), acrescente ou mude a entrada em `manifest.ts` (recorte, quadros, tags e, se for o caso, cores trocadas ou contorno), rode `pnpm art` e confira com `pnpm content:validate` e no jogo. O `pnpm art` só apaga os sprites que ele mesmo gerou; os exportados do Aseprite (`pnpm assets:sprites`) convivem na mesma pasta.
   - **Pixel art nítido:** sprites sempre em posições inteiras e em escala 1 (elites e chefes não crescem: o elite é dourado por troca de paleta); só os projéteis com direção giram, em passos de 45°. Sombras e o brilho dos elites são elipses de pixels inteiros, sem borda suavizada (`render/pixelEllipse.ts`). As cores mudam trocando cores exatas da folha (`render/recolor.ts`), nunca com `setTint`; o único tingimento é o pisca branco de quem leva um golpe.
 - **Baús, rupees, corações, pedestais, sombras e o brilho dos elites:** ainda desenhados em `game/client/src/render/placeholderArt.ts`.
@@ -360,20 +435,23 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 |---|---|
 | Classes, atributos, XP | `game/shared/src/classes.ts` |
 | Desenho dos heróis (animações, arma no golpe, cores trocadas na folha) | `game/client/src/render/PlayerView.ts`, `render/heroPalettes.ts`, `render/recolor.ts` |
-| Desenho dos inimigos e projéteis (animações por tipo, elites dourados, mortes, efeitos) | `game/client/src/render/EnemyView.ts`, `render/enemyLooks.ts`, `render/Projectiles.ts`, `render/fx.ts` |
+| Desenho dos inimigos e projéteis (animações por tipo e por ataque, brilho de aviso, skins por lugar, elites dourados, mortes, efeitos) | `game/client/src/render/EnemyView.ts`, `render/enemyLooks.ts`, `render/Projectiles.ts`, `render/fx.ts` |
+| Galeria de inimigos (só em desenvolvimento) | `apps/client/gallery.html`, `game/client/src/gallery.ts`, `tools/e2e/tests/gallery.spec.ts` |
 | Relíquias, raridade, sorte, preços | `game/shared/src/relics.ts` |
 | Armas e projéteis | `game/shared/src/weapons.ts` |
 | Movimento, espada, armas, recuo, portais (simulação compartilhada, determinística) | `game/shared/src/simulation/player.ts` |
 | Fórmulas de dano, crítico, roubo de vida | `game/shared/src/combat.ts` |
 | Objetos do mapa (inimigos, baús, vendedores, portais) | `game/shared/src/worldObjects.ts` |
 | Mato alto e potes: o que guardam, quando voltam, leitura da camada `props` | `game/shared/src/props.ts` |
-| Inimigos, elites, minichefes, chefes e a escala por nível | `game/shared/src/enemies.ts` |
+| Inimigos, elites, minichefes, chefes, ataques (preparação, ação, recuperação), estilos de tiro e a escala por nível | `game/shared/src/enemies.ts` |
+| IA dos inimigos (pura e determinística): cérebro, movimentos, ataques, golpes recebidos (escudo, pedra, interrupção), o que os bots veem deles | `game/server/src/enemies/` (`brain.ts`, `move.ts`, `acts.ts`, `hit.ts`, `step.ts`, `botView.ts`) |
 | Regras da partida (fases, sala de espera, tempestade) | `game/shared/src/match.ts` |
 | Tempos da partida por variável de ambiente | `game/server/src/config.ts` |
-| Sala do mundo (IA e ataques dos inimigos, combate, PvP e saque, projéteis, baús, lojas, níveis, sala de espera, fases da partida, eliminação e espectadores, arena) | `game/server/src/rooms/WorldRoom.ts` |
+| Sala do mundo (aplica o que a IA dos inimigos pede: tiros, áreas, invocações; combate, teia, PvP e saque, projéteis, baús, lojas, níveis, sala de espera, fases da partida, eliminação e espectadores, arena) | `game/server/src/rooms/WorldRoom.ts` |
 | Progressão: resumo da partida, carreira, cores e como se desbloqueiam | `game/shared/src/progress.ts` |
 | Carreira salva no navegador, painel de resumo, cores na escolha de herói | `game/client/src/career.ts`, `game/client/src/ui/summary.ts`, `game/client/src/ui/heroSelect.ts` |
-| Bots: decisões, combate e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
+| Bots: decisões, combate, esquiva e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
+| Medição do equilíbrio (partidas de 30 min com 40 bots; só com `BALANCE=1`) | `game/server/test/balance.test.ts` |
 | Bots: caminhos (partes das telas, bordas, portais, mapas de distância) | `game/server/src/bots/navigation.ts` |
 | Gerador do mundo: biomas, posições e salas à mão; telas de fora; salas de masmorra | `tools/world-gen/src/world.ts`, `overworld.ts`, `build.ts` |
 | Visual do mundo: o que vai em cada célula (skin), catálogo de tiles, atlas, render em PNG | `tools/world-gen/src/skin/`, `tiles.ts`, `atlas.ts`, `render.ts` |
@@ -398,4 +476,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 5. ✅ **Bots, equilíbrio e progressão:** bots com IA que completam a partida até 40 heróis; combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); progressão entre partidas (resumo, placar da sala, carreira no navegador e cores desbloqueáveis).
 6. ✅ **Ajustes:** mato alto e potes com rupees e corações; monstros do centro mais fracos; bots que não ficam parados (se recuperam cortando mato ou passeando); contagem do PvP em destaque no começo da partida; um mapa só até o lançamento (sem passo de escolha de mapa).
 7. ✅ **Mundo em pixel art:** o mundo inteiro desenhado com os tiles do pacote *#NotZelda Overhead Adventure Tiles* (CC BY-SA 4.0). O overworld foi refeito com regiões novas (montanhas e cachoeiras, cemitério, floresta vermelha, pântano, lagos e rios com pontes, florestas de pinheiros, litoral com píeres e ilhotas). Masmorras com paredes em perspectiva, portas, estátuas, tapetes e estandartes; cavernas de rocha; arena de areia com faixa pintada e círculos de runas nos pontos de entrada. O gerador monta o tileset com colisão, animações e a camada `above`, e há uma ferramenta para ver o mundo em PNG.
-8. 🚧 **Personagens em pixel art:** ✅ heróis, inimigos, chefes, vendedor, golpes, efeitos e projéteis com os sprites do mesmo pacote (CC BY-SA 4.0), importados por `pnpm art`: pés no chão e ordem pela altura dos pés, quatro direções, golpe com a arma da classe em sincronia, cores dos heróis e elites dourados por troca de paleta, mortes e faíscas com os efeitos do pacote. Próximo: novos tipos e comportamentos de inimigos. Baús, itens e a interface ganham arte na etapa 9.
+8. ✅ **Personagens em pixel art:** heróis, inimigos, chefes, vendedor, golpes, efeitos e projéteis com os sprites do mesmo pacote (CC BY-SA 4.0), importados por `pnpm art`: pés no chão e ordem pela altura dos pés, quatro direções, golpe com a arma da classe em sincronia, cores dos heróis e elites dourados por troca de paleta, mortes e faíscas com os efeitos do pacote. Na etapa 8B, 25 tipos de inimigo (10 comuns e 2 minichefes novos) que se movem e atacam como o sprite mostra, com preparação visível ("brilho = golpe vindo"), espalhados por bioma, distância e masmorra; bots que se esquivam. Baús, itens e a interface ganham arte na etapa 9.

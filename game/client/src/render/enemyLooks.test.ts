@@ -1,15 +1,20 @@
 import { readFileSync } from "node:fs";
-import { ENEMIES, ENEMY_KINDS } from "@game/shared";
+import { ACT_MOVE, ACT_STONE, ENEMIES, ENEMY_KINDS } from "@game/shared";
 import { describe, expect, it } from "vitest";
 import {
+  type ActLook,
+  actInfo,
   angleFacing,
   ENEMY_LOOKS,
-  type EnemyAct,
+  enemySkin,
+  fitScale,
   goldRecolor,
-  isCharging,
-  STILL_SPEED,
+  overlayFrame,
+  SKINS,
   sideFlip,
-  volleyShape,
+  TICK_MS,
+  tellDelayMs,
+  tellOffset,
 } from "./enemyLooks";
 
 const tagsOf = (key: string): string[] => {
@@ -18,48 +23,149 @@ const tagsOf = (key: string): string[] => {
   return data.meta.frameTags.map((t) => t.name);
 };
 
+/** Every tag a look plays (directional sheets resolve `<tag>-<dir>`). */
+function tagsUsed(kind: (typeof ENEMY_KINDS)[number]): string[] {
+  const look = ENEMY_LOOKS[kind];
+  const acts = [...look.acts, actInfo(kind, ACT_MOVE)?.look, actInfo(kind, ACT_STONE)?.look].filter((a): a is ActLook =>
+    Boolean(a),
+  );
+  return [
+    look.walk,
+    look.idle,
+    look.hurt,
+    look.stun,
+    look.rest?.tag,
+    look.death?.tag,
+    ...acts.flatMap((a) => [a.windup, a.action, a.recover, a.stunned?.tag, a.stunned?.next]),
+  ].filter((t): t is string => Boolean(t));
+}
+
 describe("ENEMY_LOOKS", () => {
-  it("only uses tags, variants and effects that tools/art made", () => {
+  it("has a look for every kind, with one act look per attack (wind-up and action set)", () => {
     for (const kind of ENEMY_KINDS) {
       const look = ENEMY_LOOKS[kind];
-      const tags = tagsOf(look.sheet);
-      // Directional sheets need at least the `-down` row (or a plain tag); others the plain tag.
-      const has = (tag: string) =>
-        expect(tags.includes(tag) || tags.includes(`${tag}-down`), `${kind}: ${tag}`).toBe(true);
-      for (const tag of [look.walk, look.idle, look.hurt, look.charge?.anim, look.charge?.start, look.hop?.jump])
-        if (tag) has(tag);
-      if (look.hop?.land) has(look.hop.land);
-      const acts = [look.aimed, look.ring, look.blink].filter((a): a is EnemyAct => Boolean(a));
-      for (const act of acts) {
-        if (act.anim) has(act.anim);
-        if (act.fx) expect(tagsOf(act.fx), `${kind}: ${act.fx}`).toContain("play");
-        if (act.overlay) expect(tagsOf(act.overlay), `${kind}: ${act.overlay}`).toContain("cast-right");
-      }
-      if (look.eliteSheet) expect(tagsOf(look.eliteSheet)).toEqual(tags);
+      expect(look, kind).toBeDefined();
+      const { attacks } = ENEMIES[kind];
+      expect(look.acts.length, kind).toBe(attacks.length);
+      attacks.forEach((_, i) => {
+        expect(look.acts[i]?.windup, `${kind} ${i}`).toBeTypeOf("string");
+        expect(look.acts[i]?.action, `${kind} ${i}`).toBeTypeOf("string");
+      });
+      expect(Boolean(look.hop), kind).toBe(ENEMIES[kind].behaviour === "hop");
+      expect(Boolean(look.stone), kind).toBe(Boolean(ENEMIES[kind].stone));
     }
   });
 
-  it("plays an attack pose for the volleys of every boss and mini-boss", () => {
+  it("only uses tags, variants, effects and sheets that tools/art made", () => {
     for (const kind of ENEMY_KINDS) {
-      const { rank, attacks } = ENEMIES[kind];
-      if (rank === "normal") continue;
       const look = ENEMY_LOOKS[kind];
-      for (const attack of attacks) {
-        if (attack.type === "aimed" || attack.type === "ring") expect(look.aimed ?? look.ring, kind).toBeDefined();
-        if (attack.type === "blink") expect(look.blink, kind).toBeDefined();
+      for (const sheet of SKINS[kind] ?? [look.sheet]) {
+        const tags = tagsOf(sheet);
+        // Directional sheets need at least the `-down` row (or a plain tag); others the plain tag.
+        for (const tag of tagsUsed(kind))
+          expect(tags.includes(tag) || tags.includes(`${tag}-down`), `${kind} (${sheet}): ${tag}`).toBe(true);
+        if (look.facing === "rows")
+          for (const tag of tagsUsed(kind))
+            if (!tags.includes(tag))
+              for (const dir of ["up", "right", "down"])
+                expect(tags, `${sheet}: ${tag}-${dir}`).toContain(`${tag}-${dir}`);
+      }
+      for (const act of look.acts) {
+        for (const fx of act?.fx ?? []) expect(tagsOf(fx.key), `${kind}: ${fx.key}`).toContain("play");
+        if (act?.stunned?.fx) expect(tagsOf(act.stunned.fx), kind).toContain("twinkle");
+        if (act?.held) expect(tagsOf(act.held), kind).toContain("idle");
+        if (act?.overlay) expect(tagsOf(act.overlay), `${kind}: ${act.overlay}`).toContain("cast-right");
+      }
+      if (look.stone) expect(tagsOf(look.stone.endFx), kind).toContain("play");
+      if (look.eliteSheet) expect(tagsOf(look.eliteSheet)).toEqual(tagsOf(look.sheet));
+    }
+  });
+
+  it("never shows the 'attack coming' shine on a stunned enemy", () => {
+    for (const kind of ENEMY_KINDS)
+      for (const act of ENEMY_LOOKS[kind].acts) if (act?.stunned) expect(act.stunned.fx, kind).not.toBe("fx-shine");
+  });
+
+  it("gives per-row tell points on 4-way sheets and single points on side views", () => {
+    for (const kind of ENEMY_KINDS) {
+      const look = ENEMY_LOOKS[kind];
+      for (const act of look.acts) {
+        if (!act?.tell) continue;
+        expect("right" in act.tell, kind).toBe(look.facing === "rows");
       }
     }
   });
 
-  it("tells charges from walking for every kind that charges", () => {
-    for (const kind of ENEMY_KINDS) {
-      const { speed, attacks } = ENEMIES[kind];
-      // Walking (elites are 10% faster) never reads as a charge, and walking is never "still".
-      expect(isCharging(speed * 1.1, speed * 1.1), kind).toBe(false);
-      expect(speed).toBeGreaterThan(STILL_SPEED);
-      for (const attack of attacks)
-        if (attack.type === "charge") expect(isCharging(attack.speed, speed), kind).toBe(true);
-    }
+  it("stuns only charges that can hit a wall stunned, and arcs only leaps", () => {
+    for (const kind of ENEMY_KINDS)
+      ENEMIES[kind].attacks.forEach((attack, i) => {
+        const act = ENEMY_LOOKS[kind].acts[i];
+        if (act?.stunned) expect(attack.type === "charge" && attack.stunTicks !== undefined, kind).toBe(true);
+        if (attack.type === "charge" && attack.stunTicks) expect(act?.stunned, `${kind} ${i}`).toBeDefined();
+        if (act?.arc) expect(attack.type, kind).toBe("leap");
+      });
+  });
+});
+
+describe("act timing", () => {
+  it("reads the wind-up, action and recover lengths of attacks, hops and the stone", () => {
+    expect(actInfo("skeleton", 0)).toMatchObject({ windupTicks: 12, actionTicks: 0, recoverTicks: 6, type: "aimed" });
+    expect(actInfo("colossus", 1)).toMatchObject({ windupTicks: 15, actionTicks: 24, type: "leap" });
+    expect(actInfo("slime", ACT_MOVE)).toMatchObject({ windupTicks: 6, actionTicks: 8, recoverTicks: 4, type: "hop" });
+    expect(actInfo("witch", ACT_STONE)).toMatchObject({ windupTicks: 6, actionTicks: 120, type: "stone" });
+    expect(actInfo("goblin", 0)).toBeUndefined();
+    expect(actInfo("goblin", ACT_MOVE)).toBeUndefined();
+  });
+
+  it("fits a wind-up tag to the wind-up and puts the tell min(6, wu) ticks before the release", () => {
+    expect(fitScale(400, 12)).toBeCloseTo(1);
+    expect(fitScale(200, 12)).toBeCloseTo(0.5);
+    expect(tellDelayMs(12)).toBeCloseTo(6 * TICK_MS);
+    expect(tellDelayMs(4)).toBe(0);
+  });
+
+  it("places tells per row, mirroring west", () => {
+    const rows = { right: [6, -10], up: [0, -14], down: [1, -6] } as const;
+    expect(tellOffset(rows, "up", false)).toEqual([0, -14]);
+    expect(tellOffset(rows, "right", true)).toEqual([-6, -10]);
+    expect(tellOffset(rows, "left", false)).toEqual([-6, -10]);
+    expect(tellOffset([10, -12], "right", true)).toEqual([-10, -12]);
+  });
+
+  it("maps body frames to overlay frames by phase", () => {
+    expect(overlayFrame([0, 1], 1, 2, 0)).toBe(1);
+    expect(overlayFrame([2, 3], 0, 2, 0.9)).toBe(2);
+    expect(overlayFrame([1, 2, 3], 1, 2, 0.5)).toBe(2);
+    expect(overlayFrame([1, 2, 3], 1, 2, 1.5)).toBe(3);
+    expect(overlayFrame([0], 1, 2, 0.7)).toBe(0);
+  });
+});
+
+describe("enemySkin", () => {
+  it("picks the pack's colour variants by biome and dungeon", () => {
+    expect(enemySkin("slime", false, { biome: "G" })).toBe("slime");
+    expect(enemySkin("slime", false, { biome: "M" })).toBe("slime-blue");
+    expect(enemySkin("slime", false, { dungeon: "lair" })).toBe("slime-blue");
+    expect(enemySkin("slime", true, { biome: "M" })).toBe("slime-gold");
+    expect(enemySkin("bat", false, { biome: "F" })).toBe("bat");
+    expect(enemySkin("bat", false, { biome: "R" })).toBe("bat-brown");
+    expect(enemySkin("bat", false, { dungeon: "crypt" })).toBe("bat-brown");
+    expect(enemySkin("bat", true, { dungeon: "crypt" })).toBe("bat-gold");
+    expect(enemySkin("lurker", false, { biome: "W" })).toBe("lurker-black");
+    expect(enemySkin("lurker", false, { biome: "F" })).toBe("lurker");
+    expect(enemySkin("wisp", false, { dungeon: "crypt" })).toBe("wisp");
+    expect(enemySkin("wisp", false, { biome: "Y" })).toBe("wisp");
+    expect(enemySkin("wisp", false, { dungeon: "lair" })).toBe("wisp-cyan");
+    expect(enemySkin("wisp", false, { biome: "B" })).toBe("wisp-magenta");
+    expect(enemySkin("archer", false, { dungeon: "crypt" })).toBe("archer-skeleton");
+    expect(enemySkin("archer", true, { biome: "H" })).toBe("archer");
+    expect(enemySkin("raider", false, { dungeon: "lair" })).toBe("raider");
+    expect(enemySkin("warlord", false, {})).toBe("warlord");
+  });
+
+  it("only names sheets that exist", () => {
+    for (const kind of ENEMY_KINDS)
+      for (const sheet of SKINS[kind] ?? []) expect(tagsOf(sheet).length).toBeGreaterThan(0);
   });
 });
 
@@ -76,14 +182,6 @@ describe("facing helpers", () => {
     expect(angleFacing(Math.PI)).toBe(4);
     expect(angleFacing(-Math.PI / 2)).toBe(6);
     expect(angleFacing(-Math.PI / 4)).toBe(7);
-  });
-
-  it("tells rings from aimed volleys", () => {
-    const ring = Array.from({ length: 10 }, (_, i) => (i * Math.PI * 2) / 10);
-    expect(volleyShape(ring).ring).toBe(true);
-    const aimed = volleyShape([1 - 0.2, 1, 1 + 0.2]);
-    expect(aimed).toEqual({ ring: false, aim: 1 });
-    expect(volleyShape([2])).toEqual({ ring: false, aim: 2 });
   });
 });
 

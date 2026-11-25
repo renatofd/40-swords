@@ -108,8 +108,8 @@ export class WorldLabels {
   }
 
   /** Floating damage number. Crits are bigger and yellow; damage taken by players is red. */
-  damage(x: number, y: number, amount: number, crit: boolean, player: boolean, time: number) {
-    const className = `sw-dmg${crit ? " sw-dmg-crit" : ""}${player ? " sw-dmg-player" : ""}`;
+  damage(x: number, y: number, amount: number, crit: boolean, player: boolean, time: number, blocked = false) {
+    const className = `sw-dmg${crit ? " sw-dmg-crit" : ""}${player ? " sw-dmg-player" : ""}${blocked ? " sw-dmg-blocked" : ""}`;
     const el = h("div", { className: "sw-anchor" }, h("span", { className }, crit ? `${amount}!` : String(amount)));
     this.el.append(el);
     this.floating.push({ el, x, y: y - NUMBER_RISE, until: time + DAMAGE_MS });

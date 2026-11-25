@@ -28,3 +28,8 @@ export function facingVector(facing: number): readonly [number, number] {
 export function facingFromDir(dirX: number, dirY: number): number {
   return FROM_DIR[(Math.sign(dirY) + 1) * 3 + (Math.sign(dirX) + 1)] ?? -1;
 }
+
+/** 8-way facing (0 E, 1 SE, 2 S ... 7 NE) of a direction in radians (y grows down). */
+export function angleFacing(angle: number): number {
+  return ((Math.round(angle / (Math.PI / 4)) % FACING_COUNT) + FACING_COUNT) % FACING_COUNT;
+}

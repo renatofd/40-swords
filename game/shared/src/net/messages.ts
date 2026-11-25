@@ -46,6 +46,8 @@ export interface DamageMessage {
   crit: boolean;
   /** True when a player was hurt (shown in another colour). */
   player: boolean;
+  /** The blow was blocked: a stone witch (amount 0) or a lancer's front guard (reduced amount). */
+  blocked?: true;
 }
 
 export interface LevelUpMessage {
@@ -97,6 +99,8 @@ export interface ShopFailMessage {
 /** Enemy projectiles fired together; projectile i has key `${key}:${i}` (see ProjectileEndMessage). */
 export interface EnemyShotMessage {
   key: string;
+  /** Id of the enemy that fired (its release cue: this message usually arrives before the patch). */
+  from: string;
   x: number;
   y: number;
   /** Direction of each projectile, radians. */

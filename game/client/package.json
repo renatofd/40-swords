@@ -6,7 +6,8 @@
   "description": "GAME: client scenes, rendering, assets and strings for this game. Edit freely in derived repos.",
   "exports": {
     ".": "./src/index.ts",
-    "./bot": "./src/bot.ts"
+    "./bot": "./src/bot.ts",
+    "./gallery": "./src/gallery.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

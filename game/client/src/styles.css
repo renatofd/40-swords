@@ -459,6 +459,11 @@
   color: #6ef08a;
 }
 
+/* A blow a guard or a stone body shrugged off. */
+.sw-dmg-blocked {
+  color: #a8a8b0;
+}
+
 @keyframes sw-float {
   from {
     opacity: 1;

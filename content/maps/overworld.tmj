@@ -771,7 +771,7 @@
       "objects": [
         {
           "id": 1,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 792,
           "y": 40,
@@ -784,7 +784,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -800,7 +800,7 @@
         },
         {
           "id": 2,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 888,
           "y": 40,
@@ -813,7 +813,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -853,7 +853,7 @@
         },
         {
           "id": 5,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4872,
           "y": 40,
@@ -866,7 +866,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -911,7 +911,7 @@
         },
         {
           "id": 7,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 1112,
           "y": 56,
@@ -924,7 +924,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -940,7 +940,7 @@
         },
         {
           "id": 8,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 1192,
           "y": 56,
@@ -953,7 +953,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -969,7 +969,7 @@
         },
         {
           "id": 9,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1368,
           "y": 56,
@@ -982,7 +982,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1010,7 +1010,7 @@
         },
         {
           "id": 11,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1816,
           "y": 56,
@@ -1023,7 +1023,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1068,7 +1068,7 @@
         },
         {
           "id": 13,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 2344,
           "y": 56,
@@ -1081,7 +1081,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -1155,7 +1155,7 @@
         },
         {
           "id": 16,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 3128,
           "y": 56,
@@ -1168,7 +1168,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1196,7 +1196,7 @@
         },
         {
           "id": 18,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 3704,
           "y": 56,
@@ -1209,7 +1209,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1254,7 +1254,7 @@
         },
         {
           "id": 20,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 4040,
           "y": 56,
@@ -1267,7 +1267,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1283,7 +1283,7 @@
         },
         {
           "id": 21,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 4424,
           "y": 56,
@@ -1296,7 +1296,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -1312,7 +1312,7 @@
         },
         {
           "id": 22,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 4632,
           "y": 56,
@@ -1325,7 +1325,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1370,7 +1370,7 @@
         },
         {
           "id": 24,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 440,
           "y": 72,
@@ -1383,7 +1383,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1428,7 +1428,7 @@
         },
         {
           "id": 26,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 872,
           "y": 72,
@@ -1441,7 +1441,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1457,7 +1457,7 @@
         },
         {
           "id": 27,
-          "name": "bat",
+          "name": "lancer",
           "type": "enemy",
           "x": 1080,
           "y": 72,
@@ -1470,7 +1470,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -1486,7 +1486,7 @@
         },
         {
           "id": 28,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 1704,
           "y": 72,
@@ -1499,7 +1499,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1631,7 +1631,7 @@
         },
         {
           "id": 33,
-          "name": "bat",
+          "name": "lancer",
           "type": "enemy",
           "x": 4648,
           "y": 72,
@@ -1644,7 +1644,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -1660,7 +1660,7 @@
         },
         {
           "id": 34,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 4696,
           "y": 72,
@@ -1673,7 +1673,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -1689,7 +1689,7 @@
         },
         {
           "id": 35,
-          "name": "bat",
+          "name": "goblin",
           "type": "enemy",
           "x": 520,
           "y": 88,
@@ -1702,7 +1702,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -1747,7 +1747,7 @@
         },
         {
           "id": 37,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 1080,
           "y": 88,
@@ -1760,7 +1760,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -1834,7 +1834,7 @@
         },
         {
           "id": 40,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 2712,
           "y": 88,
@@ -1847,7 +1847,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1863,7 +1863,7 @@
         },
         {
           "id": 41,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 2760,
           "y": 88,
@@ -1876,7 +1876,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -1921,7 +1921,7 @@
         },
         {
           "id": 43,
-          "name": "skeleton",
+          "name": "lancer",
           "type": "enemy",
           "x": 4280,
           "y": 88,
@@ -1934,7 +1934,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -1950,7 +1950,7 @@
         },
         {
           "id": 44,
-          "name": "skeleton",
+          "name": "lancer",
           "type": "enemy",
           "x": 4440,
           "y": 88,
@@ -1963,7 +1963,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -1979,7 +1979,7 @@
         },
         {
           "id": 45,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 4664,
           "y": 88,
@@ -1992,7 +1992,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -2037,7 +2037,7 @@
         },
         {
           "id": 47,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4952,
           "y": 88,
@@ -2050,7 +2050,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -2066,7 +2066,7 @@
         },
         {
           "id": 48,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 184,
           "y": 104,
@@ -2079,7 +2079,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -2153,7 +2153,7 @@
         },
         {
           "id": 51,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 408,
           "y": 104,
@@ -2166,7 +2166,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -2211,7 +2211,7 @@
         },
         {
           "id": 53,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1512,
           "y": 104,
@@ -2224,7 +2224,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -2240,7 +2240,7 @@
         },
         {
           "id": 54,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 1992,
           "y": 104,
@@ -2253,7 +2253,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -2356,7 +2356,7 @@
         },
         {
           "id": 58,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 4056,
           "y": 104,
@@ -2369,7 +2369,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -2385,7 +2385,7 @@
         },
         {
           "id": 59,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 4344,
           "y": 104,
@@ -2398,7 +2398,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -2414,7 +2414,7 @@
         },
         {
           "id": 60,
-          "name": "scorpion",
+          "name": "raider",
           "type": "enemy",
           "x": 4872,
           "y": 104,
@@ -2427,7 +2427,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -2443,7 +2443,7 @@
         },
         {
           "id": 61,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 248,
           "y": 120,
@@ -2456,7 +2456,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -2472,7 +2472,7 @@
         },
         {
           "id": 62,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 536,
           "y": 120,
@@ -2485,7 +2485,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -2501,7 +2501,7 @@
         },
         {
           "id": 63,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 2152,
           "y": 120,
@@ -2514,7 +2514,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -2530,7 +2530,7 @@
         },
         {
           "id": 64,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 2296,
           "y": 120,
@@ -2543,7 +2543,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -2588,7 +2588,7 @@
         },
         {
           "id": 66,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 2312,
           "y": 136,
@@ -2601,7 +2601,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -2617,7 +2617,7 @@
         },
         {
           "id": 67,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 2632,
           "y": 136,
@@ -2630,7 +2630,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -2675,7 +2675,7 @@
         },
         {
           "id": 69,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 3288,
           "y": 136,
@@ -2688,7 +2688,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -2704,7 +2704,7 @@
         },
         {
           "id": 70,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 3928,
           "y": 136,
@@ -2717,7 +2717,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -2827,7 +2827,7 @@
         },
         {
           "id": 76,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 872,
           "y": 216,
@@ -2840,7 +2840,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -2856,7 +2856,7 @@
         },
         {
           "id": 77,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 2360,
           "y": 216,
@@ -2869,7 +2869,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -2914,7 +2914,7 @@
         },
         {
           "id": 79,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 856,
           "y": 232,
@@ -2927,7 +2927,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -2972,7 +2972,7 @@
         },
         {
           "id": 81,
-          "name": "slime",
+          "name": "wisp",
           "type": "enemy",
           "x": 136,
           "y": 248,
@@ -2985,7 +2985,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -3030,7 +3030,7 @@
         },
         {
           "id": 83,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 888,
           "y": 248,
@@ -3043,7 +3043,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3059,7 +3059,7 @@
         },
         {
           "id": 84,
-          "name": "goblin",
+          "name": "bat",
           "type": "enemy",
           "x": 1368,
           "y": 248,
@@ -3072,7 +3072,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -3088,7 +3088,7 @@
         },
         {
           "id": 85,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1432,
           "y": 248,
@@ -3101,7 +3101,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3204,7 +3204,7 @@
         },
         {
           "id": 89,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 4312,
           "y": 248,
@@ -3217,7 +3217,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3233,7 +3233,7 @@
         },
         {
           "id": 90,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 4600,
           "y": 248,
@@ -3246,7 +3246,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3262,9 +3262,38 @@
         },
         {
           "id": 91,
-          "name": "scorpion",
+          "name": "bat",
           "type": "enemy",
           "x": 4952,
+          "y": 248,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "bat"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 7
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 92,
+          "name": "scorpion",
+          "type": "enemy",
+          "x": 4984,
           "y": 248,
           "width": 0,
           "height": 0,
@@ -3290,37 +3319,8 @@
           ]
         },
         {
-          "id": 92,
-          "name": "slime",
-          "type": "enemy",
-          "x": 4984,
-          "y": 248,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "slime"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 7
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 93,
-          "name": "lurker",
+          "name": "slime",
           "type": "enemy",
           "x": 152,
           "y": 264,
@@ -3333,7 +3333,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3349,7 +3349,7 @@
         },
         {
           "id": 94,
-          "name": "slime",
+          "name": "wisp",
           "type": "enemy",
           "x": 200,
           "y": 264,
@@ -3362,7 +3362,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -3378,7 +3378,7 @@
         },
         {
           "id": 95,
-          "name": "lurker",
+          "name": "slime",
           "type": "enemy",
           "x": 536,
           "y": 264,
@@ -3391,7 +3391,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3407,7 +3407,7 @@
         },
         {
           "id": 96,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1768,
           "y": 264,
@@ -3420,7 +3420,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3436,7 +3436,7 @@
         },
         {
           "id": 97,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 1848,
           "y": 264,
@@ -3449,7 +3449,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3494,7 +3494,7 @@
         },
         {
           "id": 99,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 2088,
           "y": 264,
@@ -3507,7 +3507,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3523,7 +3523,7 @@
         },
         {
           "id": 100,
-          "name": "wolf",
+          "name": "bat",
           "type": "enemy",
           "x": 2424,
           "y": 264,
@@ -3536,7 +3536,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -3581,7 +3581,7 @@
         },
         {
           "id": 102,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 2920,
           "y": 264,
@@ -3594,7 +3594,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3610,7 +3610,7 @@
         },
         {
           "id": 103,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 3304,
           "y": 264,
@@ -3623,7 +3623,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3639,7 +3639,7 @@
         },
         {
           "id": 104,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3720,
           "y": 264,
@@ -3652,7 +3652,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -3668,7 +3668,7 @@
         },
         {
           "id": 105,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3736,
           "y": 264,
@@ -3681,7 +3681,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -3697,7 +3697,7 @@
         },
         {
           "id": 106,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3992,
           "y": 264,
@@ -3710,7 +3710,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -3726,7 +3726,7 @@
         },
         {
           "id": 107,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4584,
           "y": 264,
@@ -3739,7 +3739,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -3755,7 +3755,7 @@
         },
         {
           "id": 108,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4856,
           "y": 264,
@@ -3768,7 +3768,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -3784,7 +3784,7 @@
         },
         {
           "id": 109,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 856,
           "y": 280,
@@ -3797,7 +3797,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -3813,7 +3813,7 @@
         },
         {
           "id": 110,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 1032,
           "y": 280,
@@ -3826,7 +3826,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -3842,7 +3842,7 @@
         },
         {
           "id": 111,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 1144,
           "y": 280,
@@ -3855,7 +3855,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3871,7 +3871,7 @@
         },
         {
           "id": 112,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 1400,
           "y": 280,
@@ -3884,7 +3884,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -3900,7 +3900,7 @@
         },
         {
           "id": 113,
-          "name": "bat",
+          "name": "skeleton",
           "type": "enemy",
           "x": 2760,
           "y": 280,
@@ -3913,7 +3913,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -3929,7 +3929,7 @@
         },
         {
           "id": 114,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3736,
           "y": 280,
@@ -3942,7 +3942,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -4016,7 +4016,7 @@
         },
         {
           "id": 117,
-          "name": "slime",
+          "name": "raider",
           "type": "enemy",
           "x": 4552,
           "y": 280,
@@ -4029,7 +4029,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -4045,9 +4045,38 @@
         },
         {
           "id": 118,
-          "name": "slime",
+          "name": "raider",
           "type": "enemy",
           "x": 4616,
+          "y": 280,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "raider"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 6
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "name": "slime",
+          "type": "enemy",
+          "x": 4664,
           "y": 280,
           "width": 0,
           "height": 0,
@@ -4073,37 +4102,8 @@
           ]
         },
         {
-          "id": 119,
-          "name": "goblin",
-          "type": "enemy",
-          "x": 4664,
-          "y": 280,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "goblin"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 6
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 120,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 1112,
           "y": 296,
@@ -4116,7 +4116,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -4144,7 +4144,7 @@
         },
         {
           "id": 122,
-          "name": "slime",
+          "name": "shroom",
           "type": "enemy",
           "x": 4232,
           "y": 296,
@@ -4157,7 +4157,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -4173,7 +4173,7 @@
         },
         {
           "id": 123,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4856,
           "y": 296,
@@ -4186,7 +4186,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -4202,7 +4202,7 @@
         },
         {
           "id": 124,
-          "name": "slime",
+          "name": "wisp",
           "type": "enemy",
           "x": 440,
           "y": 312,
@@ -4215,7 +4215,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -4260,7 +4260,7 @@
         },
         {
           "id": 126,
-          "name": "skeleton",
+          "name": "lancer",
           "type": "enemy",
           "x": 1080,
           "y": 312,
@@ -4273,7 +4273,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -4301,7 +4301,7 @@
         },
         {
           "id": 128,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 2088,
           "y": 312,
@@ -4314,7 +4314,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -4359,38 +4359,9 @@
         },
         {
           "id": 130,
-          "name": "goblin",
-          "type": "enemy",
-          "x": 3128,
-          "y": 312,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "goblin"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 3
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 131,
           "name": "bat",
           "type": "enemy",
-          "x": 3464,
+          "x": 3128,
           "y": 312,
           "width": 0,
           "height": 0,
@@ -4416,8 +4387,37 @@
           ]
         },
         {
+          "id": 131,
+          "name": "skeleton",
+          "type": "enemy",
+          "x": 3464,
+          "y": 312,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "skeleton"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 3
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
           "id": 132,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3928,
           "y": 312,
@@ -4430,7 +4430,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -4475,7 +4475,7 @@
         },
         {
           "id": 134,
-          "name": "lurker",
+          "name": "slime",
           "type": "enemy",
           "x": 536,
           "y": 392,
@@ -4488,7 +4488,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -4516,7 +4516,7 @@
         },
         {
           "id": 136,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 2984,
           "y": 392,
@@ -4529,7 +4529,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -4545,7 +4545,7 @@
         },
         {
           "id": 137,
-          "name": "wolf",
+          "name": "spider",
           "type": "enemy",
           "x": 4568,
           "y": 392,
@@ -4558,7 +4558,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -4574,7 +4574,7 @@
         },
         {
           "id": 138,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4888,
           "y": 392,
@@ -4587,7 +4587,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -4777,7 +4777,7 @@
         },
         {
           "id": 145,
-          "name": "bat",
+          "name": "spider",
           "type": "enemy",
           "x": 856,
           "y": 424,
@@ -4790,7 +4790,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -4806,7 +4806,7 @@
         },
         {
           "id": 146,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 1112,
           "y": 424,
@@ -4819,7 +4819,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -4864,7 +4864,7 @@
         },
         {
           "id": 148,
-          "name": "lurker",
+          "name": "raider",
           "type": "enemy",
           "x": 1208,
           "y": 424,
@@ -4877,7 +4877,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -4893,7 +4893,7 @@
         },
         {
           "id": 149,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1352,
           "y": 424,
@@ -4906,7 +4906,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -4922,7 +4922,7 @@
         },
         {
           "id": 150,
-          "name": "slime",
+          "name": "goblin",
           "type": "enemy",
           "x": 1512,
           "y": 424,
@@ -4935,7 +4935,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -5009,7 +5009,7 @@
         },
         {
           "id": 153,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3640,
           "y": 424,
@@ -5022,7 +5022,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -5038,7 +5038,7 @@
         },
         {
           "id": 154,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3704,
           "y": 424,
@@ -5051,7 +5051,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -5067,7 +5067,7 @@
         },
         {
           "id": 155,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3960,
           "y": 424,
@@ -5080,7 +5080,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -5096,7 +5096,7 @@
         },
         {
           "id": 156,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4952,
           "y": 424,
@@ -5109,7 +5109,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -5154,7 +5154,7 @@
         },
         {
           "id": 158,
-          "name": "slime",
+          "name": "cobra",
           "type": "enemy",
           "x": 248,
           "y": 440,
@@ -5167,7 +5167,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -5183,7 +5183,7 @@
         },
         {
           "id": 159,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 696,
           "y": 440,
@@ -5196,7 +5196,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -5224,7 +5224,7 @@
         },
         {
           "id": 161,
-          "name": "slime",
+          "name": "shroom",
           "type": "enemy",
           "x": 760,
           "y": 440,
@@ -5237,7 +5237,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -5311,7 +5311,7 @@
         },
         {
           "id": 164,
-          "name": "slime",
+          "name": "goblin",
           "type": "enemy",
           "x": 1352,
           "y": 440,
@@ -5324,7 +5324,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -5427,7 +5427,7 @@
         },
         {
           "id": 168,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 3272,
           "y": 440,
@@ -5440,7 +5440,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -5485,7 +5485,7 @@
         },
         {
           "id": 170,
-          "name": "slime",
+          "name": "raider",
           "type": "enemy",
           "x": 4408,
           "y": 440,
@@ -5498,7 +5498,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -5514,7 +5514,7 @@
         },
         {
           "id": 171,
-          "name": "slime",
+          "name": "cobra",
           "type": "enemy",
           "x": 200,
           "y": 456,
@@ -5527,7 +5527,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -5543,7 +5543,7 @@
         },
         {
           "id": 172,
-          "name": "lurker",
+          "name": "slime",
           "type": "enemy",
           "x": 568,
           "y": 456,
@@ -5556,7 +5556,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -5601,7 +5601,7 @@
         },
         {
           "id": 174,
-          "name": "wolf",
+          "name": "bat",
           "type": "enemy",
           "x": 1848,
           "y": 456,
@@ -5614,7 +5614,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -5659,9 +5659,38 @@
         },
         {
           "id": 176,
-          "name": "slime",
+          "name": "wolf",
           "type": "enemy",
           "x": 2968,
+          "y": 456,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "wolf"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 2
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 177,
+          "name": "slime",
+          "type": "enemy",
+          "x": 3080,
           "y": 456,
           "width": 0,
           "height": 0,
@@ -5687,37 +5716,8 @@
           ]
         },
         {
-          "id": 177,
-          "name": "scorpion",
-          "type": "enemy",
-          "x": 3080,
-          "y": 456,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "scorpion"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 2
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 178,
-          "name": "skeleton",
+          "name": "slime",
           "type": "enemy",
           "x": 3272,
           "y": 456,
@@ -5730,7 +5730,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -5775,7 +5775,7 @@
         },
         {
           "id": 180,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3944,
           "y": 456,
@@ -5788,7 +5788,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -5804,7 +5804,7 @@
         },
         {
           "id": 181,
-          "name": "slime",
+          "name": "raider",
           "type": "enemy",
           "x": 4312,
           "y": 456,
@@ -5817,7 +5817,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -5862,7 +5862,7 @@
         },
         {
           "id": 183,
-          "name": "wolf",
+          "name": "spider",
           "type": "enemy",
           "x": 4680,
           "y": 456,
@@ -5875,7 +5875,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -5920,7 +5920,7 @@
         },
         {
           "id": 185,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4872,
           "y": 456,
@@ -5933,7 +5933,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -5949,7 +5949,7 @@
         },
         {
           "id": 186,
-          "name": "scorpion",
+          "name": "raider",
           "type": "enemy",
           "x": 4904,
           "y": 456,
@@ -5962,7 +5962,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -6007,7 +6007,7 @@
         },
         {
           "id": 188,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 872,
           "y": 488,
@@ -6020,7 +6020,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -6089,7 +6089,7 @@
         },
         {
           "id": 192,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4552,
           "y": 488,
@@ -6102,7 +6102,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -6118,7 +6118,7 @@
         },
         {
           "id": 193,
-          "name": "slime",
+          "name": "spider",
           "type": "enemy",
           "x": 56,
           "y": 568,
@@ -6131,7 +6131,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -6147,7 +6147,7 @@
         },
         {
           "id": 194,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1352,
           "y": 568,
@@ -6160,7 +6160,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -6176,7 +6176,7 @@
         },
         {
           "id": 195,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1512,
           "y": 568,
@@ -6189,7 +6189,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -6275,7 +6275,7 @@
         },
         {
           "id": 199,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4712,
           "y": 568,
@@ -6288,7 +6288,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -6362,7 +6362,7 @@
         },
         {
           "id": 202,
-          "name": "bat",
+          "name": "spider",
           "type": "enemy",
           "x": 1192,
           "y": 584,
@@ -6375,7 +6375,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -6420,7 +6420,7 @@
         },
         {
           "id": 204,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 4232,
           "y": 584,
@@ -6433,7 +6433,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -6449,7 +6449,7 @@
         },
         {
           "id": 205,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4536,
           "y": 584,
@@ -6462,7 +6462,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -6507,7 +6507,7 @@
         },
         {
           "id": 207,
-          "name": "scorpion",
+          "name": "raider",
           "type": "enemy",
           "x": 4888,
           "y": 584,
@@ -6520,7 +6520,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -6536,7 +6536,7 @@
         },
         {
           "id": 208,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1480,
           "y": 600,
@@ -6549,7 +6549,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -6565,7 +6565,7 @@
         },
         {
           "id": 209,
-          "name": "wolf",
+          "name": "bat",
           "type": "enemy",
           "x": 1784,
           "y": 600,
@@ -6578,7 +6578,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -6623,7 +6623,7 @@
         },
         {
           "id": 211,
-          "name": "bat",
+          "name": "goblin",
           "type": "enemy",
           "x": 3752,
           "y": 600,
@@ -6636,7 +6636,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -6652,7 +6652,7 @@
         },
         {
           "id": 212,
-          "name": "bat",
+          "name": "goblin",
           "type": "enemy",
           "x": 3784,
           "y": 600,
@@ -6665,7 +6665,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -6693,7 +6693,7 @@
         },
         {
           "id": 214,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4264,
           "y": 600,
@@ -6706,7 +6706,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -6751,7 +6751,7 @@
         },
         {
           "id": 216,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4616,
           "y": 600,
@@ -6764,7 +6764,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -6780,67 +6780,9 @@
         },
         {
           "id": 217,
-          "name": "lurker",
-          "type": "enemy",
-          "x": 424,
-          "y": 616,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "lurker"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 7
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 218,
-          "name": "lurker",
-          "type": "enemy",
-          "x": 568,
-          "y": 616,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "lurker"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 7
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 219,
           "name": "slime",
           "type": "enemy",
-          "x": 824,
+          "x": 424,
           "y": 616,
           "width": 0,
           "height": 0,
@@ -6856,6 +6798,64 @@
             {
               "name": "tier",
               "type": "int",
+              "value": 7
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 218,
+          "name": "slime",
+          "type": "enemy",
+          "x": 568,
+          "y": 616,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "slime"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 7
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 219,
+          "name": "shroom",
+          "type": "enemy",
+          "x": 824,
+          "y": 616,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "shroom"
+            },
+            {
+              "name": "tier",
+              "type": "int",
               "value": 6
             },
             {
@@ -6867,7 +6867,7 @@
         },
         {
           "id": 220,
-          "name": "bat",
+          "name": "lurker",
           "type": "enemy",
           "x": 1144,
           "y": 616,
@@ -6880,7 +6880,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -6896,7 +6896,7 @@
         },
         {
           "id": 221,
-          "name": "bat",
+          "name": "spider",
           "type": "enemy",
           "x": 1192,
           "y": 616,
@@ -6909,7 +6909,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -6925,7 +6925,7 @@
         },
         {
           "id": 222,
-          "name": "wolf",
+          "name": "scorpion",
           "type": "enemy",
           "x": 1640,
           "y": 616,
@@ -6938,7 +6938,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -6954,7 +6954,7 @@
         },
         {
           "id": 223,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 2760,
           "y": 616,
@@ -6967,7 +6967,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -6983,7 +6983,7 @@
         },
         {
           "id": 224,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3368,
           "y": 616,
@@ -6996,7 +6996,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -7128,7 +7128,7 @@
         },
         {
           "id": 229,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 856,
           "y": 632,
@@ -7141,7 +7141,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -7227,7 +7227,7 @@
         },
         {
           "id": 233,
-          "name": "slime",
+          "name": "goblin",
           "type": "enemy",
           "x": 1816,
           "y": 632,
@@ -7240,7 +7240,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -7314,7 +7314,7 @@
         },
         {
           "id": 236,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4920,
           "y": 632,
@@ -7327,7 +7327,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -7343,7 +7343,7 @@
         },
         {
           "id": 237,
-          "name": "goblin",
+          "name": "wolf",
           "type": "enemy",
           "x": 2024,
           "y": 648,
@@ -7356,7 +7356,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -7372,7 +7372,7 @@
         },
         {
           "id": 238,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 4248,
           "y": 648,
@@ -7385,7 +7385,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -7401,7 +7401,7 @@
         },
         {
           "id": 239,
-          "name": "slime",
+          "name": "wisp",
           "type": "enemy",
           "x": 120,
           "y": 664,
@@ -7414,7 +7414,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -7459,7 +7459,7 @@
         },
         {
           "id": 241,
-          "name": "slime",
+          "name": "cobra",
           "type": "enemy",
           "x": 200,
           "y": 664,
@@ -7472,7 +7472,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -7488,7 +7488,7 @@
         },
         {
           "id": 242,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 216,
           "y": 664,
@@ -7501,7 +7501,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -7517,7 +7517,7 @@
         },
         {
           "id": 243,
-          "name": "bat",
+          "name": "raider",
           "type": "enemy",
           "x": 888,
           "y": 664,
@@ -7530,7 +7530,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -7575,7 +7575,7 @@
         },
         {
           "id": 245,
-          "name": "lurker",
+          "name": "shroom",
           "type": "enemy",
           "x": 3912,
           "y": 664,
@@ -7588,7 +7588,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -7674,7 +7674,7 @@
         },
         {
           "id": 249,
-          "name": "slime",
+          "name": "cobra",
           "type": "enemy",
           "x": 136,
           "y": 744,
@@ -7687,7 +7687,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -7703,7 +7703,7 @@
         },
         {
           "id": 250,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 808,
           "y": 744,
@@ -7716,7 +7716,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -7732,7 +7732,7 @@
         },
         {
           "id": 251,
-          "name": "wolf",
+          "name": "bat",
           "type": "enemy",
           "x": 1320,
           "y": 744,
@@ -7745,7 +7745,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -7773,7 +7773,7 @@
         },
         {
           "id": 253,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 2040,
           "y": 744,
@@ -7786,7 +7786,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -7814,7 +7814,7 @@
         },
         {
           "id": 255,
-          "name": "scorpion",
+          "name": "bat",
           "type": "enemy",
           "x": 4568,
           "y": 744,
@@ -7827,7 +7827,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -7843,7 +7843,7 @@
         },
         {
           "id": 256,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4888,
           "y": 744,
@@ -7856,7 +7856,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -8046,7 +8046,7 @@
         },
         {
           "id": 263,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3736,
           "y": 760,
@@ -8059,7 +8059,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8104,7 +8104,7 @@
         },
         {
           "id": 265,
-          "name": "scorpion",
+          "name": "bat",
           "type": "enemy",
           "x": 4984,
           "y": 760,
@@ -8117,7 +8117,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -8133,7 +8133,7 @@
         },
         {
           "id": 266,
-          "name": "slime",
+          "name": "shroom",
           "type": "enemy",
           "x": 488,
           "y": 776,
@@ -8146,7 +8146,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8162,38 +8162,9 @@
         },
         {
           "id": 267,
-          "name": "lurker",
-          "type": "enemy",
-          "x": 584,
-          "y": 776,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "lurker"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 7
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 268,
           "name": "bat",
           "type": "enemy",
-          "x": 808,
+          "x": 584,
           "y": 776,
           "width": 0,
           "height": 0,
@@ -8209,6 +8180,35 @@
             {
               "name": "tier",
               "type": "int",
+              "value": 7
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 268,
+          "name": "lurker",
+          "type": "enemy",
+          "x": 808,
+          "y": 776,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "lurker"
+            },
+            {
+              "name": "tier",
+              "type": "int",
               "value": 6
             },
             {
@@ -8220,7 +8220,7 @@
         },
         {
           "id": 269,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 824,
           "y": 776,
@@ -8233,7 +8233,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -8307,9 +8307,38 @@
         },
         {
           "id": 272,
-          "name": "bat",
+          "name": "spider",
           "type": "enemy",
           "x": 1064,
+          "y": 776,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "spider"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 273,
+          "name": "bat",
+          "type": "enemy",
+          "x": 1096,
           "y": 776,
           "width": 0,
           "height": 0,
@@ -8335,37 +8364,8 @@
           ]
         },
         {
-          "id": 273,
-          "name": "lurker",
-          "type": "enemy",
-          "x": 1096,
-          "y": 776,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "lurker"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 5
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 274,
-          "name": "slime",
+          "name": "goblin",
           "type": "enemy",
           "x": 1816,
           "y": 776,
@@ -8378,7 +8378,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -8447,7 +8447,7 @@
         },
         {
           "id": 278,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 4264,
           "y": 776,
@@ -8460,7 +8460,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8476,7 +8476,7 @@
         },
         {
           "id": 279,
-          "name": "slime",
+          "name": "cobra",
           "type": "enemy",
           "x": 232,
           "y": 792,
@@ -8489,7 +8489,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -8534,7 +8534,7 @@
         },
         {
           "id": 281,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1384,
           "y": 792,
@@ -8547,7 +8547,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8616,7 +8616,7 @@
         },
         {
           "id": 285,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 3352,
           "y": 792,
@@ -8629,7 +8629,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8645,7 +8645,7 @@
         },
         {
           "id": 286,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3720,
           "y": 792,
@@ -8658,7 +8658,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -8703,7 +8703,7 @@
         },
         {
           "id": 288,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4248,
           "y": 792,
@@ -8716,7 +8716,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -8732,7 +8732,7 @@
         },
         {
           "id": 289,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4920,
           "y": 792,
@@ -8745,7 +8745,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -8761,7 +8761,7 @@
         },
         {
           "id": 290,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4952,
           "y": 792,
@@ -8774,7 +8774,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -8819,7 +8819,7 @@
         },
         {
           "id": 292,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 1112,
           "y": 808,
@@ -8832,7 +8832,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -8848,7 +8848,7 @@
         },
         {
           "id": 293,
-          "name": "slime",
+          "name": "goblin",
           "type": "enemy",
           "x": 1816,
           "y": 808,
@@ -8861,7 +8861,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -8877,7 +8877,7 @@
         },
         {
           "id": 294,
-          "name": "goblin",
+          "name": "wolf",
           "type": "enemy",
           "x": 2040,
           "y": 808,
@@ -8890,7 +8890,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -8930,7 +8930,7 @@
         },
         {
           "id": 297,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4264,
           "y": 808,
@@ -8943,7 +8943,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -8959,7 +8959,7 @@
         },
         {
           "id": 298,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4664,
           "y": 808,
@@ -8972,7 +8972,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -8988,7 +8988,7 @@
         },
         {
           "id": 299,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4712,
           "y": 808,
@@ -9001,7 +9001,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -9046,7 +9046,7 @@
         },
         {
           "id": 301,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1368,
           "y": 824,
@@ -9059,7 +9059,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -9104,7 +9104,7 @@
         },
         {
           "id": 303,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4712,
           "y": 824,
@@ -9117,7 +9117,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -9174,7 +9174,7 @@
         },
         {
           "id": 306,
-          "name": "bat",
+          "name": "goblin",
           "type": "enemy",
           "x": 3592,
           "y": 840,
@@ -9187,7 +9187,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -9331,7 +9331,7 @@
         },
         {
           "id": 312,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1864,
           "y": 920,
@@ -9344,7 +9344,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -9360,7 +9360,7 @@
         },
         {
           "id": 313,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 3112,
           "y": 920,
@@ -9373,7 +9373,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -9389,7 +9389,7 @@
         },
         {
           "id": 314,
-          "name": "wolf",
+          "name": "goblin",
           "type": "enemy",
           "x": 3448,
           "y": 920,
@@ -9402,7 +9402,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -9418,7 +9418,7 @@
         },
         {
           "id": 315,
-          "name": "bat",
+          "name": "goblin",
           "type": "enemy",
           "x": 4520,
           "y": 920,
@@ -9431,7 +9431,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "goblin"
             },
             {
               "name": "tier",
@@ -9592,7 +9592,7 @@
         },
         {
           "id": 321,
-          "name": "wolf",
+          "name": "bat",
           "type": "enemy",
           "x": 3624,
           "y": 936,
@@ -9605,7 +9605,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -9621,7 +9621,7 @@
         },
         {
           "id": 322,
-          "name": "wolf",
+          "name": "spider",
           "type": "enemy",
           "x": 4248,
           "y": 936,
@@ -9634,7 +9634,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -9650,7 +9650,7 @@
         },
         {
           "id": 323,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4552,
           "y": 936,
@@ -9663,7 +9663,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -9679,7 +9679,7 @@
         },
         {
           "id": 324,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4888,
           "y": 936,
@@ -9692,7 +9692,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -9865,7 +9865,7 @@
         },
         {
           "id": 331,
-          "name": "slime",
+          "name": "archer",
           "type": "enemy",
           "x": 4296,
           "y": 952,
@@ -9878,7 +9878,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -9894,7 +9894,7 @@
         },
         {
           "id": 332,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 4664,
           "y": 952,
@@ -9907,7 +9907,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -9923,7 +9923,7 @@
         },
         {
           "id": 333,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4904,
           "y": 952,
@@ -9936,7 +9936,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -9981,7 +9981,7 @@
         },
         {
           "id": 335,
-          "name": "skeleton",
+          "name": "kultist",
           "type": "enemy",
           "x": 440,
           "y": 968,
@@ -9994,7 +9994,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -10010,7 +10010,7 @@
         },
         {
           "id": 336,
-          "name": "slime",
+          "name": "bat",
           "type": "enemy",
           "x": 1080,
           "y": 968,
@@ -10023,7 +10023,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -10068,7 +10068,7 @@
         },
         {
           "id": 338,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3656,
           "y": 968,
@@ -10081,7 +10081,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -10097,7 +10097,7 @@
         },
         {
           "id": 339,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 3944,
           "y": 968,
@@ -10110,7 +10110,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -10126,7 +10126,7 @@
         },
         {
           "id": 340,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 4328,
           "y": 968,
@@ -10139,7 +10139,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -10155,7 +10155,7 @@
         },
         {
           "id": 341,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4856,
           "y": 968,
@@ -10168,7 +10168,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -10271,7 +10271,7 @@
         },
         {
           "id": 345,
-          "name": "bat",
+          "name": "lurker",
           "type": "enemy",
           "x": 1064,
           "y": 984,
@@ -10284,7 +10284,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -10300,7 +10300,7 @@
         },
         {
           "id": 346,
-          "name": "bat",
+          "name": "lurker",
           "type": "enemy",
           "x": 1144,
           "y": 984,
@@ -10313,7 +10313,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -10329,7 +10329,7 @@
         },
         {
           "id": 347,
-          "name": "wolf",
+          "name": "scorpion",
           "type": "enemy",
           "x": 1320,
           "y": 984,
@@ -10342,7 +10342,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -10358,9 +10358,38 @@
         },
         {
           "id": 348,
-          "name": "wolf",
+          "name": "scorpion",
           "type": "enemy",
           "x": 1400,
+          "y": 984,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "scorpion"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 4
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 349,
+          "name": "wolf",
+          "type": "enemy",
+          "x": 1512,
           "y": 984,
           "width": 0,
           "height": 0,
@@ -10386,68 +10415,10 @@
           ]
         },
         {
-          "id": 349,
-          "name": "slime",
-          "type": "enemy",
-          "x": 1512,
-          "y": 984,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "slime"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 4
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 350,
-          "name": "bat",
-          "type": "enemy",
-          "x": 4008,
-          "y": 984,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "bat"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 4
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 351,
           "name": "goblin",
           "type": "enemy",
-          "x": 4312,
+          "x": 4008,
           "y": 984,
           "width": 0,
           "height": 0,
@@ -10463,6 +10434,35 @@
             {
               "name": "tier",
               "type": "int",
+              "value": 4
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 351,
+          "name": "slime",
+          "type": "enemy",
+          "x": 4312,
+          "y": 984,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "slime"
+            },
+            {
+              "name": "tier",
+              "type": "int",
               "value": 5
             },
             {
@@ -10474,7 +10474,7 @@
         },
         {
           "id": 352,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4856,
           "y": 984,
@@ -10487,7 +10487,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -10532,7 +10532,7 @@
         },
         {
           "id": 354,
-          "name": "bat",
+          "name": "raider",
           "type": "enemy",
           "x": 776,
           "y": 1000,
@@ -10545,7 +10545,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -10561,7 +10561,7 @@
         },
         {
           "id": 355,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1672,
           "y": 1000,
@@ -10574,7 +10574,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -10619,7 +10619,7 @@
         },
         {
           "id": 357,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 4664,
           "y": 1000,
@@ -10632,7 +10632,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -10648,7 +10648,7 @@
         },
         {
           "id": 358,
-          "name": "skeleton",
+          "name": "kultist",
           "type": "enemy",
           "x": 408,
           "y": 1016,
@@ -10661,7 +10661,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -10677,38 +10677,9 @@
         },
         {
           "id": 359,
-          "name": "lurker",
-          "type": "enemy",
-          "x": 728,
-          "y": 1016,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "lurker"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 6
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 360,
           "name": "bat",
           "type": "enemy",
-          "x": 744,
+          "x": 728,
           "y": 1016,
           "width": 0,
           "height": 0,
@@ -10734,8 +10705,37 @@
           ]
         },
         {
+          "id": 360,
+          "name": "lurker",
+          "type": "enemy",
+          "x": 744,
+          "y": 1016,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "lurker"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 6
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
           "id": 361,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 2648,
           "y": 1016,
@@ -10748,7 +10748,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -10793,7 +10793,7 @@
         },
         {
           "id": 363,
-          "name": "slime",
+          "name": "wolf",
           "type": "enemy",
           "x": 3400,
           "y": 1016,
@@ -10806,7 +10806,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -10863,7 +10863,7 @@
         },
         {
           "id": 366,
-          "name": "skeleton",
+          "name": "kultist",
           "type": "enemy",
           "x": 72,
           "y": 1096,
@@ -10876,7 +10876,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -10892,7 +10892,7 @@
         },
         {
           "id": 367,
-          "name": "skeleton",
+          "name": "kultist",
           "type": "enemy",
           "x": 88,
           "y": 1096,
@@ -10905,7 +10905,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -10950,7 +10950,7 @@
         },
         {
           "id": 369,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1512,
           "y": 1096,
@@ -10963,7 +10963,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -10979,7 +10979,7 @@
         },
         {
           "id": 370,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 2952,
           "y": 1096,
@@ -10992,7 +10992,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -11037,7 +11037,7 @@
         },
         {
           "id": 372,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4552,
           "y": 1096,
@@ -11050,7 +11050,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -11066,7 +11066,7 @@
         },
         {
           "id": 373,
-          "name": "slime",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4648,
           "y": 1096,
@@ -11079,7 +11079,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -11136,7 +11136,7 @@
         },
         {
           "id": 376,
-          "name": "goblin",
+          "name": "scorpion",
           "type": "enemy",
           "x": 3608,
           "y": 1112,
@@ -11149,7 +11149,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -11194,7 +11194,7 @@
         },
         {
           "id": 378,
-          "name": "bat",
+          "name": "raider",
           "type": "enemy",
           "x": 1064,
           "y": 1128,
@@ -11207,7 +11207,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -11223,38 +11223,9 @@
         },
         {
           "id": 379,
-          "name": "wolf",
-          "type": "enemy",
-          "x": 2760,
-          "y": 1128,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "wolf"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 2
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 380,
           "name": "goblin",
           "type": "enemy",
-          "x": 2968,
+          "x": 2760,
           "y": 1128,
           "width": 0,
           "height": 0,
@@ -11280,8 +11251,37 @@
           ]
         },
         {
-          "id": 381,
+          "id": 380,
           "name": "slime",
+          "type": "enemy",
+          "x": 2968,
+          "y": 1128,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "slime"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 2
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 381,
+          "name": "archer",
           "type": "enemy",
           "x": 4328,
           "y": 1128,
@@ -11294,7 +11294,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -11322,7 +11322,7 @@
         },
         {
           "id": 383,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 4888,
           "y": 1128,
@@ -11335,7 +11335,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -11351,7 +11351,7 @@
         },
         {
           "id": 384,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 5000,
           "y": 1128,
@@ -11364,7 +11364,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -11380,7 +11380,7 @@
         },
         {
           "id": 385,
-          "name": "skeleton",
+          "name": "kultist",
           "type": "enemy",
           "x": 440,
           "y": 1144,
@@ -11393,7 +11393,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -11438,7 +11438,7 @@
         },
         {
           "id": 387,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 568,
           "y": 1144,
@@ -11451,7 +11451,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -11496,7 +11496,7 @@
         },
         {
           "id": 389,
-          "name": "slime",
+          "name": "wisp",
           "type": "enemy",
           "x": 856,
           "y": 1144,
@@ -11509,7 +11509,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -11525,7 +11525,7 @@
         },
         {
           "id": 390,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 1064,
           "y": 1144,
@@ -11538,7 +11538,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -11554,7 +11554,7 @@
         },
         {
           "id": 391,
-          "name": "slime",
+          "name": "wolf",
           "type": "enemy",
           "x": 3288,
           "y": 1144,
@@ -11567,7 +11567,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -11699,7 +11699,7 @@
         },
         {
           "id": 396,
-          "name": "bat",
+          "name": "spider",
           "type": "enemy",
           "x": 1096,
           "y": 1160,
@@ -11712,7 +11712,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -11786,7 +11786,7 @@
         },
         {
           "id": 399,
-          "name": "wolf",
+          "name": "shroom",
           "type": "enemy",
           "x": 1992,
           "y": 1160,
@@ -11799,7 +11799,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -11856,7 +11856,7 @@
         },
         {
           "id": 402,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 3912,
           "y": 1160,
@@ -11869,7 +11869,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -11914,7 +11914,7 @@
         },
         {
           "id": 404,
-          "name": "slime",
+          "name": "shroom",
           "type": "enemy",
           "x": 4360,
           "y": 1160,
@@ -11927,7 +11927,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -11943,7 +11943,7 @@
         },
         {
           "id": 405,
-          "name": "scorpion",
+          "name": "raider",
           "type": "enemy",
           "x": 4584,
           "y": 1160,
@@ -11956,7 +11956,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -12001,7 +12001,7 @@
         },
         {
           "id": 407,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4728,
           "y": 1160,
@@ -12014,7 +12014,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -12030,7 +12030,7 @@
         },
         {
           "id": 408,
-          "name": "scorpion",
+          "name": "bat",
           "type": "enemy",
           "x": 4888,
           "y": 1160,
@@ -12043,7 +12043,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -12059,7 +12059,7 @@
         },
         {
           "id": 409,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4904,
           "y": 1160,
@@ -12072,7 +12072,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -12088,7 +12088,7 @@
         },
         {
           "id": 410,
-          "name": "goblin",
+          "name": "shroom",
           "type": "enemy",
           "x": 1368,
           "y": 1176,
@@ -12101,7 +12101,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -12204,7 +12204,7 @@
         },
         {
           "id": 414,
-          "name": "goblin",
+          "name": "wolf",
           "type": "enemy",
           "x": 2312,
           "y": 1176,
@@ -12217,7 +12217,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -12233,7 +12233,7 @@
         },
         {
           "id": 415,
-          "name": "goblin",
+          "name": "wolf",
           "type": "enemy",
           "x": 2328,
           "y": 1176,
@@ -12246,7 +12246,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -12262,7 +12262,7 @@
         },
         {
           "id": 416,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 2792,
           "y": 1176,
@@ -12275,7 +12275,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -12291,7 +12291,7 @@
         },
         {
           "id": 417,
-          "name": "slime",
+          "name": "wolf",
           "type": "enemy",
           "x": 3240,
           "y": 1176,
@@ -12304,7 +12304,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -12320,7 +12320,7 @@
         },
         {
           "id": 418,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 4008,
           "y": 1176,
@@ -12333,7 +12333,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -12436,7 +12436,7 @@
         },
         {
           "id": 422,
-          "name": "goblin",
+          "name": "slime",
           "type": "enemy",
           "x": 2632,
           "y": 1192,
@@ -12449,7 +12449,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -12494,7 +12494,7 @@
         },
         {
           "id": 424,
-          "name": "lurker",
+          "name": "raider",
           "type": "enemy",
           "x": 4872,
           "y": 1192,
@@ -12507,7 +12507,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -12535,7 +12535,7 @@
         },
         {
           "id": 426,
-          "name": "bat",
+          "name": "slime",
           "type": "enemy",
           "x": 216,
           "y": 1272,
@@ -12548,7 +12548,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -12617,7 +12617,7 @@
         },
         {
           "id": 430,
-          "name": "slime",
+          "name": "shroom",
           "type": "enemy",
           "x": 1128,
           "y": 1272,
@@ -12630,7 +12630,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -12646,7 +12646,7 @@
         },
         {
           "id": 431,
-          "name": "lurker",
+          "name": "bat",
           "type": "enemy",
           "x": 1144,
           "y": 1272,
@@ -12659,7 +12659,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -12762,7 +12762,7 @@
         },
         {
           "id": 435,
-          "name": "goblin",
+          "name": "scorpion",
           "type": "enemy",
           "x": 2760,
           "y": 1288,
@@ -12775,7 +12775,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -12791,7 +12791,7 @@
         },
         {
           "id": 436,
-          "name": "slime",
+          "name": "wolf",
           "type": "enemy",
           "x": 2776,
           "y": 1288,
@@ -12804,7 +12804,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -12820,7 +12820,7 @@
         },
         {
           "id": 437,
-          "name": "skeleton",
+          "name": "wisp",
           "type": "enemy",
           "x": 520,
           "y": 1304,
@@ -12833,7 +12833,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -12849,38 +12849,9 @@
         },
         {
           "id": 438,
-          "name": "bat",
-          "type": "enemy",
-          "x": 600,
-          "y": 1304,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "bat"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 7
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
-          "id": 439,
           "name": "slime",
           "type": "enemy",
-          "x": 2696,
+          "x": 600,
           "y": 1304,
           "width": 0,
           "height": 0,
@@ -12896,6 +12867,35 @@
             {
               "name": "tier",
               "type": "int",
+              "value": 7
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 439,
+          "name": "wolf",
+          "type": "enemy",
+          "x": 2696,
+          "y": 1304,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "wolf"
+            },
+            {
+              "name": "tier",
+              "type": "int",
               "value": 3
             },
             {
@@ -12907,7 +12907,7 @@
         },
         {
           "id": 440,
-          "name": "goblin",
+          "name": "scorpion",
           "type": "enemy",
           "x": 2920,
           "y": 1304,
@@ -12920,7 +12920,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -12994,7 +12994,7 @@
         },
         {
           "id": 443,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4360,
           "y": 1304,
@@ -13007,7 +13007,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -13052,7 +13052,7 @@
         },
         {
           "id": 445,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4872,
           "y": 1304,
@@ -13065,7 +13065,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -13081,7 +13081,7 @@
         },
         {
           "id": 446,
-          "name": "lurker",
+          "name": "raider",
           "type": "enemy",
           "x": 4952,
           "y": 1304,
@@ -13094,7 +13094,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -13110,7 +13110,7 @@
         },
         {
           "id": 447,
-          "name": "bat",
+          "name": "slime",
           "type": "enemy",
           "x": 232,
           "y": 1320,
@@ -13123,7 +13123,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "slime"
             },
             {
               "name": "tier",
@@ -13168,7 +13168,7 @@
         },
         {
           "id": 449,
-          "name": "scorpion",
+          "name": "wolf",
           "type": "enemy",
           "x": 1432,
           "y": 1320,
@@ -13181,7 +13181,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -13279,7 +13279,7 @@
         },
         {
           "id": 454,
-          "name": "scorpion",
+          "name": "wolf",
           "type": "enemy",
           "x": 3432,
           "y": 1320,
@@ -13292,7 +13292,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "wolf"
             },
             {
               "name": "tier",
@@ -13424,7 +13424,7 @@
         },
         {
           "id": 459,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 872,
           "y": 1336,
@@ -13437,7 +13437,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -13453,7 +13453,7 @@
         },
         {
           "id": 460,
-          "name": "slime",
+          "name": "bat",
           "type": "enemy",
           "x": 1208,
           "y": 1336,
@@ -13466,7 +13466,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -13569,7 +13569,7 @@
         },
         {
           "id": 464,
-          "name": "skeleton",
+          "name": "wisp",
           "type": "enemy",
           "x": 248,
           "y": 1352,
@@ -13582,7 +13582,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -13598,7 +13598,7 @@
         },
         {
           "id": 465,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 424,
           "y": 1352,
@@ -13611,7 +13611,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -13685,7 +13685,7 @@
         },
         {
           "id": 468,
-          "name": "wolf",
+          "name": "scorpion",
           "type": "enemy",
           "x": 2392,
           "y": 1352,
@@ -13698,7 +13698,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -13714,7 +13714,7 @@
         },
         {
           "id": 469,
-          "name": "wolf",
+          "name": "skeleton",
           "type": "enemy",
           "x": 3272,
           "y": 1352,
@@ -13727,7 +13727,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -13801,7 +13801,7 @@
         },
         {
           "id": 472,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4904,
           "y": 1352,
@@ -13814,7 +13814,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -13975,9 +13975,38 @@
         },
         {
           "id": 478,
-          "name": "scorpion",
+          "name": "wolf",
           "type": "enemy",
           "x": 2104,
+          "y": 1368,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "wolf"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 3
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 479,
+          "name": "scorpion",
+          "type": "enemy",
+          "x": 2360,
           "y": 1368,
           "width": 0,
           "height": 0,
@@ -14003,37 +14032,8 @@
           ]
         },
         {
-          "id": 479,
-          "name": "wolf",
-          "type": "enemy",
-          "x": 2360,
-          "y": 1368,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "wolf"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 3
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": false
-            }
-          ]
-        },
-        {
           "id": 480,
-          "name": "wolf",
+          "name": "skeleton",
           "type": "enemy",
           "x": 3128,
           "y": 1368,
@@ -14046,7 +14046,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "wolf"
+              "value": "skeleton"
             },
             {
               "name": "tier",
@@ -14132,7 +14132,7 @@
         },
         {
           "id": 484,
-          "name": "lurker",
+          "name": "scorpion",
           "type": "enemy",
           "x": 4296,
           "y": 1368,
@@ -14145,7 +14145,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "scorpion"
             },
             {
               "name": "tier",
@@ -14190,7 +14190,7 @@
         },
         {
           "id": 486,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4712,
           "y": 1368,
@@ -14203,7 +14203,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -14219,7 +14219,7 @@
         },
         {
           "id": 487,
-          "name": "scorpion",
+          "name": "bat",
           "type": "enemy",
           "x": 4920,
           "y": 1368,
@@ -14232,7 +14232,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -14248,7 +14248,7 @@
         },
         {
           "id": 488,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 4984,
           "y": 1368,
@@ -14261,7 +14261,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -14277,9 +14277,38 @@
         },
         {
           "id": 489,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 72,
+          "y": 1448,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "wisp"
+            },
+            {
+              "name": "tier",
+              "type": "int",
+              "value": 4
+            },
+            {
+              "name": "dungeon",
+              "type": "bool",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": 490,
+          "name": "bat",
+          "type": "enemy",
+          "x": 152,
           "y": 1448,
           "width": 0,
           "height": 0,
@@ -14305,37 +14334,8 @@
           ]
         },
         {
-          "id": 490,
-          "name": "skeleton",
-          "type": "enemy",
-          "x": 152,
-          "y": 1448,
-          "width": 0,
-          "height": 0,
-          "point": true,
-          "rotation": 0,
-          "visible": true,
-          "properties": [
-            {
-              "name": "kind",
-              "type": "string",
-              "value": "skeleton"
-            },
-            {
-              "name": "tier",
-              "type": "int",
-              "value": 4
-            },
-            {
-              "name": "dungeon",
-              "type": "bool",
-              "value": true
-            }
-          ]
-        },
-        {
           "id": 491,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 1560,
           "y": 1448,
@@ -14348,7 +14348,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -14364,7 +14364,7 @@
         },
         {
           "id": 492,
-          "name": "skeleton",
+          "name": "axeman",
           "type": "enemy",
           "x": 2616,
           "y": 1448,
@@ -14377,7 +14377,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -14393,7 +14393,7 @@
         },
         {
           "id": 493,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 2824,
           "y": 1448,
@@ -14406,7 +14406,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -14482,7 +14482,7 @@
         },
         {
           "id": 499,
-          "name": "bat",
+          "name": "shroom",
           "type": "enemy",
           "x": 1144,
           "y": 1464,
@@ -14495,7 +14495,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "shroom"
             },
             {
               "name": "tier",
@@ -14540,7 +14540,7 @@
         },
         {
           "id": 501,
-          "name": "scorpion",
+          "name": "eye",
           "type": "enemy",
           "x": 2744,
           "y": 1464,
@@ -14553,7 +14553,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -14569,7 +14569,7 @@
         },
         {
           "id": 502,
-          "name": "bat",
+          "name": "kultist",
           "type": "enemy",
           "x": 56,
           "y": 1480,
@@ -14582,7 +14582,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -14598,7 +14598,7 @@
         },
         {
           "id": 503,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 3160,
           "y": 1480,
@@ -14611,7 +14611,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -14668,7 +14668,7 @@
         },
         {
           "id": 506,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 1032,
           "y": 1496,
@@ -14681,7 +14681,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -14709,7 +14709,7 @@
         },
         {
           "id": 508,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 1496,
           "y": 1496,
@@ -14722,7 +14722,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -14837,7 +14837,7 @@
         },
         {
           "id": 513,
-          "name": "hexer",
+          "name": "warlord",
           "type": "enemy",
           "x": 3352,
           "y": 1496,
@@ -14850,7 +14850,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "hexer"
+              "value": "warlord"
             },
             {
               "name": "tier",
@@ -14936,7 +14936,7 @@
         },
         {
           "id": 517,
-          "name": "skeleton",
+          "name": "wisp",
           "type": "enemy",
           "x": 88,
           "y": 1528,
@@ -14949,7 +14949,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -14965,7 +14965,7 @@
         },
         {
           "id": 518,
-          "name": "skeleton",
+          "name": "bat",
           "type": "enemy",
           "x": 888,
           "y": 1544,
@@ -14978,7 +14978,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -14994,7 +14994,7 @@
         },
         {
           "id": 519,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 2952,
           "y": 1544,
@@ -15007,7 +15007,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -15052,7 +15052,7 @@
         },
         {
           "id": 521,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 1352,
           "y": 1624,
@@ -15065,7 +15065,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -15141,7 +15141,7 @@
         },
         {
           "id": 527,
-          "name": "bat",
+          "name": "kultist",
           "type": "enemy",
           "x": 536,
           "y": 1640,
@@ -15154,7 +15154,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "kultist"
             },
             {
               "name": "tier",
@@ -15170,7 +15170,7 @@
         },
         {
           "id": 528,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 1000,
           "y": 1640,
@@ -15183,7 +15183,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -15228,7 +15228,7 @@
         },
         {
           "id": 530,
-          "name": "slime",
+          "name": "lurker",
           "type": "enemy",
           "x": 1512,
           "y": 1640,
@@ -15241,7 +15241,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "lurker"
             },
             {
               "name": "tier",
@@ -15257,7 +15257,7 @@
         },
         {
           "id": 531,
-          "name": "skeleton",
+          "name": "axeman",
           "type": "enemy",
           "x": 2088,
           "y": 1640,
@@ -15270,7 +15270,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -15286,7 +15286,7 @@
         },
         {
           "id": 532,
-          "name": "goblin",
+          "name": "lancer",
           "type": "enemy",
           "x": 3416,
           "y": 1640,
@@ -15299,7 +15299,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -15373,7 +15373,7 @@
         },
         {
           "id": 535,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 2296,
           "y": 1656,
@@ -15386,7 +15386,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -15431,7 +15431,7 @@
         },
         {
           "id": 537,
-          "name": "goblin",
+          "name": "raider",
           "type": "enemy",
           "x": 2920,
           "y": 1656,
@@ -15444,7 +15444,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -15460,7 +15460,7 @@
         },
         {
           "id": 538,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 2984,
           "y": 1656,
@@ -15473,7 +15473,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -15489,7 +15489,7 @@
         },
         {
           "id": 539,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 3640,
           "y": 1656,
@@ -15502,7 +15502,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -15518,7 +15518,7 @@
         },
         {
           "id": 540,
-          "name": "brute",
+          "name": "hexer",
           "type": "enemy",
           "x": 152,
           "y": 1672,
@@ -15531,7 +15531,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "brute"
+              "value": "hexer"
             },
             {
               "name": "tier",
@@ -15634,7 +15634,7 @@
         },
         {
           "id": 544,
-          "name": "hexer",
+          "name": "drake",
           "type": "enemy",
           "x": 1752,
           "y": 1672,
@@ -15647,7 +15647,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "hexer"
+              "value": "drake"
             },
             {
               "name": "tier",
@@ -15675,7 +15675,7 @@
         },
         {
           "id": 546,
-          "name": "scorpion",
+          "name": "cobra",
           "type": "enemy",
           "x": 2296,
           "y": 1672,
@@ -15688,7 +15688,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -15704,7 +15704,7 @@
         },
         {
           "id": 547,
-          "name": "scorpion",
+          "name": "cobra",
           "type": "enemy",
           "x": 2408,
           "y": 1672,
@@ -15717,7 +15717,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -15733,7 +15733,7 @@
         },
         {
           "id": 548,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 2984,
           "y": 1672,
@@ -15746,7 +15746,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -15762,7 +15762,7 @@
         },
         {
           "id": 549,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 3800,
           "y": 1672,
@@ -15775,7 +15775,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -15820,7 +15820,7 @@
         },
         {
           "id": 551,
-          "name": "scorpion",
+          "name": "cobra",
           "type": "enemy",
           "x": 2792,
           "y": 1688,
@@ -15833,7 +15833,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -15849,7 +15849,7 @@
         },
         {
           "id": 552,
-          "name": "goblin",
+          "name": "raider",
           "type": "enemy",
           "x": 3384,
           "y": 1688,
@@ -15862,7 +15862,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "raider"
             },
             {
               "name": "tier",
@@ -15878,7 +15878,7 @@
         },
         {
           "id": 553,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 3448,
           "y": 1688,
@@ -15891,7 +15891,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -15919,7 +15919,7 @@
         },
         {
           "id": 555,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 424,
           "y": 1704,
@@ -15932,7 +15932,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -15977,7 +15977,7 @@
         },
         {
           "id": 557,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 2136,
           "y": 1704,
@@ -15990,7 +15990,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -16006,7 +16006,7 @@
         },
         {
           "id": 558,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 2824,
           "y": 1704,
@@ -16019,7 +16019,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -16035,7 +16035,7 @@
         },
         {
           "id": 559,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 2920,
           "y": 1704,
@@ -16048,7 +16048,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -16064,7 +16064,7 @@
         },
         {
           "id": 560,
-          "name": "goblin",
+          "name": "lancer",
           "type": "enemy",
           "x": 3304,
           "y": 1720,
@@ -16077,7 +16077,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -16122,7 +16122,7 @@
         },
         {
           "id": 562,
-          "name": "skeleton",
+          "name": "axeman",
           "type": "enemy",
           "x": 2344,
           "y": 1800,
@@ -16135,7 +16135,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -16151,7 +16151,7 @@
         },
         {
           "id": 563,
-          "name": "skeleton",
+          "name": "wisp",
           "type": "enemy",
           "x": 2984,
           "y": 1800,
@@ -16164,7 +16164,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -16180,7 +16180,7 @@
         },
         {
           "id": 564,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 3736,
           "y": 1800,
@@ -16193,7 +16193,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -16209,7 +16209,7 @@
         },
         {
           "id": 565,
-          "name": "goblin",
+          "name": "lancer",
           "type": "enemy",
           "x": 3784,
           "y": 1800,
@@ -16222,7 +16222,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "goblin"
+              "value": "lancer"
             },
             {
               "name": "tier",
@@ -16238,7 +16238,7 @@
         },
         {
           "id": 566,
-          "name": "skeleton",
+          "name": "bat",
           "type": "enemy",
           "x": 568,
           "y": 1832,
@@ -16251,7 +16251,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -16267,7 +16267,7 @@
         },
         {
           "id": 567,
-          "name": "scorpion",
+          "name": "cobra",
           "type": "enemy",
           "x": 1992,
           "y": 1832,
@@ -16280,7 +16280,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -16325,7 +16325,7 @@
         },
         {
           "id": 569,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 3032,
           "y": 1832,
@@ -16338,7 +16338,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -16354,7 +16354,7 @@
         },
         {
           "id": 570,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 3112,
           "y": 1832,
@@ -16367,7 +16367,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -16383,7 +16383,7 @@
         },
         {
           "id": 571,
-          "name": "skeleton",
+          "name": "eye",
           "type": "enemy",
           "x": 3384,
           "y": 1832,
@@ -16396,7 +16396,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "eye"
             },
             {
               "name": "tier",
@@ -16465,7 +16465,7 @@
         },
         {
           "id": 575,
-          "name": "skeleton",
+          "name": "bat",
           "type": "enemy",
           "x": 744,
           "y": 1848,
@@ -16478,7 +16478,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -16494,7 +16494,7 @@
         },
         {
           "id": 576,
-          "name": "slime",
+          "name": "spider",
           "type": "enemy",
           "x": 1016,
           "y": 1848,
@@ -16507,7 +16507,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "slime"
+              "value": "spider"
             },
             {
               "name": "tier",
@@ -16523,7 +16523,7 @@
         },
         {
           "id": 577,
-          "name": "scorpion",
+          "name": "cobra",
           "type": "enemy",
           "x": 2024,
           "y": 1848,
@@ -16536,7 +16536,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -16552,7 +16552,7 @@
         },
         {
           "id": 578,
-          "name": "scorpion",
+          "name": "archer",
           "type": "enemy",
           "x": 2328,
           "y": 1848,
@@ -16565,7 +16565,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "scorpion"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -16581,7 +16581,7 @@
         },
         {
           "id": 579,
-          "name": "skeleton",
+          "name": "archer",
           "type": "enemy",
           "x": 2472,
           "y": 1848,
@@ -16594,7 +16594,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "archer"
             },
             {
               "name": "tier",
@@ -16610,7 +16610,7 @@
         },
         {
           "id": 580,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 3064,
           "y": 1848,
@@ -16623,7 +16623,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -16663,7 +16663,7 @@
         },
         {
           "id": 583,
-          "name": "skeleton",
+          "name": "bat",
           "type": "enemy",
           "x": 120,
           "y": 1864,
@@ -16676,7 +16676,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "skeleton"
+              "value": "bat"
             },
             {
               "name": "tier",
@@ -16692,7 +16692,7 @@
         },
         {
           "id": 584,
-          "name": "bat",
+          "name": "wisp",
           "type": "enemy",
           "x": 808,
           "y": 1864,
@@ -16705,7 +16705,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "wisp"
             },
             {
               "name": "tier",
@@ -16721,7 +16721,7 @@
         },
         {
           "id": 585,
-          "name": "lurker",
+          "name": "cobra",
           "type": "enemy",
           "x": 1432,
           "y": 1864,
@@ -16734,7 +16734,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "lurker"
+              "value": "cobra"
             },
             {
               "name": "tier",
@@ -16750,7 +16750,7 @@
         },
         {
           "id": 586,
-          "name": "bat",
+          "name": "axeman",
           "type": "enemy",
           "x": 3752,
           "y": 1864,
@@ -16763,7 +16763,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "axeman"
             },
             {
               "name": "tier",
@@ -16832,7 +16832,7 @@
         },
         {
           "id": 590,
-          "name": "bat",
+          "name": "shroom",
           "type": "enemy",
           "x": 1448,
           "y": 1896,
@@ -16845,7 +16845,7 @@
             {
               "name": "kind",
               "type": "string",
-              "value": "bat"
+              "value": "shroom"
             },
             {
               "name": "tier",
