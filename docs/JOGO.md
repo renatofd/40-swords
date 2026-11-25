@@ -30,7 +30,7 @@ A sorte do herói pode dobrar os rupees, como nos monstros. Só a espada corta e
 |---|---|---|---|
 | Mover (8 direções) | WASD / setas | analógico esquerdo | joystick |
 | Espada e armas | Espaço / J | A / X | botão "Espada" |
-| Atributos e relíquias | C | Y | toque no painel de vida |
+| Atributos e relíquias | C | Y | toque no painel de vida (a seta no canto) |
 | Pronto (sala de espera) | R | Start | botão "Pronto" no painel |
 
 Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um quadro.
@@ -408,6 +408,8 @@ Os menus e o HUD são DOM (texto em qualquer escrita, inclusive árabe da direit
 
 - **Molduras:** 9-slices gerados por `pnpm art` (`tools/art/src/ui.ts`) a partir dos cantos de `Menu/Menu.png` e gravados em `content/ui/frame-*.png`; o CSS os desenha com `border-image`. Painéis e HUD têm canto quadrado (`frame-panel`, `frame-hud`), os cartões de herói o canto redondo grande (`frame-card`), os botões o canto médio (`frame-button*`, o vermelho é o principal) e o foco do teclado é o **cursor vermelho** do pacote (`frame-cursor`). As molduras de raridade (`frame-slot-N`, `frame-rarity-N`) usam as cores de `RARITY_COLORS`.
 - **Ícones:** uma folha só, `items` (`tools/art/src/icons.ts`), usada pelo Phaser (itens no mundo) e pelo DOM (`game/client/src/ui/icons.ts`, sprite em CSS com as posições de `ui/iconFrames.json`). Nenhum emoji para itens; o `✔ … ⏳` e o `🤖` da sala de espera continuam como estão.
+- **Abrir e fechar:** o painel de vida tem uma seta no canto (para baixo: abre os atributos e relíquias; para cima: fecha), e o placar dos oponentes tem a mesma seta no título, que recolhe o placar até a barra do título (o template guarda essa escolha para as próximas partidas). Um clique nas setas não tira o teclado do jogo: Espaço continua atacando.
+- **Barras de rolagem:** quadradas, nas cores do pacote (trilho azul-marinho com um fio azul, alça azul com borda clara e escura, dourada sob o mouse), em vez das barras do sistema. O Chrome e o Safari desenham essa barra; o Firefox só usa as duas cores.
 - **Vida:** um coração que se esvazia em quartos (um coração do chão cura exatamente um quarto), a barra e o número. Com um quarto ou menos, o coração pisca e o número fica vermelho.
 - **Espaços de relíquia:** 5 por linha, armas primeiro, depois as passivas, sempre na mesma ordem. A moldura tem a cor da melhor cópia; o número no canto é a quantidade (nas armas, `×` o total de projéteis), e uma sombra que desce mostra a recarga de cada arma.
 - **Raridade:** só pela cor (moldura, anel sob o item na loja, explosão de brilho roxa para épica e lendária, dourada para o resto) e pelo material do baú; nada de `setTint`, brilho ou filtro. A lendária usa o amarelo-ouro do pacote, não o laranja: com deuteranopia (daltonismo verde-vermelho) o laranja e o verde da incomum ficam iguais, e os espaços de relíquia mostram a raridade só pela cor.

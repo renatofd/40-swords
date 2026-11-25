@@ -753,6 +753,103 @@
   color: var(--sw-red);
 }
 
+/*
+ * Open / close chevrons (the status details and the core scoreboard): the pack-style pixel triangle,
+ * down to open, up to close, white, gold under the pointer or the keyboard. 7x4 font px (whole u).
+ */
+.sw-chevron,
+.ui-scoreboard-toggle::before {
+  content: "";
+  flex: none;
+  inline-size: calc(7 * var(--sw-fp));
+  block-size: calc(4 * var(--sw-fp));
+  border: 0;
+  transform: none;
+  background-color: var(--sw-light);
+  -webkit-mask: var(--sw-chevron-down) no-repeat center / 100% 100%;
+  mask: var(--sw-chevron-down) no-repeat center / 100% 100%;
+}
+
+.sw-chevron {
+  margin-inline-start: auto;
+}
+
+:root {
+  --sw-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h7v1H6v1H5v1H4v1H3V3H2V2H1V1H0z'/%3E%3C/svg%3E");
+}
+
+.sw-status-open .sw-chevron,
+.ui-scoreboard:not(.collapsed) .ui-scoreboard-toggle::before {
+  transform: scaleY(-1);
+}
+
+/* Collapsed: the plain down triangle (core rotates its own chevron). */
+.ui-scoreboard.collapsed .ui-scoreboard-toggle::before {
+  transform: none;
+}
+
+.sw-status-main:is(:hover, :focus-visible) .sw-chevron,
+.ui-scoreboard-toggle:is(:hover, :focus-visible)::before {
+  background-color: var(--sw-gold);
+}
+
+/* The scoreboard button: no core hover box, a touch-sized hit area inside the frame's padding. */
+.ui-scoreboard-toggle {
+  inline-size: calc(11 * var(--sw-fp));
+  block-size: calc(9 * var(--sw-fp));
+  margin: 0;
+  margin-inline-end: calc(-2 * var(--sw-u));
+  border-radius: 0;
+}
+
+.ui-scoreboard-toggle:is(:hover, :focus-visible) {
+  background: none;
+}
+
+/* Scrollbars of the UI (the details, the summary, credits, long menus): square pixel bars in the
+   pack colours instead of the system ones. Chrome and Safari draw ::-webkit-scrollbar; Firefox only
+   takes the two colours. */
+.ui-root ::-webkit-scrollbar {
+  inline-size: calc(3 * var(--sw-fp));
+  block-size: calc(3 * var(--sw-fp));
+}
+
+/* A dark groove with a blue line down its middle, like the frames' inner stroke. */
+.ui-root ::-webkit-scrollbar-track {
+  background:
+    linear-gradient(var(--sw-blue-dark), var(--sw-blue-dark)) no-repeat center / var(--sw-u) 100%,
+    var(--sw-navy);
+}
+
+/* The thumb: a blue block with a light top-left and a dark bottom-right edge, square corners. */
+.ui-root ::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background: var(--sw-blue);
+  box-shadow:
+    inset var(--sw-u) var(--sw-u) 0 #5ba8ff,
+    inset calc(-1 * var(--sw-u)) calc(-1 * var(--sw-u)) 0 var(--sw-blue-dark);
+}
+
+.ui-root ::-webkit-scrollbar-thumb:hover,
+.ui-root ::-webkit-scrollbar-thumb:active {
+  background: var(--sw-gold);
+  box-shadow:
+    inset var(--sw-u) var(--sw-u) 0 #fff7a8,
+    inset calc(-1 * var(--sw-u)) calc(-1 * var(--sw-u)) 0 var(--sw-gold-dark);
+}
+
+.ui-root ::-webkit-scrollbar-button,
+.ui-root ::-webkit-scrollbar-corner {
+  display: none;
+  background: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .ui-root * {
+    scrollbar-color: var(--sw-blue) var(--sw-navy);
+  }
+}
+
 .sw-details {
   border-block-start: var(--sw-u) solid var(--sw-blue);
 }
