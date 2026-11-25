@@ -101,7 +101,7 @@ class ClientApp<State> {
       await import("@colyseus/sdk/debug");
     }
 
-    this.scoreboard = new Scoreboard(this.i18n);
+    this.scoreboard = new Scoreboard(this.i18n, undefined, this.storage);
     this.playerList = new PlayerList(this.i18n);
     this.chat = new Chat(this.i18n, DEFAULT_MAX_CHAT_LENGTH);
     this.input = new InputManager(this.ui.root, this.game.actions ?? [], this.i18n.t);

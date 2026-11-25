@@ -1,4 +1,5 @@
 import type { I18n } from "../i18n";
+import type { Storage } from "../storage";
 import { h } from "./dom";
 
 /** One row of a scoreboard / player list. */
@@ -40,16 +41,38 @@ function rowEl(i18n: I18n, rank: number, row: ScoreRow, selfId?: string) {
   );
 }
 
-/** Compact top-N leaderboard in the corner; shows the player's own rank if outside the top. */
+/** Where the scoreboard remembers that the player collapsed it. */
+const COLLAPSED_KEY = "scoreboardCollapsed";
+
+/**
+ * Compact top-N leaderboard in the corner; shows the player's own rank if
+ * outside the top. A button in its header collapses it to the title bar (the
+ * choice is remembered with `storage`); the Tab player list still has everyone.
+ */
 export class Scoreboard {
   readonly el = h("section", { className: "ui-scoreboard", hidden: true });
+  private title = h("span", { className: "ui-scoreboard-title" });
+  private list = h("ol", { id: "ui-scoreboard-list" });
+  private toggleButton = h("button", {
+    type: "button",
+    className: "ui-scoreboard-toggle",
+    "aria-controls": "ui-scoreboard-list",
+    // A mouse click must not take the keyboard focus from the game (Space or Enter would toggle again).
+    onpointerdown: (e: PointerEvent) => e.preventDefault(),
+    onclick: () => this.setCollapsed(!this.collapsed),
+  });
   private rows: ScoreRow[] = [];
   private selfId?: string;
+  private collapsed: boolean;
 
   constructor(
     private readonly i18n: I18n,
     private readonly size = 5,
+    private readonly storage?: Storage,
   ) {
+    this.collapsed = storage?.get(COLLAPSED_KEY) === "1";
+    this.el.append(h("h3", {}, this.title, this.toggleButton), this.list);
+    this.applyCollapsed();
     i18n.onChange(() => this.render());
   }
 
@@ -63,17 +86,38 @@ export class Scoreboard {
   hide() {
     this.rows = [];
     this.selfId = undefined;
-    this.el.replaceChildren();
+    this.list.replaceChildren();
     this.el.hidden = true;
   }
 
+  /** Collapses the scoreboard to its title bar (or opens it again) and remembers the choice. */
+  setCollapsed(collapsed: boolean) {
+    this.collapsed = collapsed;
+    this.storage?.set(COLLAPSED_KEY, collapsed ? "1" : "0");
+    this.applyCollapsed();
+  }
+
+  get isCollapsed(): boolean {
+    return this.collapsed;
+  }
+
+  private applyCollapsed() {
+    this.el.classList.toggle("collapsed", this.collapsed);
+    this.list.hidden = this.collapsed;
+    this.toggleButton.setAttribute("aria-expanded", String(!this.collapsed));
+    this.toggleButton.setAttribute("aria-label", this.i18n.t(this.collapsed ? "scoreboard.show" : "scoreboard.hide"));
+  }
+
   private render() {
+    // Only the title text and the rows change: the toggle button keeps its focus.
+    this.title.textContent = this.i18n.t("scoreboard.title");
+    this.applyCollapsed();
     const top = this.rows.slice(0, this.size);
     const items = top.map((r, i) => rowEl(this.i18n, i + 1, r, this.selfId));
     const selfIndex = this.rows.findIndex((r) => r.id === this.selfId);
     const self = this.rows[selfIndex];
     if (self && selfIndex >= this.size) items.push(rowEl(this.i18n, selfIndex + 1, self, this.selfId));
-    this.el.replaceChildren(h("h3", {}, this.i18n.t("scoreboard.title")), h("ol", {}, ...items));
+    this.list.replaceChildren(...items);
   }
 }
 
