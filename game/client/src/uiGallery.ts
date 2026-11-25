@@ -61,7 +61,7 @@ interface GalleryState {
     update(values: StatusValues): void;
   };
   /** `section=found`: the found box live (driven each frame), for the timing tests. */
-  found?: { show(m: GainMessage): void };
+  found?: { show(m: GainMessage): void; atBottom(bottom: boolean): void };
 }
 
 declare global {
@@ -716,13 +716,23 @@ function foundScreen(t: Translate, state: GalleryState) {
   const inner = h("div", { className: "ui-hud-inner" });
   root.append(inner);
   const panel = new FoundPanel(t);
-  inner.append(h("div", { className: "sw-top" }, panel.el), panel.announcer);
+  const top = h("div", { className: "sw-top" }, panel.el);
+  const bottom = h("div", { className: "sw-bottom" });
+  let atBottom = false;
+  // As GameScene.placeFound does, with the hero's place given by the test.
+  panel.onShow = (el) => (atBottom ? bottom : top).append(el);
+  inner.append(top, bottom, panel.announcer);
   const frame = (now: number) => {
     panel.update(now);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
-  state.found = { show: (m) => panel.show(m) };
+  state.found = {
+    show: (m) => panel.show(m),
+    atBottom: (b) => {
+      atBottom = b;
+    },
+  };
   return root;
 }
 

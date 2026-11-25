@@ -289,6 +289,22 @@
   margin: 0;
 }
 
+/* Bottom centre, over the kill feed and the hint: the found box opens here when at the top it would
+   cover the hero (GameScene.placeFound). */
+.sw-bottom {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: max(16px, var(--ui-safe-bottom));
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
 /* Between the status panel and the scoreboard (90 font px wide), whatever the screen. */
 .sw-found {
   display: flex;

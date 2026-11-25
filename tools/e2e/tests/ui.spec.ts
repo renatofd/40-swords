@@ -385,3 +385,32 @@ test("the found box types its text, stays 5 s, queues the next item and closes o
     await page.evaluate(() => (window as unknown as { __uiGallery: { errors: string[] } }).__uiGallery.errors),
   ).toEqual([]);
 });
+
+for (const size of [
+  { width: 1280, height: 720 },
+  { width: 863, height: 360 },
+])
+  test(`at the bottom (the hero under the top spot) the found box sits clear of the screen edge, ${size.width}×${size.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size);
+    await openGallery(page, "lang=ar&section=found");
+    await page.evaluate(() => {
+      const g = (
+        window as unknown as { __uiGallery: { found: { show(m: unknown): void; atBottom(b: boolean): void } } }
+      ).__uiGallery.found;
+      g.atBottom(true);
+      g.show({ kind: "arrow", rarity: 3, source: "chest" });
+    });
+    const box = page.locator(".sw-bottom > .sw-found");
+    await expect(box).toBeVisible();
+    const r = await box.boundingBox();
+    expect(r).not.toBeNull();
+    if (!r) return;
+    expect(r.y + r.height).toBeLessThanOrEqual(size.height - 16 + 0.5);
+    expect(r.y).toBeGreaterThan(size.height / 2);
+    // Centred, and inside the screen.
+    expect(Math.abs(r.x + r.width / 2 - size.width / 2)).toBeLessThanOrEqual(1);
+    expect(r.x).toBeGreaterThanOrEqual(0);
+    expect(r.x + r.width).toBeLessThanOrEqual(size.width);
+  });

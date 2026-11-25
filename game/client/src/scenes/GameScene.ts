@@ -90,6 +90,7 @@ import { createProceduralArt, rarityRingTexture, shadowTexture } from "../render
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
 import { FoundPanel } from "../ui/foundPanel";
+import { foundAtBottom } from "../ui/foundPlace";
 import { icon } from "../ui/icons";
 import { type LobbyEntry, LobbyPanel } from "../ui/lobby";
 import { MatchHud } from "../ui/matchHud";
@@ -220,6 +221,8 @@ export class GameScene extends Phaser.Scene {
   private found?: FoundPanel;
   /** Top centre column: the boss bar, then the found box under it. */
   private topStack?: HTMLElement;
+  /** Bottom centre: where the found box opens when at the top it would cover the hero. */
+  private bottomHost?: HTMLElement;
   private topResize?: ResizeObserver;
   private bossBar?: BossBar;
   private minimap?: Minimap;
@@ -389,6 +392,8 @@ export class GameScene extends Phaser.Scene {
       () => this.toggleBots(),
     );
     this.topStack = h("div", { className: "sw-top" }, this.bossBar.el, this.found.el);
+    this.bottomHost = h("div", { className: "sw-bottom" });
+    this.found.onShow = (el) => this.placeFound(el);
     // The banner keeps clear of the top column (boss bar, found box): --sw-top-bottom (styles.css).
     const topStack = this.topStack;
     this.topResize = new ResizeObserver(() =>
@@ -400,6 +405,7 @@ export class GameScene extends Phaser.Scene {
       this.labels.el,
       this.status.el,
       this.topStack,
+      this.bottomHost,
       this.found.announcer,
       this.match.timer,
       this.match.feed,
@@ -750,6 +756,28 @@ export class GameScene extends Phaser.Scene {
    * turns), with a burst behind it (purple for epic and legendary). It rises
    * in whole pixels, holds, blinks and goes; a new one replaces it.
    */
+  /**
+   * Zelda's rule for the found box: at the top of the screen, unless it would
+   * cover the hero there; then at the bottom. Measured once, as the box opens.
+   */
+  private placeFound(el: HTMLElement) {
+    const { topStack, bottomHost, predict } = this;
+    if (!topStack || !bottomHost) return;
+    if (el.parentElement !== topStack) topStack.append(el);
+    const self = this.ctx.room.state.players.get(this.ctx.room.sessionId);
+    if (!self || !predict) return;
+    const canvas = this.game.canvas.getBoundingClientRect();
+    const cam = this.cameras.main;
+    const scale = canvas.width / cam.width;
+    const sx = (wx: number) => canvas.left + (wx - cam.worldView.x) * scale;
+    const sy = (wy: number) => canvas.top + (wy - cam.worldView.y) * scale;
+    const x = predict.value(self, "x");
+    const y = predict.value(self, "y");
+    // The hero's sprite and name tag, from head to feet.
+    const hero = { left: sx(x - 12), right: sx(x + 12), top: sy(y - HERO_HEAD - 12), bottom: sy(y + 4) };
+    if (foundAtBottom(el.getBoundingClientRect(), hero, 12)) bottomHost.append(el);
+  }
+
   private showItemGet(kind: OfferItem, rarity: number) {
     this.itemGet?.sprite.destroy();
     this.itemGet = undefined;
