@@ -7,7 +7,9 @@ content/
 ├── maps/
 │   ├── game.tiled-project   Abra este arquivo no Tiled (classes spawn, enemy, chest, vendor, portal, dest)
 │   └── overworld.tmj        O mundo do 40 Swords (gerado por tools/world-gen, editável no Tiled)
-├── tilesets/overworld.png   Tileset provisório (16x16, extrudado)
+├── tilesets/world.png       Tileset do mundo, gerado por tools/world-gen a partir de src/notzelda (16x16, extrudado)
+├── src/notzelda/            Folhas originais do pacote "Super Overhead Adventure 3" (CC BY-SA 4.0, veja ReadMe.txt); não vão para o jogo
+├── CREDITS.md               Créditos e licença da arte do mundo (CC BY-SA 4.0) e o que foi modificado
 ├── sprites/
 │   └── src/                 Seus arquivos .aseprite (fonte); heróis e inimigos ainda são desenhados em código
 └── audio/
@@ -15,7 +17,7 @@ content/
     └── sfx/*.wav            Efeitos (a chave é o nome do arquivo: "join", "ui", "swing", "hit"...)
 ```
 
-A arte e os sons atuais são **provisórios**: o mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja [`docs/JOGO.md`](../docs/JOGO.md)), a música e os sons `join` e `ui` de `pnpm assets:placeholder`, e os efeitos do jogo (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória) de `pnpm sfx`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
+O mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja "Como o mundo é gerado" em [`docs/JOGO.md`](../docs/JOGO.md)). A arte do mundo é *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença CC BY-SA 4.0. O `tilesets/world.png` é uma obra derivada, recortada, recomposta e extrudada, compartilhada sob a mesma licença. Os créditos completos e a lista das mudanças estão em [`CREDITS.md`](CREDITS.md); mantenha esse arquivo junto com a arte se ela for redistribuída. Heróis, inimigos, itens e sons ainda são **provisórios** (veja [`docs/JOGO.md`](../docs/JOGO.md)): a música e os sons `join` e `ui` vêm de `pnpm assets:placeholder`, e os efeitos do jogo (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória) de `pnpm sfx`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
 
 `pnpm content:validate` confere mapas, sprites e áudio. Ele roda na CI e no `pnpm check`.
 
@@ -72,6 +74,8 @@ ctx.audio.playSfx("join", { rate: 0.95 + Math.random() * 0.1 });
 | `objects` | Objetos | **Obrigatória.** Pontos de spawn e, no futuro, zonas, portais e itens |
 
 Pode adicionar outras layers de tiles; todas são desenhadas na ordem do Tiled.
+
+O mundo do 40 Swords usa cinco layers de tiles, nesta ordem: `ground`, `ground2`, `walls`, `props` (mato alto e potes) e `above`. O jogo desenha a `above` por cima dos heróis, como as cabeças das estátuas.
 
 ### Colisão
 

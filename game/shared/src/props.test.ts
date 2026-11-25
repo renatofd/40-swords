@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { PROPS, parseProps, rollPropDrop } from "./props";
 import { createRng } from "./rng";
 
-/** A 4x2 map whose tileset has tall grass (whole, cut) and a pot (whole, broken). */
+/**
+ * A 4x2 map whose tileset has tall grass (whole, cut), a pot (whole, broken) and
+ * a second pot look that names its own broken look (`brokenTile`).
+ */
 function tinyMap(props?: number[]): TiledMap {
   const prop = (kind: string, broken: boolean) => [
     { name: "prop", type: "string", value: kind },
@@ -26,6 +29,8 @@ function tinyMap(props?: number[]): TiledMap {
           { id: 6, properties: prop("bush", true) },
           { id: 7, properties: prop("pot", false) },
           { id: 8, properties: prop("pot", true) },
+          { id: 9, properties: [...prop("pot", false), { name: "brokenTile", type: "int", value: 10 }] },
+          { id: 10, properties: prop("pot", true) },
         ],
       },
     ],
@@ -42,12 +47,14 @@ describe("tall grass and pots", () => {
   it("are read from the tile layer `props`: id = tile index, at the tile's centre", () => {
     // A flipped pot (Tiled's flag bits) counts too; tiles drawn broken in the map are not props.
     const flipped = 8 + 0x80000000;
-    const { props, tiles } = parseProps(tinyMap([0, 6, 0, 7, 0, 0, flipped, 9]));
+    const { props, broken } = parseProps(tinyMap([0, 6, 0, 7, 10, 0, flipped, 9]));
     expect(props).toEqual([
-      { id: 1, kind: "bush", x: 24, y: 8 },
-      { id: 6, kind: "pot", x: 40, y: 24 },
+      { id: 1, kind: "bush", x: 24, y: 8, gid: 6 },
+      { id: 4, kind: "pot", x: 8, y: 24, gid: 10 },
+      { id: 6, kind: "pot", x: 40, y: 24, gid: 8 },
     ]);
-    expect(tiles).toEqual({ bush: { whole: 6, broken: 7 }, pot: { whole: 8, broken: 9 } });
+    // Each whole look breaks into its own broken look (or the kind's broken tile when it names none).
+    expect(broken).toEqual({ 6: 7, 8: 11, 10: 11 });
     expect(parseProps(tinyMap()).props).toEqual([]);
   });
 

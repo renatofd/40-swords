@@ -1,17 +1,19 @@
 /**
- * Writes content/tilesets/overworld.png and content/maps/overworld.tmj from
+ * Writes content/tilesets/world.png and content/maps/overworld.tmj from
  * world.ts (layout) and build.ts (procedural screens), after checking the
  * result: screen edges match their connections and everything is reachable
- * from the start (walking and through portals).
+ * from the start (walking and through portals). The look comes from the skin
+ * (skin/*.ts: glyphs → tile keys) and the catalogue (tiles.ts: tile keys →
+ * pack tiles), baked into one tileset by atlas.ts.
  *
  *   pnpm --filter @tools/world-gen generate
  *
  * Glyphs:
  *   .  ground of the screen   ,  flowers   :  path   s  sand   o  stone   m  mud   =  bridge
- *   T  tree   R  rock   W  water   B  bush   +  tombstone   P  pillar   a  cactus
+ *   T  tree   R  rock   W  water   B  bush   +  tombstone   P  pillar   Z  landmark (houses, statues, entrances...)
  *   S  player spawn   $  chest   C  cave entrance   D  dungeon door   X  way out (caves, dungeons)
  *   _  cave floor   K  cave wall   H  shelf   Q  counter   V  vendor (behind the counter)
- *   ;  dungeon floor   #  dungeon wall   I  statue
+ *   ;  dungeon floor   #  dungeon wall   I  statue   J  block (2x2 J: a big block)
  *   n  arena sand   l  arena line   N  arena wall   u  arena pillar   x  arena spawn
  *   enemies: e slime  g goblin  b bat  k skeleton  z scorpion  w wolf  f lurker
  *            1 the dungeon's mini-boss   2 the dungeon's boss
@@ -20,7 +22,7 @@
  * stream, so they never change the rest of the world): clumps of tall grass on
  * the grassy overworld screens, pots in the corners of caves and dungeon rooms.
  */
-import { writeFileSync } from "node:fs";
+import { readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -33,8 +35,21 @@ import {
   TILE_SIZE,
 } from "@game/shared";
 import { PNG } from "pngjs";
-import { buildDungeonRoom, buildOverworld, dungeonLayout, type Openings, rngFor } from "./build";
-import { buildTileset, COLUMNS, MARGIN, SPACING, TILES, tileId } from "./tiles";
+import { Atlas, bake, MARGIN, SPACING, setRepoRoot } from "./atlas";
+import {
+  buildDungeonRoom,
+  dungeonLayout,
+  OPENING_COLUMNS,
+  type Openings,
+  patternDeck,
+  ROOM_DOOR_COLUMNS,
+  type RoomRole,
+  rngFor,
+  SIDE_OPENING_ROWS,
+} from "./build";
+import { buildOverworld, type EntranceKind, type Landmark, type Shape } from "./overworld";
+import { LAYERS, type ScreenKind, skinWorld, type WorldView } from "./skin";
+import { TILES } from "./tiles";
 import {
   ARENA,
   ARENA_AT,
@@ -48,18 +63,23 @@ import {
   INTERIOR_ROWS,
   OVERWORLD_COLUMNS,
   OVERWORLD_ROWS,
+  RIVERS,
   SEED,
   SHOP_CAVES,
+  START_LANDMARKS,
   START_SCREEN,
+  START_SHAPES,
   TREASURE_CAVE,
 } from "./world";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const MAP_ID = "overworld";
+const TILESET = "world";
+setRepoRoot(ROOT);
 
 interface Glyph {
-  ground?: string;
-  wall?: string;
+  /** Blocks movement (the skin must place colliding tiles exactly there). */
+  solid?: boolean;
   enemy?: string;
   object?: string;
   portal?: "entrance" | "exit";
@@ -67,37 +87,38 @@ interface Glyph {
 
 const GLYPHS: Record<string, Glyph> = {
   ".": {},
-  ",": { ground: "flowers" },
-  ":": { ground: "path" },
-  s: { ground: "sand" },
-  o: { ground: "stone" },
-  m: { ground: "mud" },
-  "=": { ground: "bridge" },
-  T: { wall: "tree" },
-  R: { wall: "rock" },
-  W: { wall: "water" },
-  B: { wall: "bush" },
-  "+": { wall: "tomb" },
-  P: { ground: "stone", wall: "pillar" },
-  a: { ground: "sand", wall: "cactus" },
-  S: { ground: "stone", object: "spawn" },
+  ",": {},
+  ":": {},
+  s: {},
+  o: {},
+  m: {},
+  "=": {},
+  T: { solid: true },
+  R: { solid: true },
+  W: { solid: true },
+  B: { solid: true },
+  "+": { solid: true },
+  P: { solid: true },
+  Z: { solid: true },
+  S: { object: "spawn" },
   $: { object: "chest" },
-  C: { ground: "cave", portal: "entrance" },
-  D: { ground: "door", portal: "entrance" },
-  X: { ground: "caveExit", portal: "exit" },
-  _: { ground: "caveFloor" },
-  K: { wall: "caveWall" },
-  H: { wall: "shelf" },
-  Q: { ground: "caveFloor", wall: "counter" },
-  V: { ground: "caveFloor", wall: "counter", object: "vendor" },
-  ";": { ground: "dungeonFloor" },
-  "#": { wall: "dungeonWall" },
-  I: { ground: "dungeonFloor", wall: "statue" },
-  n: { ground: "arenaSand" },
-  l: { ground: "arenaLine" },
-  N: { wall: "arenaWall" },
-  u: { ground: "arenaSand", wall: "arenaPillar" },
-  x: { ground: "arenaSand", object: "arenaSpawn" },
+  C: { portal: "entrance" },
+  D: { portal: "entrance" },
+  X: { portal: "exit" },
+  _: {},
+  K: { solid: true },
+  H: { solid: true },
+  Q: { solid: true },
+  V: { solid: true, object: "vendor" },
+  ";": {},
+  "#": { solid: true },
+  I: { solid: true },
+  J: { solid: true },
+  n: {},
+  l: {},
+  N: { solid: true },
+  u: { solid: true },
+  x: { object: "arenaSpawn" },
   e: { enemy: "slime" },
   g: { enemy: "goblin" },
   b: { enemy: "bat" },
@@ -109,26 +130,26 @@ const GLYPHS: Record<string, Glyph> = {
   "2": { enemy: "boss" },
 };
 
-const GROUND: Record<string, string> = {
-  G: "grass",
-  F: "darkGrass",
-  H: "grass",
-  M: "path",
-  L: "grass",
-  D: "sand",
-  W: "darkGrass",
-  Y: "darkGrass",
-  B: "sand",
-  C: "grass",
-};
+/** Biomes whose screens get tall grass. */
+const GRASSY = new Set(["G", "F", "H", "L", "R", "W", "Y"]);
 
 interface Plan {
   name: string;
-  ground: string;
+  kind: ScreenKind;
+  biome?: Biome;
+  /** Index in CAVES (cave screens). */
+  cave?: number;
   /** Enemy difficulty of the screen. */
   tier: number;
   dungeon?: DungeonDef;
+  /** Role of a dungeon room. */
+  room?: RoomRole;
   rows: string[];
+  /** Overworld walls drawn as rectangles and multi-cell landmarks (screen coordinates). */
+  shapes?: Shape[];
+  landmarks?: Landmark[];
+  /** Cosmetic trail cells (screen coordinates, see OverworldScreen.trail). */
+  trail?: [number, number][];
 }
 
 const COLS = OVERWORLD_COLUMNS;
@@ -189,7 +210,7 @@ const isConnected = (a: [number, number], b: [number, number]) => conn.has(edge(
 }
 // Dungeons: their rooms link only among themselves.
 for (const d of DUNGEONS) {
-  for (const [c1, r1, c2, r2] of dungeonLayout(d.mirror).links)
+  for (const [c1, r1, c2, r2] of dungeonLayout(d.layout).links)
     connect([d.at[0] + c1, OVERWORLD_ROWS + d.at[1] + r1], [d.at[0] + c2, OVERWORLD_ROWS + d.at[1] + r2]);
 }
 const openingsOf = (c: number, r: number): Openings => ({
@@ -203,40 +224,91 @@ const openingsOf = (c: number, r: number): Openings => ({
 const plans: Plan[][] = Array.from({ length: ROWS }, () => []);
 const solid = Array.from({ length: SCREEN_TILES_Y }, () => "K".repeat(SCREEN_TILES_X));
 
+// Rivers: where each one crosses the edges between its screens (2 tiles wide, clear of the openings).
+const rivers = new Map<string, { n?: number; s?: number; source?: boolean }>();
+const PORTS = [3, 4, 14, 15];
+for (const river of RIVERS) {
+  const at = (c: number, r: number) => {
+    const k = `${c},${r}`;
+    if (!rivers.has(k)) rivers.set(k, {});
+    return rivers.get(k) as { n?: number; s?: number; source?: boolean };
+  };
+  river.forEach(([c, r], i) => {
+    const next = river[i + 1];
+    if (next && (next[0] !== c || next[1] !== r + 1)) errors.push(`river at ${c},${r} must flow to the screen below`);
+    if (i === 0) Object.assign(at(c, r), { n: PORTS[Math.floor(rng() * PORTS.length)], source: true });
+    if (next || BIOMES[r]?.[c] !== "L") {
+      const x = PORTS[Math.floor(rng() * PORTS.length)] as number;
+      at(c, r).s = x;
+      if (next) at(next[0], next[1]).n = x;
+    }
+  });
+}
+// The sea along the east edge: its first column on each edge between the coast screens.
+const seaEdge = Array.from({ length: OVERWORLD_ROWS + 1 }, (_, k) =>
+  k > 0 && k < OVERWORLD_ROWS && isConnected([COLS - 1, k - 1], [COLS - 1, k])
+    ? 12 + Math.floor(rng() * 2)
+    : 10 + Math.floor(rng() * 4),
+);
+/** Look of each entrance: caves in rocks or hollow trees, dungeons with their own facade. */
+const entranceAt = (c: number, r: number, biome: Biome): { glyph: "C" | "D"; kind: EntranceKind } | undefined => {
+  const dungeon = DUNGEONS.find((d) => d.door[0] === c && d.door[1] === r);
+  if (dungeon) return { glyph: "D", kind: dungeon.entrance };
+  if (!CAVES.some((k) => k.door[0] === c && k.door[1] === r)) return undefined;
+  return { glyph: "C", kind: "MHB".includes(biome) ? "rockCave" : "hollowTree" };
+};
+
+/** Overworld screens with a chest: a fixed count (drawn with their own stream) so relic supply doesn't depend on luck. */
+const OVERWORLD_CHESTS = 32;
+const chestScreens = (() => {
+  const chestRng = rngFor(SEED + 7);
+  const screens: string[] = [];
+  for (let r = 0; r < OVERWORLD_ROWS; r++)
+    for (let c = 0; c < COLS; c++) if (BIOMES[r]?.[c] !== "C") screens.push(`${c},${r}`);
+  for (let i = screens.length - 1; i > 0; i--) {
+    const j = Math.floor(chestRng() * (i + 1));
+    [screens[i], screens[j]] = [screens[j] as string, screens[i] as string];
+  }
+  return new Set(screens.slice(0, OVERWORLD_CHESTS));
+})();
+
 for (let r = 0; r < OVERWORLD_ROWS; r++)
   for (let c = 0; c < COLS; c++) {
     const biome = (BIOMES[r]?.[c] ?? "G") as Biome;
     const ring = Math.max(Math.abs(c - START[0]), Math.abs(r - START[1]));
-    const plan: Plan = { name: `${biome}${c},${r}`, ground: GROUND[biome] ?? "grass", tier: ring, rows: [] };
-    if (biome === "C") plan.rows = START_SCREEN;
+    const plan: Plan = { name: `${biome}${c},${r}`, kind: "overworld", biome, tier: ring, rows: [] };
+    if (biome === "C") Object.assign(plan, { rows: START_SCREEN, shapes: START_SHAPES, landmarks: START_LANDMARKS });
     else {
-      const door = DUNGEONS.some((d) => d.door[0] === c && d.door[1] === r);
-      const cave = CAVES.some((k) => k.door[0] === c && k.door[1] === r);
-      plan.rows = buildOverworld(rng, {
+      const built = buildOverworld(rng, {
         biome,
         open: openingsOf(c, r),
-        feature: door ? "D" : cave ? "C" : undefined,
+        feature: entranceAt(c, r, biome),
+        river: rivers.get(`${c},${r}`),
+        pathX: { n: 9 + ((c * 7 + (r - 1) * 3) & 1), s: 9 + ((c * 7 + r * 3) & 1) },
+        sea: biome === "B" && c === COLS - 1 ? { n: seaEdge[r] as number, s: seaEdge[r + 1] as number } : undefined,
         ring,
-        chest: rng() < 0.22,
+        chest: chestScreens.has(`${c},${r}`),
       });
+      Object.assign(plan, built);
     }
     (plans[r] as Plan[])[c] = plan;
   }
 for (let r = OVERWORLD_ROWS; r < ROWS; r++)
-  for (let c = 0; c < COLS; c++)
-    (plans[r] as Plan[])[c] = { name: "bedrock", ground: "caveFloor", tier: 0, rows: solid };
+  for (let c = 0; c < COLS; c++) (plans[r] as Plan[])[c] = { name: "bedrock", kind: "bedrock", tier: 0, rows: solid };
 for (const d of DUNGEONS) {
-  const { roles } = dungeonLayout(d.mirror);
+  const { roles } = dungeonLayout(d.layout);
+  const deck = patternDeck(rng);
   for (const [at, role] of Object.entries(roles)) {
     const [lc, lr] = at.split(",").map(Number) as [number, number];
     const c = d.at[0] + lc;
     const r = OVERWORLD_ROWS + d.at[1] + lr;
     (plans[r] as Plan[])[c] = {
       name: `${d.id} ${role}`,
-      ground: "dungeonFloor",
+      kind: "dungeon",
       tier: 3 + d.depth,
       dungeon: d,
-      rows: buildDungeonRoom(rng, role, openingsOf(c, r), d),
+      room: role,
+      rows: buildDungeonRoom(rng, role, openingsOf(c, r), d, deck),
     };
   }
 }
@@ -244,7 +316,7 @@ CAVES.forEach((cave, i) => {
   const c = CAVES_AT_COLUMN + (i % 4);
   const r = OVERWORLD_ROWS + Math.floor(i / 4);
   const rows = cave.type === "shop" ? (SHOP_CAVES[i % SHOP_CAVES.length] as string[]) : TREASURE_CAVE;
-  (plans[r] as Plan[])[c] = { name: `cave${i}`, ground: "caveFloor", tier: 0, rows };
+  (plans[r] as Plan[])[c] = { name: `cave${i}`, kind: "cave", cave: i, tier: 0, rows };
 });
 
 // The arena: one big room split into screens (its inner edges are open, see the edge rules).
@@ -256,7 +328,7 @@ for (let sr = 0; sr < arenaRows; sr++)
   for (let sc = 0; sc < arenaCols; sc++)
     (plans[arenaRow + sr] as Plan[])[arenaCol + sc] = {
       name: `arena ${sc},${sr}`,
-      ground: "arenaSand",
+      kind: "arena",
       tier: 0,
       rows: ARENA.slice(sr * SCREEN_TILES_Y, (sr + 1) * SCREEN_TILES_Y).map((line) =>
         line.slice(sc * SCREEN_TILES_X, (sc + 1) * SCREEN_TILES_X),
@@ -286,7 +358,7 @@ plans.forEach((row, sr) => {
 });
 const glyph = (x: number, y: number) => GLYPHS[glyphAt[y]?.[x] ?? "K"] ?? {};
 const centreOf = (t: number) => t * TILE_SIZE + TILE_SIZE / 2;
-const isSolid = (x: number, y: number) => x < 0 || y < 0 || x >= width || y >= height || Boolean(glyph(x, y).wall);
+const isSolid = (x: number, y: number) => x < 0 || y < 0 || x >= width || y >= height || Boolean(glyph(x, y).solid);
 
 // ─── Edge rules ─────────────────────────────────────────────────────────────
 for (let y = 0; y < height; y++)
@@ -301,12 +373,15 @@ for (let y = 0; y < height; y++)
     const sc = Math.floor(x / SCREEN_TILES_X);
     const sr = Math.floor(y / SCREEN_TILES_Y);
     if (lx === SCREEN_TILES_X - 1 && !(inArena(x, y) && inArena(x + 1, y))) {
-      const open = isConnected([sc, sr], [sc + 1, sr]) && ly >= 4 && ly <= 6;
+      const open = isConnected([sc, sr], [sc + 1, sr]) && ly >= SIDE_OPENING_ROWS[0] && ly <= SIDE_OPENING_ROWS[1];
       if (isSolid(x, y) === open || isSolid(x + 1, y) === open)
         errors.push(`edge at tile (${x}|${x + 1}, ${y}) must be ${open ? "open" : "closed"}`);
     }
     if (ly === SCREEN_TILES_Y - 1 && !(inArena(x, y) && inArena(x, y + 1))) {
-      const open = isConnected([sc, sr], [sc, sr + 1]) && lx >= 8 && lx <= 11;
+      // Between dungeon rooms the openings are the 2-tile doors of the room art.
+      const rooms = planAt(x, y)?.kind === "dungeon" && planAt(x, y + 1)?.kind === "dungeon";
+      const [x0, x1] = rooms ? ROOM_DOOR_COLUMNS : OPENING_COLUMNS;
+      const open = isConnected([sc, sr], [sc, sr + 1]) && lx >= x0 && lx <= x1;
       if (isSolid(x, y) === open || isSolid(x, y + 1) === open)
         errors.push(`edge at tile (${x}, ${y}|${y + 1}) must be ${open ? "open" : "closed"}`);
     }
@@ -323,7 +398,7 @@ const findIn = (sc: number, sr: number, g: string): [number, number] | undefined
 };
 const links: { name: string; entrance?: [number, number]; exit?: [number, number] }[] = [
   ...DUNGEONS.map((d) => {
-    const { roles } = dungeonLayout(d.mirror);
+    const { roles } = dungeonLayout(d.layout);
     const [lc, lr] = (Object.entries(roles).find(([, role]) => role === "entrance")?.[0] ?? "1,2")
       .split(",")
       .map(Number) as [number, number];
@@ -341,13 +416,17 @@ const links: { name: string; entrance?: [number, number]; exit?: [number, number
 ];
 const jumps = new Map<number, [number, number]>();
 const dests: { name: string; x: number; y: number }[] = [];
-const portals: { name: string; x: number; y: number; target: string }[] = [];
+const portals: { name: string; x: number; y: number; w: number; target: string }[] = [];
 for (const { name, entrance, exit } of links) {
   if (!entrance || !exit) {
     errors.push(`link "${name}" needs an entrance and an exit`);
     continue;
   }
+  // A dungeon's way out is a 2-tile doorway (XX): one portal over both, arriving between them.
+  const wide = glyphAt[exit[1]]?.[exit[0] + 1] === "X" ? 1 : 0;
   const inside: [number, number] = [exit[0], exit[1] - 1];
+  if (wide && (isSolid(exit[0] + 1, exit[1] - 1) || glyph(exit[0] + 1, exit[1] - 1).portal))
+    errors.push(`link "${name}": the floor in front of its doorway is not open`);
   const outside: [number, number] = [entrance[0], entrance[1] + 1];
   for (const [label, [dx, dy]] of [
     ["inside", inside],
@@ -356,11 +435,14 @@ for (const { name, entrance, exit } of links) {
     if (isSolid(dx, dy) || glyph(dx, dy).portal)
       errors.push(`link "${name}": ${label} arrival (${dx}, ${dy}) is not floor`);
   jumps.set(entrance[1] * width + entrance[0], inside);
-  jumps.set(exit[1] * width + exit[0], outside);
-  dests.push({ name: `${name}-in`, x: inside[0], y: inside[1] }, { name: `${name}-out`, x: outside[0], y: outside[1] });
+  for (let i = 0; i <= wide; i++) jumps.set(exit[1] * width + exit[0] + i, outside);
+  dests.push(
+    { name: `${name}-in`, x: inside[0] + wide / 2, y: inside[1] },
+    { name: `${name}-out`, x: outside[0], y: outside[1] },
+  );
   portals.push(
-    { name: `${name}-enter`, x: entrance[0], y: entrance[1], target: `${name}-in` },
-    { name: `${name}-leave`, x: exit[0], y: exit[1], target: `${name}-out` },
+    { name: `${name}-enter`, x: entrance[0], y: entrance[1], w: 1, target: `${name}-in` },
+    { name: `${name}-leave`, x: exit[0], y: exit[1], w: 1 + wide, target: `${name}-out` },
   );
 }
 // Every portal glyph must belong to a link.
@@ -489,7 +571,7 @@ const NEIGHBOURS: [number, number][] = [
 for (let sr = 0; sr < OVERWORLD_ROWS; sr++)
   for (let sc = 0; sc < COLS; sc++) {
     const plan = plans[sr]?.[sc];
-    if (!plan || plan.rows === START_SCREEN || (plan.ground !== "grass" && plan.ground !== "darkGrass")) continue;
+    if (!plan || plan.rows === START_SCREEN || !GRASSY.has(plan.biome ?? "")) continue;
     const open = (x: number, y: number) => {
       const lx = x % SCREEN_TILES_X;
       const ly = y % SCREEN_TILES_Y;
@@ -525,11 +607,12 @@ for (let sr = 0; sr < OVERWORLD_ROWS; sr++)
       }
     }
   }
-// Caves and dungeon rooms: two to four pots, in the corners first, then along the walls.
+// Caves and dungeon rooms: two to four pots, in the corners first, then along the walls
+// (in dungeons, away from statues and blocks and off the runners between the doors).
 for (let sr = OVERWORLD_ROWS; sr < ROWS; sr++)
   for (let sc = 0; sc < COLS; sc++) {
     const plan = plans[sr]?.[sc];
-    if (!plan || plan.name === "bedrock" || inArena(sc * SCREEN_TILES_X, sr * SCREEN_TILES_Y)) continue;
+    if (!plan || (plan.kind !== "cave" && plan.kind !== "dungeon")) continue;
     const corners: [number, number][] = [];
     const sides: [number, number][] = [];
     for (let ly = 0; ly < SCREEN_TILES_Y; ly++)
@@ -537,6 +620,11 @@ for (let sr = OVERWORLD_ROWS; sr < ROWS; sr++)
         const x = sc * SCREEN_TILES_X + lx;
         const y = sr * SCREEN_TILES_Y + ly;
         if (!propFree(x, y)) continue;
+        if (plan.kind === "dungeon") {
+          // Not wedged among statues and blocks, nor where the skin may lay a runner between the doors.
+          if (NEIGHBOURS.some(([dx, dy]) => /[IJ]/.test(glyphAt[y + dy]?.[x + dx] ?? ""))) continue;
+          if ((lx >= 8 && lx <= 11) || (ly >= 4 && ly <= 6)) continue;
+        }
         const across = isSolid(x - 1, y) || isSolid(x + 1, y);
         const along = isSolid(x, y - 1) || isSolid(x, y + 1);
         if (across && along) corners.push([x, y]);
@@ -557,16 +645,92 @@ for (const k of propAt.keys()) {
     errors.push(`prop at tile (${x}, ${y}) is not on free floor`);
 }
 
+for (const at of (process.env.DEBUG_SCREENS ?? "").split(" ").filter(Boolean)) {
+  const [c, r] = at.split(",").map(Number) as [number, number];
+  console.error(`screen ${at}:\n${plans[r]?.[c]?.rows.join("\n")}`);
+}
 if (errors.length > 0) {
   console.error(`✗ world layout:\n  - ${errors.slice(0, 40).join("\n  - ")}`);
   process.exit(1);
 }
 
+// ─── Skin: glyphs → tile keys, checked against the layout's collision ──────
+const trailAt = new Set(
+  plans.flatMap((row, sr) =>
+    row.flatMap((p, sc) =>
+      (p.trail ?? []).map(([x, y]) => (sr * SCREEN_TILES_Y + y) * width + sc * SCREEN_TILES_X + x),
+    ),
+  ),
+);
+const view: WorldView = {
+  width,
+  height,
+  screenW: SCREEN_TILES_X,
+  screenH: SCREEN_TILES_Y,
+  overworldRows: OVERWORLD_ROWS,
+  glyph: (x, y) => glyphAt[y]?.[x] ?? "K",
+  solid: isSolid,
+  screen: (x, y) => {
+    const plan = planAt(x, y);
+    if (!plan || x < 0 || y < 0 || x >= width || y >= height) return undefined;
+    return {
+      kind: plan.kind,
+      col: Math.floor(x / SCREEN_TILES_X),
+      row: Math.floor(y / SCREEN_TILES_Y),
+      biome: plan.biome,
+      dungeon: plan.dungeon,
+      room: plan.room,
+      cave: plan.cave,
+    };
+  },
+  prop: (x, y) => propAt.get(y * width + x),
+  trail: (x, y) => trailAt.has(y * width + x),
+  seed: SEED + 2,
+  shapes: plans.flatMap((row, sr) =>
+    row.flatMap((p, sc) =>
+      (p.shapes ?? []).map((s) => ({ ...s, x: sc * SCREEN_TILES_X + s.x, y: sr * SCREEN_TILES_Y + s.y })),
+    ),
+  ),
+  landmarks: plans.flatMap((row, sr) =>
+    row.flatMap((p, sc) =>
+      (p.landmarks ?? []).map((l) => ({ ...l, x: sc * SCREEN_TILES_X + l.x, y: sr * SCREEN_TILES_Y + l.y })),
+    ),
+  ),
+};
+const skin = skinWorld(view);
+const atlas = new Atlas(TILES);
+const used = new Set<string>();
+for (const layer of LAYERS) for (const key of skin.data[layer]) if (key) used.add(key);
+const baked = bake(atlas, used);
+const gid = (key: string) => (key ? (baked.ids.get(key) ?? -1) + 1 : 0);
+
+// Collision of the tiles must be the layout's, cell by cell; props and "above" never collide.
+for (let y = 0; y < height; y++)
+  for (let x = 0; x < width; x++) {
+    let collides = false;
+    for (const layer of LAYERS) {
+      const key = skin.get(layer, x, y);
+      if (!key || !atlas.def(key).collides) continue;
+      collides = true;
+      if (layer === "props" || layer === "above") errors.push(`${layer} tile "${key}" at (${x}, ${y}) collides`);
+    }
+    if (collides !== isSolid(x, y))
+      errors.push(
+        `skin at (${x}, ${y}) "${glyphAt[y]?.[x]}": tiles ${collides ? "collide" : "do not collide"} ` +
+          `[${LAYERS.map((l) => skin.get(l, x, y)).join(" | ")}]`,
+      );
+    if (!skin.get("ground", x, y)) errors.push(`no ground tile at (${x}, ${y})`);
+    const prop = propAt.get(y * width + x);
+    const propKey = skin.get("props", x, y);
+    if (Boolean(prop) !== Boolean(propKey) || (propKey && atlas.def(propKey).prop?.kind !== prop))
+      errors.push(`props layer at (${x}, ${y}): "${propKey}" for ${prop ?? "no prop"}`);
+  }
+if (errors.length > 0) {
+  console.error(`✗ world skin:\n  - ${errors.slice(0, 40).join("\n  - ")}`);
+  process.exit(1);
+}
+
 // ─── Layers and objects ─────────────────────────────────────────────────────
-const gid = (key: string) => tileId(key) + 1;
-const ground: number[] = [];
-const walls: number[] = [];
-const props: number[] = [];
 const objects: unknown[] = [];
 let nextObjectId = 1;
 const centre = (t: number) => t * TILE_SIZE + TILE_SIZE / 2;
@@ -589,10 +753,6 @@ for (let y = 0; y < height; y++)
   for (let x = 0; x < width; x++) {
     const g = glyph(x, y);
     const plan = planAt(x, y);
-    ground.push(gid(g.ground ?? plan?.ground ?? "grass"));
-    walls.push(g.wall ? gid(g.wall) : 0);
-    const prop = propAt.get(y * width + x);
-    props.push(prop === "bush" ? gid("tuft") : prop === "pot" ? gid("pot") : 0);
     if (g.object) point(g.object, "", x, y);
     if (g.enemy) {
       const d = plan?.dungeon;
@@ -614,7 +774,7 @@ for (const p of portals)
     type: "portal",
     x: p.x * TILE_SIZE,
     y: p.y * TILE_SIZE,
-    width: TILE_SIZE,
+    width: p.w * TILE_SIZE,
     height: TILE_SIZE,
     rotation: 0,
     visible: true,
@@ -641,8 +801,7 @@ const areas = [
   { id: "arena", kind: "arena", col: arenaCol, row: arenaRow, width: arenaCols, height: arenaRows },
 ];
 
-const tileset = buildTileset();
-const tileLayer = (id: number, name: string, data: number[]) => ({
+const tileLayer = (id: number, name: string) => ({
   id,
   name,
   type: "tilelayer",
@@ -652,7 +811,7 @@ const tileLayer = (id: number, name: string, data: number[]) => ({
   height,
   opacity: 1,
   visible: true,
-  data,
+  data: skin.data[name as (typeof LAYERS)[number]].map(gid),
 });
 
 const map = {
@@ -666,7 +825,7 @@ const map = {
   height,
   tilewidth: TILE_SIZE,
   tileheight: TILE_SIZE,
-  nextlayerid: 5,
+  nextlayerid: 7,
   nextobjectid: nextObjectId,
   properties: [
     { name: "overworldColumns", type: "int", value: OVERWORLD_COLUMNS },
@@ -674,10 +833,13 @@ const map = {
     { name: "biomes", type: "string", value: BIOMES.join("") },
     { name: "areas", type: "string", value: JSON.stringify(areas) },
   ],
+  // Drawn in this order; "above" goes over the heroes (GameScene gives it a depth).
   layers: [
-    tileLayer(1, "ground", ground),
-    tileLayer(2, "walls", walls),
-    tileLayer(4, PROPS_LAYER, props),
+    tileLayer(1, "ground"),
+    tileLayer(5, "ground2"),
+    tileLayer(2, "walls"),
+    tileLayer(4, PROPS_LAYER),
+    tileLayer(6, "above"),
     {
       id: 3,
       name: "objects",
@@ -693,33 +855,25 @@ const map = {
   tilesets: [
     {
       firstgid: 1,
-      name: "overworld",
-      image: "../tilesets/overworld.png",
-      imagewidth: tileset.width,
-      imageheight: tileset.height,
+      name: TILESET,
+      image: `../tilesets/${TILESET}.png`,
+      imagewidth: baked.png.width,
+      imageheight: baked.png.height,
       tilewidth: TILE_SIZE,
       tileheight: TILE_SIZE,
       margin: MARGIN,
       spacing: SPACING,
-      tilecount: TILES.length,
-      columns: COLUMNS,
-      tiles: TILES.flatMap((t, id) => {
-        const properties = [
-          ...(t.collides ? [{ name: "collides", type: "bool", value: true }] : []),
-          ...(t.prop
-            ? [
-                { name: "prop", type: "string", value: t.prop.kind },
-                { name: "broken", type: "bool", value: t.prop.broken },
-              ]
-            : []),
-        ];
-        return properties.length > 0 ? [{ id, properties }] : [];
-      }),
+      tilecount: baked.tilecount,
+      columns: baked.columns,
+      tiles: baked.tiles,
     },
   ],
 };
 
-writeFileSync(resolve(ROOT, "content/tilesets/overworld.png"), PNG.sync.write(tileset));
+writeFileSync(resolve(ROOT, `content/tilesets/${TILESET}.png`), PNG.sync.write(baked.png));
+// Remove tilesets the map no longer uses (e.g. the placeholder drawn in code before the pack art).
+for (const file of readdirSync(resolve(ROOT, "content/tilesets")))
+  if (file.endsWith(".png") && file !== `${TILESET}.png`) rmSync(resolve(ROOT, "content/tilesets", file));
 // One row of tiles per line keeps diffs readable.
 const json = JSON.stringify(map, null, 2).replace(/"data": \[([\d,\s]+)\]/g, (_m, data: string) => {
   const values = data.split(",").map((v) => v.trim());
@@ -733,4 +887,7 @@ console.log(
   `✓ content/maps/${MAP_ID}.tmj (${width}x${height} tiles, ${COLS}x${ROWS} screens: ${count("enemy")} enemies, ` +
     `${count("chest")} chests, ${count("vendor")} vendors, ${count("portal")} portals, ${count("arenaSpawn")} arena spawns, ` +
     `${[...propAt.values()].filter((k) => k === "bush").length} tall grass, ${[...propAt.values()].filter((k) => k === "pot").length} pots)`,
+);
+console.log(
+  `✓ content/tilesets/${TILESET}.png (${baked.png.width}x${baked.png.height} px, ${used.size} tiles, ${baked.tilecount} cells with animation frames)`,
 );

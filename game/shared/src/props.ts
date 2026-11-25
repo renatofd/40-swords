@@ -10,7 +10,10 @@ import type { Rng } from "./rng";
  *
  * In Tiled they are tiles on the tile layer "props": a tile with the string
  * property `prop` (a PropKind) and the bool `broken` (what is left once broken).
- * A prop's id on the wire is its tile index (ty * map width + tx).
+ * A kind can have several looks: a whole tile names its broken look with the
+ * int property `brokenTile` (a tile id of the same tileset); without it, the
+ * last broken tile of its kind is used. Each prop keeps its whole look, so it
+ * comes back the same. A prop's id on the wire is its tile index (ty * map width + tx).
  */
 export const PROP_KINDS = ["bush", "pot"] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
@@ -53,30 +56,44 @@ export interface Prop {
   /** Centre of its tile, in pixels. */
   x: number;
   y: number;
+  /** Tile gid of its whole look (flip flags cleared). */
+  gid: number;
 }
 
 export interface MapProps {
   props: Prop[];
-  /** Tile gid drawn for each kind, whole and broken (for the client's tile layer). */
-  tiles: Partial<Record<PropKind, { whole: number; broken: number }>>;
+  /** Broken look (tile gid) of each whole prop tile gid, for the client's tile layer. */
+  broken: Record<number, number>;
 }
 
 /** The props of a map (layer "props"); a map without that layer has none. */
 export function parseProps(map: TiledMap): MapProps {
   const kinds = new Map<number, { kind: PropKind; broken: boolean }>();
-  const tiles: MapProps["tiles"] = {};
+  const broken: MapProps["broken"] = {};
+  /** Fallback broken look of each kind: the last broken tile seen. */
+  const lastBroken: Partial<Record<PropKind, number>> = {};
+  const wholes: { gid: number; kind: PropKind; brokenGid?: number }[] = [];
   for (const tileset of map.tilesets) {
     for (const tile of tileset.tiles ?? []) {
       const kind = getProperty<string>(tile.properties, "prop");
       if (!isPropKind(kind)) continue;
-      const broken = getProperty<boolean>(tile.properties, "broken") === true;
+      const isBroken = getProperty<boolean>(tile.properties, "broken") === true;
       const gid = tileset.firstgid + tile.id;
-      kinds.set(gid, { kind, broken });
-      const entry = tiles[kind] ?? { whole: 0, broken: 0 };
-      if (broken) entry.broken = gid;
-      else entry.whole = gid;
-      tiles[kind] = entry;
+      kinds.set(gid, { kind, broken: isBroken });
+      if (isBroken) lastBroken[kind] = gid;
+      else {
+        const brokenTile = getProperty<number>(tile.properties, "brokenTile");
+        wholes.push({
+          gid,
+          kind,
+          brokenGid: typeof brokenTile === "number" ? tileset.firstgid + brokenTile : undefined,
+        });
+      }
     }
+  }
+  for (const w of wholes) {
+    const to = w.brokenGid ?? lastBroken[w.kind];
+    if (to !== undefined) broken[w.gid] = to;
   }
   const layer = flattenLayers(map.layers).find(
     (l): l is TiledTileLayer => l.type === "tilelayer" && l.name === PROPS_LAYER,
@@ -84,12 +101,13 @@ export function parseProps(map: TiledMap): MapProps {
   const props: Prop[] = [];
   if (layer && typeof layer.data !== "string") {
     layer.data.forEach((raw, id) => {
-      const prop = kinds.get(cleanGid(raw));
+      const gid = cleanGid(raw);
+      const prop = kinds.get(gid);
       if (!prop || prop.broken) return;
       const tx = id % map.width;
       const ty = Math.floor(id / map.width);
-      props.push({ id, kind: prop.kind, x: (tx + 0.5) * map.tilewidth, y: (ty + 0.5) * map.tileheight });
+      props.push({ id, kind: prop.kind, x: (tx + 0.5) * map.tilewidth, y: (ty + 0.5) * map.tileheight, gid });
     });
   }
-  return { props, tiles };
+  return { props, broken };
 }

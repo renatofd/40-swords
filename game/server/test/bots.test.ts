@@ -161,8 +161,25 @@ describe("bots", () => {
     };
     await start(room, ana);
 
+    // Bots never stand still for long (a plan they can't carry out, a wall): the longest
+    // stretch any of them spends without moving while the match is on.
+    const still = new Map<string, { x: number; y: number; ticks: number }>();
+    let longestStill = 0;
+    const watch = () => {
+      for (const [id, p] of bots(room)) {
+        if (p.out || p.dead) continue;
+        const was = still.get(id);
+        const ticks = was && was.x === p.x && was.y === p.y ? was.ticks + 1 : 0;
+        still.set(id, { x: p.x, y: p.y, ticks });
+        longestStill = Math.max(longestStill, ticks);
+      }
+    };
+
     // PvE: they leave the start, spread over the world and level up.
-    const calm = fastForward(room, 90);
+    const calm = fastForward(room, 90, () => {
+      watch();
+      return false;
+    });
     const live = bots(room).filter(([, p]) => !p.out);
     const screens = new Set(live.map(([, p]) => `${screenOf(p.x, p.y).col},${screenOf(p.x, p.y).row}`));
     const grown = live.filter(([, p]) => p.level > 1).length;
@@ -177,7 +194,10 @@ describe("bots", () => {
     expect(cut).toBeGreaterThan(10);
 
     // PvP until the arena: some fall to other heroes.
-    const pvp = fastForward(room, 210, () => room.state.phase !== MatchPhase.pvp);
+    const pvp = fastForward(room, 210, () => {
+      watch();
+      return room.state.phase !== MatchPhase.pvp;
+    });
     const levels = bots(room).map(([, p]) => p.level);
     summary.pvp = {
       msPerTick: pvp.msPerTick.toFixed(2),
@@ -188,6 +208,8 @@ describe("bots", () => {
       kills: { hero: causes.filter((c) => c === "hero").length, monster: causes.filter((c) => c === "monster").length },
     };
     expect(causes).toContain("hero");
+    summary.longestStillSeconds = (longestStill / TICK_RATE).toFixed(1);
+    expect(longestStill).toBeLessThan(10 * TICK_RATE);
 
     // The arena: whoever is still standing fights inside the closing storm until one is left.
     if (room.state.phase === MatchPhase.prep) {

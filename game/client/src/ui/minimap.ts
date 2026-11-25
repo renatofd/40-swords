@@ -2,14 +2,14 @@ import { type Area, areaAt, type Portal, screenOf, type WorldInfo } from "@game/
 
 /** Colour of each biome letter (see tools/world-gen/src/world.ts). */
 const BIOME_COLORS: Record<string, string> = {
-  G: "#4f9a3c",
-  F: "#2f6b34",
-  H: "#7a8a4a",
-  M: "#7a6a58",
-  L: "#2f6fb8",
-  D: "#d9c27a",
-  W: "#4a5a33",
-  Y: "#3a4a42",
+  G: "#8fcf5a",
+  F: "#3f8a2a",
+  R: "#a8402c",
+  H: "#b0a060",
+  M: "#7a5228",
+  L: "#4a78c8",
+  W: "#6a7a3a",
+  Y: "#6a9a94",
   B: "#e6d394",
   C: "#c8c8d0",
 };

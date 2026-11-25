@@ -1,345 +1,498 @@
 /**
- * Placeholder tileset drawn in code: flat colours and simple shapes, 16x16,
- * extruded (margin 1, spacing 2). Replace content/tilesets/overworld.png with
- * real art keeping the same tile order (or remap the map in Tiled).
+ * The tile catalogue: every tile the skin can place, by key, built from the
+ * pack "Super Overhead Adventure 3" (#NotZelda Overhead Adventure Tiles by
+ * Raphael Azcueta, CC BY-SA 4.0; sources in content/src/notzelda/).
+ *
+ * Ids are the pack's own (see the catalogue notes): Overworld/OverworldExotic
+ * `id = row*64 + col`; Dungeon/Tiles/House cells are given as pixels inside a
+ * colour theme block (`dg(theme, x, y)`, `tl(theme, x, y)`, `hs(theme, x, y)`).
+ *
+ * Add a tile:        add("myKey", tile([ow(1234)], { collides: true }))  (in this file)
+ * A composite:       tile([{ key: "water" }, ow(12)])  (stacked bottom → top, baked into one cell)
+ * An animation:      tile([owAnim(397, 4)], { ms: 200 })  (frames id..id+3; composites inherit it)
+ * Transforms/crops:  ow(130, { t: "flipV" }), ow(3788, { crop: [0, 10, 16, 6] })
+ *
+ * Only the keys the map uses end up in content/tilesets/world.png.
  */
-import { TILE_SIZE } from "@game/shared";
-import { PNG } from "pngjs";
+import type { Catalogue, Cell, SourceLayer, TileDef, Transform } from "./atlas";
+import { E, N, S, W } from "./skin/common";
 
-type RGBA = [number, number, number, number];
-type Drawer = (x: number, y: number, r: () => number) => RGBA;
+// ─── Source helpers ─────────────────────────────────────────────────────────
 
-const hex = (h: string): RGBA => [
-  Number.parseInt(h.slice(1, 3), 16),
-  Number.parseInt(h.slice(3, 5), 16),
-  Number.parseInt(h.slice(5, 7), 16),
-  255,
-];
+type More = Partial<Omit<SourceLayer, "sheet" | "cell">>;
+export const ow = (cell: Cell, more: More = {}): SourceLayer => ({ sheet: "overworld", cell, ...more });
+export const ex = (cell: Cell, more: More = {}): SourceLayer => ({ sheet: "exotic", cell, ...more });
+/** Overworld animation: `n` frames id, id+1... (or the given ids). */
+export const owAnim = (first: number, n: number, ids?: number[]): SourceLayer => {
+  const frames = ids ?? Array.from({ length: n }, (_, i) => first + i);
+  return { sheet: "overworld", cell: frames[0] ?? first, frames };
+};
+/** Dungeon.png: 11 colour themes of 512x512; (x, y) inside the theme block. */
+export const dg = (theme: number, x: number, y: number, more: More = {}): SourceLayer => ({
+  sheet: "dungeon",
+  cell: [theme * 512 + x, y],
+  ...more,
+});
+/** Tiles.png: 10 floor themes of 512x512. */
+export const tl = (theme: number, x: number, y: number, more: More = {}): SourceLayer => ({
+  sheet: "tiles",
+  cell: [theme * 512 + x, y],
+  ...more,
+});
+/** House.png: 5 themes of 128 px wide. */
+export const hs = (theme: number, x: number, y: number, more: More = {}): SourceLayer => ({
+  sheet: "house",
+  cell: [theme * 128 + x, y],
+  ...more,
+});
+export const tile = (layers: TileDef["layers"], more: Omit<TileDef, "layers"> = {}): TileDef => ({ layers, ...more });
+const solid = (layers: TileDef["layers"], more: Omit<TileDef, "layers"> = {}) =>
+  tile(layers, { collides: true, ...more });
 
-function rng(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), a | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export const TILES: Catalogue = {};
+const add = (key: string, def: TileDef) => {
+  if (TILES[key]) throw new Error(`duplicate tile key ${key}`);
+  TILES[key] = def;
+};
 
-const speckle =
-  (base: string, a: string, b: string, pa = 0.08, pb = 0.06): Drawer =>
-  (_x, _y, r) => {
-    const v = r();
-    return v < pa ? hex(a) : v < pa + pb ? hex(b) : hex(base);
-  };
+/**
+ * A plain tile of the Overworld (or OverworldExotic) sheet by id, added to the
+ * catalogue the first time it is asked for: `ow!:id` is solid, `ow:id` is not.
+ */
+export const plain = (id: number, solid: boolean, sheet: "ow" | "ex" = "ow"): string => {
+  const k = `${sheet}${solid ? "!" : ""}:${id}`;
+  if (!TILES[k]) add(k, tile([sheet === "ow" ? ow(id) : ex(id)], solid ? { collides: true } : {}));
+  return k;
+};
+/**
+ * An Overworld tile with some colours swapped (pairs of 0xRRGGBB), added on
+ * first use: the same art in another palette (reeds as cattails, a stone pile
+ * in the mountains' rock colours).
+ */
+export const recolored = (id: number, recolor: [number, number][], solid: boolean): string => {
+  const k = `ow${solid ? "!" : ""}:${id}~${recolor.map(([a, b]) => `${a.toString(16)}>${b.toString(16)}`).join(",")}`;
+  if (!TILES[k]) add(k, tile([ow(id, { recolor })], solid ? { collides: true } : {}));
+  return k;
+};
+/**
+ * Several entries drawn in one cell, bottom → top (a tree in front of a rock,
+ * a crypt in front of the forest...), added on first use. Solid if any part is.
+ */
+export const stacked = (keys: readonly string[]): string => {
+  const parts = keys.filter((k, i) => k && k !== keys[i - 1]);
+  if (parts.length === 1) return parts[0] as string;
+  const k = parts.join("+");
+  if (!TILES[k])
+    add(
+      k,
+      tile(
+        parts.map((key) => ({ key })),
+        { collides: parts.some((p) => TILES[p]?.collides) },
+      ),
+    );
+  return k;
+};
 
-const grass = speckle("#4f9a3c", "#58a443", "#469036", 0.06, 0.05);
-const darkGrass = speckle("#2f6b34", "#357238", "#2a6230", 0.06, 0.05);
-const sand = speckle("#d9c27a", "#e6d394", "#c2a961");
-const mud = speckle("#5b4a33", "#6d5a3f", "#4a3b28", 0.1, 0.1);
-const path = speckle("#b08a57", "#c29c66", "#98744a");
+// ─── Overworld ground ───────────────────────────────────────────────────────
+// Rows 0-9: terrain, palette variants every 18 columns (A green, B desert, C snow).
 
-const flowers: Drawer = (x, y, r) => {
-  const spots = [
-    [3, 3],
-    [11, 5],
-    [6, 11],
-    [13, 13],
+add("grass", tile([ow(7)]));
+/** Tufts sway slowly (frames 576/577 and 580/581 of the sheet). */
+const TUFT_MS = 650;
+add("grass:tufts", tile([owAnim(8, 2, [576, 577])], { ms: TUFT_MS }));
+add("darkGrass", tile([ow(10)]));
+add("darkGrass:tufts", tile([owAnim(11, 2, [580, 581])], { ms: TUFT_MS }));
+add("path", tile([ow(0)]));
+add("sand", tile([ow(25)]));
+add("whiteSand", tile([ow(18)]));
+add("rockyGround", tile([ow(28)]));
+add("mud", tile([ex(7)]));
+add("darkMud", tile([ex(10)]));
+/** Dark mud with darker specks (Exotic 11): wet patches of the swamp, dark patches of the mountains. */
+add("darkMud:tufts", tile([ex(11)]));
+/** Speckled mud (Exotic 8: mud with dark specks). */
+add("mud:tufts", tile([ex(8)]));
+/** Plain mud, solid: where a cave's merchant stands behind the counter (the merchant is a sprite). */
+add("mud!", solid([ex(7)]));
+/** Grey-teal ground of the graveyard (the Exotic sheet's frost terrain) and its speckled twin. */
+add("gloom", tile([ex(46)]));
+add("gloom:tufts", tile([ex(47)]));
+add("black", tile([ow(199)]));
+/**
+ * Grass recoloured to other greens of the pack's palette (the dark grass and
+ * its swaying tufts): the forest floor one step darker than the dark grass,
+ * a calmer green, and the swamp's olive. Each has water rims to match
+ * (SHORES) but no halo pieces.
+ */
+export const GRASS_TONES = {
+  forest: { base: 0x6ab417, tuft: 0x139d08 },
+  swamp: { base: 0x939717, tuft: 0x376d03 },
+} as const;
+for (const [name, { base, tuft }] of Object.entries(GRASS_TONES)) {
+  const recolor: [number, number][] = [
+    [0x8cd612, base],
+    [0x6ab417, tuft],
   ];
-  if (spots.some(([fx, fy]) => fx === x && fy === y)) return hex("#f2d14b");
-  if (spots.some(([fx = 0, fy = 0]) => Math.abs(fx - x) + Math.abs(fy - y) === 1)) return hex("#f0f0f8");
-  return grass(x, y, r);
-};
-
-const stone: Drawer = (x, y, r) => {
-  if (x % 8 === 0 || y % 8 === 0) return hex("#7c7c86");
-  return r() < 0.1 ? hex("#a3a3ad") : hex("#93939d");
-};
-
-const bridge: Drawer = (x, y) => {
-  if (x === 0 || x === 15) return hex("#5a3a1e");
-  if (y % 4 === 3) return hex("#6b4523");
-  return hex("#9a6a3a");
-};
-
-const circle = (cx: number, cy: number, rad: number) => (x: number, y: number) =>
-  (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= rad * rad;
-
-const tree: Drawer = (x, y, r) => {
-  if (x >= 6 && x <= 9 && y >= 11) return hex("#6b4523");
-  if (circle(8, 7, 7)(x, y)) return (x + y) % 5 === 0 ? hex("#2a7a2e") : hex("#1f5e25");
-  return darkGrass(x, y, r);
-};
-
-const rock: Drawer = (x, y, r) => {
-  if (y < 2 || x === 0 || x === 15 || y === 15) return hex("#4a4038");
-  return r() < 0.15 ? hex("#8a7a68") : y < 6 ? hex("#7a6a58") : hex("#665848");
-};
-
-const water: Drawer = (x, y) => {
-  if ((x + y * 2) % 11 === 0 && y % 4 === 1) return hex("#8cc8f0");
-  return hex("#2f6fb8");
-};
-
-const bush: Drawer = (x, y, r) => {
-  if (circle(8, 8.5, 5.5)(x, y)) return (x * y) % 7 === 0 ? hex("#6cc052") : hex("#2f7a2c");
-  if (circle(8, 8.5, 7)(x, y)) return hex("#1c4a1c");
-  return grass(x, y, r);
-};
-
-const tomb: Drawer = (x, y, r) => {
-  if (x >= 4 && x <= 11 && y >= 3 && y <= 14) {
-    if (y === 3 && (x === 4 || x === 11)) return darkGrass(x, y, r);
-    if (x === 7 || x === 8) if (y >= 5 && y <= 10) return hex("#55555f");
-    if (y === 7 && x >= 6 && x <= 9) return hex("#55555f");
-    return hex("#9a9aa6");
-  }
-  return darkGrass(x, y, r);
-};
-
-const pillar: Drawer = (x, y, r) => {
-  if (x >= 4 && x <= 11)
-    return x === 4 || x === 11 ? hex("#6e6e78") : y < 3 || y > 12 ? hex("#c8c8d2") : hex("#b0b0bc");
-  return stone(x, y, r);
-};
-
-const cave: Drawer = (x, y, r) => {
-  if (circle(8, 12, 7)(x, y) && y >= 4) return hex("#0d0b0a");
-  return rock(x, y, r);
-};
-
-const caveFloor: Drawer = speckle("#3a2f28", "#45382f", "#30261f", 0.1, 0.08);
-
-const caveWall: Drawer = (_x, y, r) => {
-  if (y > 12) return hex("#1a1412");
-  return r() < 0.12 ? hex("#4a3d35") : y < 3 ? hex("#3d322b") : hex("#2e2520");
-};
-
-const counter: Drawer = (x, y, r) => {
-  if (y < 5) return caveFloor(x, y, r);
-  if (y === 5) return hex("#c08a50");
-  if (y > 13) return hex("#3a2412");
-  return x % 8 === 0 ? hex("#5a3a1e") : hex("#8a5a2e");
-};
-
-const caveExit: Drawer = (x, y) => {
-  if (x >= 3 && x <= 12) return y < 4 ? hex("#2a201a") : hex("#0a0807");
-  return hex("#2e2520");
-};
-
-const shelf: Drawer = (x, y, r) => {
-  if (x === 1 || x === 14) return hex("#4a2e16");
-  if (y === 5 || y === 10 || y === 15) return hex("#6b4523");
-  if (x > 1 && x < 14 && y > 1) {
-    const jar = (x + Math.floor(y / 5) * 3) % 5;
-    if (jar < 2 && y % 5 > 1) return [hex("#7fb0d0"), hex("#d07f7f")][jar] ?? hex("#2e2520");
-  }
-  return caveWall(x, y, r);
-};
-
-const dungeonFloor: Drawer = (x, y, r) => {
-  if (x % 8 === 0 || y % 8 === 0) return hex("#2a2733");
-  return r() < 0.08 ? hex("#3d3948") : hex("#35313f");
-};
-
-const dungeonWall: Drawer = (x, y) => {
-  const row = Math.floor(y / 4);
-  const offset = row % 2 === 0 ? 0 : 4;
-  if (y % 4 === 3 || (x + offset) % 8 === 7) return hex("#14121a");
-  return y < 4 ? hex("#4a4558") : hex("#3a3546");
-};
-
-const statue: Drawer = (x, y, r) => {
-  if (x >= 3 && x <= 12 && y >= 1) {
-    if (y > 12) return hex("#5a5566");
-    if (x === 3 || x === 12) return hex("#4a4558");
-    return y < 6 ? hex("#8a8598") : hex("#6e6a7c");
-  }
-  return dungeonFloor(x, y, r);
-};
-
-const cactus: Drawer = (x, y, r) => {
-  const trunk = x >= 6 && x <= 9 && y >= 2;
-  const leftArm = x >= 2 && x <= 4 && y >= 5 && y <= 9;
-  const rightArm = x >= 11 && x <= 13 && y >= 3 && y <= 7;
-  const joints = (y === 9 && x >= 2 && x <= 6) || (y === 7 && x >= 9 && x <= 13);
-  if (trunk || leftArm || rightArm || joints) return (x + y) % 4 === 0 ? hex("#3e8a3a") : hex("#2f6e2c");
-  return sand(x, y, r);
-};
-
-const door: Drawer = (x, y) => {
-  if (x >= 3 && x <= 12 && y >= 4) return x === 3 || x === 12 || y === 4 ? hex("#3a2a1a") : hex("#120e0c");
-  return hex("#77777f");
-};
-
-const arenaSand = speckle("#d8b07a", "#e2bd88", "#c79f69", 0.1, 0.08);
-const arenaLine = speckle("#ecd9ae", "#f4e4c0", "#dcc394", 0.1, 0.08);
-
-const arenaPillar: Drawer = (x, y, r) => (x >= 4 && x <= 11 ? pillar(x, y, r) : arenaSand(x, y, r));
-
-const arenaWall: Drawer = (x, y) => {
-  const row = Math.floor(y / 4);
-  const offset = row % 2 === 0 ? 0 : 5;
-  if (y % 4 === 3 || (x + offset) % 10 === 9) return hex("#3a2a20");
-  return y < 4 ? hex("#a07a5a") : hex("#86644a");
-};
-
-// ─── Props (clear background, 1px outline) ──────────────────────────────────
-
-const CLEAR: RGBA = [0, 0, 0, 0];
-
-/** A shape on a clear background, with a 1px outline around it. */
-const outlined =
-  (inside: (x: number, y: number) => boolean, fill: (x: number, y: number) => string, outline: string): Drawer =>
-  (x, y) => {
-    if (inside(x, y)) return hex(fill(x, y));
-    const edge = inside(x - 1, y) || inside(x + 1, y) || inside(x, y - 1) || inside(x, y + 1);
-    return edge ? hex(outline) : CLEAR;
-  };
-
-/** Pointed grass blades growing from the bottom: [centre x, top y, lean (px at the top)]. */
-const blades = (list: [number, number, number][], bottom: number, width: number) => (x: number, y: number) =>
-  list.some(([cx, top, lean]) => {
-    if (y < top || y > bottom) return false;
-    const k = (bottom - y) / Math.max(1, bottom - top);
-    return Math.abs(x + 0.5 - (cx + lean * k)) <= width * (1 - k) + 0.35;
-  });
-
-/** Tall grass (cut with the sword): lighter and spikier than the round bushes that block the way. */
-const tuftShape = (x: number, y: number) =>
-  blades(
-    [
-      [3.5, 7, -1.5],
-      [6, 3, -0.8],
-      [8.5, 5, 0.4],
-      [11, 2, 1],
-      [13, 7, 1.6],
-    ],
-    14,
-    1.7,
-  )(x, y) ||
-  (y >= 12 && y <= 14 && x >= 3 && x <= 13);
-const tuft = outlined(
-  tuftShape,
-  (x, y) => (y >= 12 ? "#3f8f35" : !tuftShape(x - 1, y) ? "#9ee07a" : (x + y) % 4 === 0 ? "#6cc455" : "#58b046"),
-  "#1d4a1b",
-);
-
-/** What is left of it: short stubble. */
-const stubbleShape = (x: number, y: number) => y >= 12 && y <= 14 && x >= 3 && x <= 13 && (y >= 13 || x % 3 !== 2);
-const tuftCut = outlined(stubbleShape, (_x, y) => (y === 12 ? "#a8d878" : "#4f8f3c"), "#1d4a1b");
-
-/** A clay pot: round body, a neck and a rim around a dark mouth. */
-const potShape = (x: number, y: number) =>
-  ((x + 0.5 - 8) / 5.5) ** 2 + ((y + 0.5 - 10) / 4.6) ** 2 <= 1 || (y >= 3 && y <= 5 && x >= 5 && x <= 10);
-const pot = outlined(
-  potShape,
-  (x, y) => {
-    if (y === 3) return x >= 6 && x <= 9 ? "#2a160c" : "#d98a5a";
-    if (y <= 5) return "#a0552f";
-    if (x <= 5 && y <= 10) return "#e39a68";
-    return x >= 11 || y >= 13 ? "#8a4426" : "#b8643a";
-  },
-  "#3a1f10",
-);
-
-/** A broken pot: the base and a few shards around it. */
-const shardsShape = (x: number, y: number) =>
-  (y >= 12 && y <= 14 && x >= 5 && x <= 10 && !(y === 12 && x % 2 === 0)) ||
-  (y >= 10 && y <= 11 && x >= 2 && x <= 3 + (y - 10)) ||
-  (y >= 9 && y <= 10 && x >= 12 && x <= 13) ||
-  (y === 14 && x >= 12 && x <= 14);
-const potShards = outlined(shardsShape, (x, y) => (y <= 11 || x <= 6 ? "#d98a5a" : "#a0552f"), "#3a1f10");
-
-export interface TileInfo {
-  key: string;
-  draw: Drawer;
-  collides: boolean;
-  /** Something the sword breaks (tile layer "props", see game/shared/src/props.ts), whole or broken. */
-  prop?: { kind: "bush" | "pot"; broken: boolean };
+  add(name, tile([ow(10, { recolor })]));
+  add(`${name}:tufts`, tile([{ ...owAnim(11, 2, [580, 581]), recolor }], { ms: TUFT_MS }));
 }
+/** Water with a cluster of rocks (animated with the water's 4 frames). */
+add("water:rocks", tile([owAnim(397, 4), owAnim(139, 4, [139, 140, 139, 140])], { collides: true, ms: 220 }));
+/** Plaza flagstones: a light floor of Tiles.png. */
+add("plaza", tile([tl(2, 0, 336)]));
 
-/** Tile order in the tileset image (tile id = index). Append new tiles at the end. */
-export const TILES: TileInfo[] = [
-  { key: "grass", draw: grass, collides: false },
-  { key: "flowers", draw: flowers, collides: false },
-  { key: "path", draw: path, collides: false },
-  { key: "sand", draw: sand, collides: false },
-  { key: "stone", draw: stone, collides: false },
-  { key: "mud", draw: mud, collides: false },
-  { key: "darkGrass", draw: darkGrass, collides: false },
-  { key: "bridge", draw: bridge, collides: false },
-  { key: "tree", draw: tree, collides: true },
-  { key: "rock", draw: rock, collides: true },
-  { key: "water", draw: water, collides: true },
-  { key: "bush", draw: bush, collides: true },
-  { key: "tomb", draw: tomb, collides: true },
-  { key: "pillar", draw: pillar, collides: true },
-  // Cave entrances and dungeon doors are portals: walk in.
-  { key: "cave", draw: cave, collides: false },
-  { key: "door", draw: door, collides: false },
-  { key: "caveFloor", draw: caveFloor, collides: false },
-  { key: "caveWall", draw: caveWall, collides: true },
-  { key: "counter", draw: counter, collides: true },
-  { key: "caveExit", draw: caveExit, collides: false },
-  { key: "shelf", draw: shelf, collides: true },
-  { key: "dungeonFloor", draw: dungeonFloor, collides: false },
-  { key: "dungeonWall", draw: dungeonWall, collides: true },
-  { key: "statue", draw: statue, collides: true },
-  { key: "cactus", draw: cactus, collides: true },
-  { key: "arenaSand", draw: arenaSand, collides: false },
-  { key: "arenaLine", draw: arenaLine, collides: false },
-  { key: "arenaWall", draw: arenaWall, collides: true },
-  { key: "arenaPillar", draw: arenaPillar, collides: true },
-  // Props: drawn over the ground on their own layer (clear background), never solid.
-  { key: "tuft", draw: tuft, collides: false, prop: { kind: "bush", broken: false } },
-  { key: "tuftCut", draw: tuftCut, collides: false, prop: { kind: "bush", broken: true } },
-  { key: "pot", draw: pot, collides: false, prop: { kind: "pot", broken: false } },
-  { key: "potShards", draw: potShards, collides: false, prop: { kind: "pot", broken: true } },
+/**
+ * Specks of a ground colour over another ground (walkable, transparent): the
+ * Exotic sheet's mud dither (1-2 sparse, 3-4 half, 5-6 dense) recoloured to
+ * `color` (0xRRGGBB). Softens the edges between grounds and along the paths.
+ */
+export const specks = (color: number, id: 1 | 2 | 3 | 4 | 5 | 6, t: Transform = "none"): string => {
+  const k = `specks:${color.toString(16).padStart(6, "0")}:${id}${t === "none" ? "" : `:${t}`}`;
+  if (!TILES[k]) add(k, tile([ex(id, { recolor: [[0x5c3c0d, color]], ...(t === "none" ? {} : { t }) })]));
+  return k;
+};
+
+/** Flower overlays (walkable, transparent): patches 3776-3779, sparse 3840-3843. */
+export const FLOWERS = [3776, 3777, 3778, 3779, 3840, 3841, 3842, 3843] as const;
+for (const id of FLOWERS) add(`flowers:${id}`, tile([ow(id)]));
+
+// ─── Water and shores ───────────────────────────────────────────────────────
+// Water 397 (4 frames, 100 ms in the pack; slowed down). Rims are overlays on
+// water cells (solid like the water); halos are opaque light-grass land pieces.
+
+const WATER_MS = 220;
+add("water", solid([owAnim(397, 4)], { ms: WATER_MS }));
+/** The same water without collision: under bridges and docks. */
+add("water:under", tile([owAnim(397, 4)], { ms: WATER_MS }));
+
+/** Rim pieces on a water cell, by land side; corners cover both sides. */
+export const RIM = { n: 130, s: 258, w: 193, e: 195, nw: 129, ne: 131, sw: 257, se: 259 } as const;
+/** Rim overlays for a water cell whose land sides are `mask` (N, E, S, W bits of skin/common.ts). */
+export const rimPieces = (mask: number): number[] => {
+  const out: number[] = [];
+  const covered = new Set<string>();
+  for (const [v, vb] of [
+    ["n", N],
+    ["s", S],
+  ] as const)
+    for (const [h, hb] of [
+      ["w", W],
+      ["e", E],
+    ] as const)
+      if (mask & vb && mask & hb) {
+        out.push(RIM[`${v}${h}`]);
+        covered.add(v).add(h);
+      }
+  for (const [side, bit] of [
+    ["n", N],
+    ["s", S],
+    ["w", W],
+    ["e", E],
+  ] as const)
+    if (mask & bit && !covered.has(side)) out.push(RIM[side]);
+  return out;
+};
+/**
+ * Shore palettes: grass (variant A), sand (variant B, +18), mud (the Exotic
+ * sheet's variant A) and dark grass (the grass rims with their light-grass
+ * corners recoloured to the dark grass of tile 10; it has no halo pieces).
+ */
+export const SHORES = { grass: 0, sand: 18, mud: 0, darkGrass: 0, forest: 0, swamp: 0 } as const;
+export type Shore = keyof typeof SHORES;
+/** Grounds whose rims are the grass rims with their light-grass corners recoloured (no halo pieces). */
+const RIM_RECOLOR: Partial<Record<Shore, [number, number][]>> = {
+  darkGrass: [[0xbeeb71, 0x8cd612]],
+  forest: [[0xbeeb71, GRASS_TONES.forest.base]],
+  swamp: [[0xbeeb71, GRASS_TONES.swamp.base]],
+};
+const rimLayer = (shore: string, id: number): SourceLayer => {
+  const recolor = RIM_RECOLOR[shore as Shore];
+  if (recolor) return ow(id, { recolor });
+  return shore === "mud" ? ex(id) : ow(id + (SHORES[shore as Shore] ?? 0));
+};
+for (const shore of Object.keys(SHORES))
+  for (let mask = 1; mask < 16; mask++)
+    add(`water:${shore}:${mask}`, solid([{ key: "water" }, ...rimPieces(mask).map((id) => rimLayer(shore, id))]));
+
+/** Halo pieces (land next to water: light grass or sand, see SHORES): water to the S/N/E/W, with their end pieces. */
+export const HALO = {
+  s: { mid: 66, endW: 65, endE: 67 },
+  n: { mid: 322, endW: 321, endE: 323 },
+  e: { mid: 192, endN: 128, endS: 256 },
+  w: { mid: 196, endN: 132, endS: 260 },
+} as const;
+for (const [shore, off] of Object.entries(SHORES))
+  if (!RIM_RECOLOR[shore as Shore])
+    for (const id of [65, 66, 67, 321, 322, 323, 128, 192, 256, 132, 196, 260])
+      add(`halo:${shore}:${id}`, tile([shore === "mud" ? ex(id) : ow(id + off)]));
+
+/** Bridges baked over walkable water: 12 walks north-south, 76 east-west. */
+add("bridge:ns", tile([{ key: "water:under" }, ow(12)]));
+add("bridge:ew", tile([{ key: "water:under" }, ow(76)]));
+/** Jetties into the sea (planks on posts). */
+add("dock:ns", tile([{ key: "water:under" }, ow(13)]));
+add("dock:ew", tile([{ key: "water:under" }, ow(77)]));
+/** Waterfall body and foot (6 frames each). */
+add("waterfall", solid([owAnim(14, 6, [14, 15, 16, 78, 79, 80])], { ms: 120 }));
+add("waterfall:foot", solid([owAnim(206, 6, [206, 207, 208, 270, 271, 272])], { ms: 120 }));
+/** Islands: 2x2 of land on the water plus the shadow row below (grass and sand palettes). */
+export const ISLAND = [
+  [385, 386],
+  [449, 450],
+  [513, 514],
+] as const;
+for (const [shore, off] of Object.entries(SHORES))
+  if (shore === "grass" || shore === "sand")
+    for (const row of ISLAND)
+      for (const id of row) add(`island:${shore}:${id}`, solid([{ key: "water" }, ow(id + off)]));
+
+// ─── Trees, rocks, graves ───────────────────────────────────────────────────
+// Rows 10-34: palette variants every 9 columns (A green, B birch/yellow-green,
+// C orange, D red, E dark green/grey rocks, F blue). The overworld skin takes
+// them by id with `plain(id + variant offset)`; only the interiors use named keys.
+
+/** Small 1x1 trees (variant A ids). */
+export const SMALL_TREES = [640, 641, 704, 705, 768, 769] as const;
+/** Boulders (variant A ids; the variant-B ones are yellow-green bushes). */
+export const BOULDERS = [1600, 1601, 1664, 1665, 1666] as const;
+
+/** Cliff band 3x3 roles (variant A): corners, edges, interior. */
+export const CLIFF = {
+  nw: 1984,
+  n: [1985, 1986],
+  ne: 1988,
+  w: 2112,
+  e: 2116,
+  sw: 2176,
+  s: [2177, 2178],
+  se: 2180,
+  mid: [2049, 2050, 2051, 2113, 2114, 2115],
+  /** Dark recess in the south face: a cave mouth (walkable when used as one). */
+  mouth: 2179,
+} as const;
+/** Single headstones (rows 42-43, variant A; +18 grey stone, +36 dark stone). */
+export const HEADSTONES = [2688, 2689, 2690, 2691, 2692, 2693, 2696, 2697, 2698, 2699, 2700, 2701, 2702, 2703] as const;
+
+// ─── Props: tall grass and pots ─────────────────────────────────────────────
+// The pack has no cut-grass nor broken-pot tile: the broken looks are baked.
+
+/** Tall grass looks and the specks left once cut. */
+export const TALL_GRASS: [number, number][] = [
+  [1603, 3716],
+  [1604, 3717],
+  [1667, 3718],
+  [1795, 3719],
+  [1859, 3716],
 ];
+/**
+ * Colour looks of the tall grass: the pack's green and a dull olive for the
+ * graveyard (the pack's grey-blue variant reads as ice or bone shards there).
+ */
+export const TALL_GRASS_LOOKS: Record<string, [number, number][]> = {
+  green: [],
+  olive: [
+    [0xe2d7b5, 0x939717],
+    [0xc59782, 0x376d03],
+    [0x376d03, 0x172808],
+  ],
+};
+for (const [id, cut] of TALL_GRASS) {
+  if (!TILES[`tuftCut:${cut}`]) add(`tuftCut:${cut}`, tile([ow(cut)], { prop: { kind: "bush", broken: true } }));
+  for (const [look, recolor] of Object.entries(TALL_GRASS_LOOKS))
+    add(
+      `tuft:${id}${look === "green" ? "" : `:${look}`}`,
+      tile([ow(id, recolor.length ? { recolor } : {})], {
+        prop: { kind: "bush", broken: false },
+        breaksTo: `tuftCut:${cut}`,
+      }),
+    );
+}
 
-export const tileId = (key: string): number => {
-  const i = TILES.findIndex((t) => t.key === key);
-  if (i < 0) throw new Error(`unknown tile ${key}`);
-  return i;
+/** A pot whose top is gone: its bottom part stays, with a shard or two beside it. */
+const shards = (pot: SourceLayer): TileDef["layers"] => [
+  // The base, with a jagged edge: two columns of the wall stand a little higher.
+  { ...pot, crop: [0, 11, 16, 5] },
+  { ...pot, crop: [4, 9, 3, 2] },
+  { ...pot, crop: [10, 10, 2, 1] },
+  // Bits of the rim fallen beside it.
+  { ...pot, crop: [1, 1, 4, 2], shift: [-1, 12] },
+  { ...pot, crop: [11, 2, 3, 2], shift: [2, 10] },
+];
+export const OVERWORLD_POTS = [3788, 3789, 3790] as const;
+for (const id of OVERWORLD_POTS) {
+  add(`potShards:${id}`, tile(shards(ow(id)), { prop: { kind: "pot", broken: true } }));
+  add(`pot:${id}`, tile([ow(id)], { prop: { kind: "pot", broken: false }, breaksTo: `potShards:${id}` }));
+}
+
+// ─── Dungeons (Dungeon.png themes) ──────────────────────────────────────────
+// Rooms use the pack's perspective room kit: 2-tile walls cut from one top-wall
+// strip, flipped/transposed for the other sides (skin/kit.ts lays them out).
+
+/** Colour theme of each dungeon (Dungeon.png blocks: 10 slate, 2 teal/lime, 4 plum, 1 red/cream). */
+export const DUNGEON_THEMES: Record<string, number> = { crypt: 10, lair: 2, tomb: 4, hall: 1 };
+/** Carpet of each dungeon's entrance and boss rooms: Tiles.png theme and its 48x80 block. */
+export const CARPETS: Record<string, { theme: number; block: [number, number] }> = {
+  crypt: { theme: 3, block: [384, 32] },
+  lair: { theme: 3, block: [384, 224] },
+  tomb: { theme: 8, block: [384, 32] },
+  hall: { theme: 2, block: [384, 224] },
+};
+/** The arena ring uses the brown/sand theme. */
+export const ARENA_THEME = 5;
+
+/** Atlas transform of Tiled's flip flags D (transpose), H, V, applied in that order. */
+export const FLAGS: Record<string, Transform> = {
+  "": "none",
+  H: "flipH",
+  V: "flipV",
+  HV: "rot180",
+  D: "transpose",
+  DH: "rot90",
+  DV: "rot270",
+  DHV: "antiTranspose",
 };
 
-export const COLUMNS = 8;
-export const MARGIN = 1;
-export const SPACING = 2;
+/**
+ * Floor colour swaps of a theme whose plain floor is too loud for a whole room
+ * (red/cream: the bright red floor becomes the theme's rust).
+ */
+const FLOOR_RECOLOR: Record<number, [number, number][]> = { 1: [[0xe03c28, 0xad4e1a]] };
+/** The plain floor of a theme (its base colour). */
+export const dfloor = (theme: number): string => {
+  const k = `dfloor:${theme}`;
+  const recolor = FLOOR_RECOLOR[theme];
+  if (!TILES[k]) add(k, tile([dg(theme, 336, 192, recolor ? { recolor } : {})]));
+  return k;
+};
+/** Darkest colour of each Dungeon.png theme (its outlines): worn specks on its floor. */
+export const DUNGEON_DARK: Record<number, number> = { 10: 0x0d2030, 2: 0x172808, 4: 0x231712, 1: 0x4f1507 };
+/**
+ * A cell of Dungeon.png (pixel x, y inside the theme block) with Tiled flags,
+ * drawn over the theme's floor (or `base`); added on first use. `kit!:` keys are solid.
+ */
+export const kit = (
+  theme: number,
+  x: number,
+  y: number,
+  flags = "",
+  solid = true,
+  base = dfloor(theme),
+  recolor?: [number, number][],
+): string => {
+  const k = `kit${solid ? "!" : ""}:${theme}:${x},${y}:${flags}${base === dfloor(theme) ? "" : `/${base}`}${recolor ? "~" : ""}`;
+  if (!TILES[k]) {
+    const t = FLAGS[flags];
+    if (!t) throw new Error(`bad flags "${flags}"`);
+    add(
+      k,
+      tile([{ key: base }, dg(theme, x, y, { t, ...(recolor ? { recolor } : {}) })], solid ? { collides: true } : {}),
+    );
+  }
+  return k;
+};
+/** A Dungeon.png cell on its own (transparent where the sheet is): drawn on "ground2". Never solid. */
+export const dgTile = (theme: number, x: number, y: number): string => {
+  const k = `dgTile:${theme}:${x},${y}`;
+  if (!TILES[k]) add(k, tile([dg(theme, x, y)]));
+  return k;
+};
+/** A Tiles.png cell (carpets, floors) on its own: drawn on "ground2" over a floor. Never solid. */
+export const tiles = (theme: number, x: number, y: number, recolor?: [number, number][]): string => {
+  const k = `tiles:${theme}:${x},${y}${recolor ? `~${recolor.map(([a, b]) => `${a.toString(16)}>${b.toString(16)}`).join(",")}` : ""}`;
+  if (!TILES[k]) add(k, tile([tl(theme, x, y, recolor ? { recolor } : {})]));
+  return k;
+};
+/** Packed sand of the arena: the pack's sand in the cream of the arena walls (Dungeon.png theme 5). */
+add("arena:sand", tile([ow(25, { recolor: [[0xfff0a0, 0xe2d7b5]] })]));
 
-function setPx(png: PNG, x: number, y: number, c: RGBA) {
-  const i = (png.width * y + x) << 2;
-  png.data[i] = c[0];
-  png.data[i + 1] = c[1];
-  png.data[i + 2] = c[2];
-  png.data[i + 3] = c[3];
-}
+/** Statues 16x32 (x = 16 * kind; y 416 main colour, 448 alt): top half drawn over heroes, bottom half solid. */
+export const STATUE_KINDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const statue = (
+  theme: number,
+  kind: number,
+  alt: boolean,
+  base = dfloor(theme),
+): { top: string; bottom: string } => {
+  const y = alt ? 448 : 416;
+  const top = `statueTop:${theme}:${kind}:${y}`;
+  const bottom = `statue:${theme}:${kind}:${y}/${base}`;
+  if (!TILES[top]) add(top, tile([dg(theme, kind * 16, y)]));
+  if (!TILES[bottom]) add(bottom, solid([{ key: base }, dg(theme, kind * 16, y + 16)]));
+  return { top, bottom };
+};
+/** Small blocks (16x16, x 256 + 16i, rows 400..432) and big blocks (32x32) of a theme. */
+export const SMALL_BLOCKS: [number, number][] = [
+  [256, 400],
+  [256, 416],
+  [272, 400],
+  [320, 416],
+  [352, 416],
+  [272, 432],
+];
+export const BIG_BLOCKS: [number, number][] = [
+  [256, 448],
+  [320, 448],
+  [256, 480],
+  [320, 480],
+];
+/** Dungeon pots (16x16, theme colours). */
+export const DUNGEON_POTS: [number, number][] = [
+  [128, 496],
+  [144, 496],
+  [160, 496],
+  [144, 480],
+];
+export const dungeonPot = (theme: number, x: number, y: number): string => {
+  const k = `pot:${theme}:${x},${y}`;
+  if (!TILES[k]) {
+    const pot = dg(theme, x, y);
+    add(`potShards:${theme}:${x},${y}`, tile(shards(pot), { prop: { kind: "pot", broken: true } }));
+    add(k, tile([pot], { prop: { kind: "pot", broken: false }, breaksTo: `potShards:${theme}:${x},${y}` }));
+  }
+  return k;
+};
 
-function getPx(png: PNG, x: number, y: number): RGBA {
-  const i = (png.width * y + x) << 2;
-  return [png.data[i] ?? 0, png.data[i + 1] ?? 0, png.data[i + 2] ?? 0, png.data[i + 3] ?? 0];
-}
+// ─── Caves and shops (House.png furniture) ──────────────────────────────────
 
-export function buildTileset(): PNG {
-  const rows = Math.ceil(TILES.length / COLUMNS);
-  const width = MARGIN * 2 + COLUMNS * TILE_SIZE + (COLUMNS - 1) * SPACING;
-  const height = MARGIN * 2 + rows * TILE_SIZE + (rows - 1) * SPACING;
-  const png = new PNG({ width, height });
-  TILES.forEach((tile, i) => {
-    const ox = MARGIN + (i % COLUMNS) * (TILE_SIZE + SPACING);
-    const oy = MARGIN + Math.floor(i / COLUMNS) * (TILE_SIZE + SPACING);
-    const r = rng(1000 + i);
-    for (let y = 0; y < TILE_SIZE; y++)
-      for (let x = 0; x < TILE_SIZE; x++) setPx(png, ox + x, oy + y, tile.draw(x, y, r));
-    // Extrude each edge 1px outward to avoid seams between tiles.
-    for (let k = -1; k <= TILE_SIZE; k++) {
-      const kk = Math.min(TILE_SIZE - 1, Math.max(0, k));
-      setPx(png, ox + k, oy - 1, getPx(png, ox + kk, oy));
-      setPx(png, ox + k, oy + TILE_SIZE, getPx(png, ox + kk, oy + TILE_SIZE - 1));
-      setPx(png, ox - 1, oy + k, getPx(png, ox, oy + kk));
-      setPx(png, ox + TILE_SIZE, oy + k, getPx(png, ox + TILE_SIZE - 1, oy + kk));
-    }
-  });
-  return png;
-}
+const HOUSE = 0;
+add("shelf:l", solid([hs(HOUSE, 80, 128)]));
+add("shelf:r", solid([hs(HOUSE, 96, 128)]));
+/**
+ * Furniture standing alone against a cave wall (House.png): a cabinet and
+ * wooden crates (open, slatted, wicker; with or without a lid). No potted
+ * plants: their round green pot reads as a slime at a glance.
+ */
+export const FURNITURE = ["cabinet", "crate:0", "crate:1", "crate:2", "crate:3", "crate:4", "crate:5"] as const;
+add("cabinet", solid([hs(HOUSE, 96, 144)]));
+[32, 48, 64].forEach((x, i) => {
+  add(`crate:${i}`, solid([hs(HOUSE, x, 160)]));
+  add(`crate:${i + 3}`, solid([hs(HOUSE, x, 176)]));
+});
+/**
+ * The way out of a cave: stone steps in a frame (Overworld 387, upside down)
+ * running from the floor down into the dark of the passage, in the cave's grey.
+ */
+add(
+  "caveExit",
+  tile([
+    { key: "black" },
+    ow(387, {
+      t: "flipV",
+      recolor: [
+        [0xe2d7b5, 0xa8a8a8],
+        [0xa8a8a8, 0x7b7b7b],
+        [0x172808, 0x231712],
+      ],
+    }),
+  ]),
+);
+add("counter:l", solid([hs(HOUSE, 32, 128)]));
+add("counter:r", solid([hs(HOUSE, 48, 128)]));
+/** Middle of a long counter: the right half of its left end + the left half of its right end. */
+add(
+  "counter:m",
+  solid([
+    hs(HOUSE, 32, 128, { crop: [8, 0, 8, 16], shift: [-8, 0] }),
+    hs(HOUSE, 48, 128, { crop: [0, 0, 8, 16], shift: [8, 0] }),
+  ]),
+);
