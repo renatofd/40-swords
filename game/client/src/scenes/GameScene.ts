@@ -18,11 +18,13 @@ import {
   isEnemyKind,
   isLobbyPhase,
   isPvpPhase,
+  isWeaponId,
   type KillMessage,
   type LevelUpMessage,
   MatchPhase,
   Msg,
   OFFER_SLOTS,
+  type OfferItem,
   type OfferMessage,
   offerPosition,
   type PickedMessage,
@@ -81,24 +83,18 @@ import { actorDepth, DEPTH } from "../render/depth";
 import { EnemyView } from "../render/EnemyView";
 import { type EnemyPlace, enemySkin } from "../render/enemyLooks";
 import { playFx } from "../render/fx";
+import { burstFx, chestAnim, chestKey, OFFER_LAYOUT, PICKUP_SHADOW, rupeeTag } from "../render/itemArt";
 import { HERO_HEAD, PlayerView } from "../render/PlayerView";
 import { Projectiles } from "../render/Projectiles";
-import {
-  createPlaceholderArt,
-  rupeeTexture,
-  shadowTexture,
-  TEX_CHEST,
-  TEX_CHEST_OPEN,
-  TEX_HEART,
-  TEX_PEDESTAL,
-} from "../render/placeholderArt";
+import { createProceduralArt, rarityRingTexture, shadowTexture } from "../render/proceduralArt";
 import { WorldLabels } from "../render/WorldLabels";
 import { BossBar } from "../ui/bossBar";
 import { GainCards } from "../ui/gainCard";
+import { icon } from "../ui/icons";
 import { type LobbyEntry, LobbyPanel } from "../ui/lobby";
 import { MatchHud } from "../ui/matchHud";
 import { Minimap } from "../ui/minimap";
-import { ITEM_ICONS, itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
+import { itemEffect, itemName, rarityColor, rarityName } from "../ui/relicText";
 import { StatusHud } from "../ui/statusHud";
 import { SummaryPanel } from "../ui/summary";
 
@@ -126,6 +122,23 @@ const MERCHANT_ORIGIN_X = feetOrigin(MERCHANT, MERCHANT_HALF)[0];
 /** Half-extents (feet below the centre) of chests and pickups, for sorting them with the actors. */
 const CHEST_HALF = 6;
 const PICKUP_HALF = 4;
+/** Sheets made by tools/art (manifest.ts) for loot, chests' contents and the shop. */
+const PICKUPS = "pickups";
+const ITEMS = "items";
+const PEDESTAL = "pedestal";
+const GLINT = "fx-glint";
+/** Things that appear in view this long after joining are dropped (they hop); before, they were already lying there. */
+const JOIN_QUIET_MS = 1000;
+/** A gold chest added this soon after a boss fell is its drop: it falls in. */
+const BOSS_DROP_MS = 2000;
+/** One glint on a random rupee or closed gold chest in view, this often. */
+const GLINT_MS = 400;
+/** "Item get": rises 1 px per step for ITEM_RISE_PX steps, holds, then blinks ITEM_BLINKS times before it goes. */
+const ITEM_RISE_PX = 6;
+const ITEM_RISE_STEP_MS = 50;
+const ITEM_HOLD_MS = 700;
+const ITEM_BLINK_MS = 80;
+const ITEM_BLINKS = 4;
 /** An enemy removed this soon after a blow (or after its boss fell) died; otherwise it left the area of interest. */
 const DEATH_AFTER_HIT_MS = 600;
 /**
@@ -189,8 +202,12 @@ export class GameScene extends Phaser.Scene {
   /** When a boss or mini-boss last fell (its summoned minions vanish with it). */
   private bossDownAt = Number.NEGATIVE_INFINITY;
   private merchants: Phaser.GameObjects.Sprite[] = [];
-  private pickups = new Map<string, Phaser.GameObjects.Image>();
-  private chests = new Map<string, Phaser.GameObjects.Image>();
+  private pickups = new Map<string, PickupView>();
+  private chests = new Map<string, ChestView>();
+  /** Scene time when the room was joined (pickups and chests seen before then were already there). */
+  private joinedAt = 0;
+  /** The item the own hero just got, held over its head. */
+  private itemGet?: { sprite: Phaser.GameObjects.Sprite; start: number };
   /** Tall grass and pots: their tile layer, the broken look of each whole look, and each one by id (tile index). */
   private propsLayer?: Phaser.Tilemaps.TilemapLayer;
   private propBroken: Record<number, number> = {};
@@ -221,7 +238,11 @@ export class GameScene extends Phaser.Scene {
   private areaId = "";
   /** The last vendor offers received, by vendor id (only this player's). */
   private shops = new Map<string, OfferMessage[]>();
-  private pedestals: Phaser.GameObjects.Image[] = [];
+  /** Pedestals, rarity rings and goods of the shown offers. */
+  private pedestals: Phaser.GameObjects.GameObject[] = [];
+  /** Vendor whose offers are shown, and the page language their cards were written in (a change rewrites them). */
+  private shopVendor = "";
+  private shopLang = "";
   private screenKey = "";
   /** An attack press waiting for the next simulation step (so quick taps are never lost). */
   private attackQueued = false;
@@ -248,6 +269,9 @@ export class GameScene extends Phaser.Scene {
     this.propsLayer = undefined;
     this.shops = new Map();
     this.pedestals = [];
+    this.shopVendor = "";
+    this.shopLang = "";
+    this.itemGet = undefined;
     this.predicted = undefined;
     this.screenKey = "";
     this.areaId = "";
@@ -260,7 +284,8 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     const { room, hud, t } = this.ctx;
-    createPlaceholderArt(this);
+    createProceduralArt(this);
+    this.joinedAt = this.time.now;
     this.buildMap(room.state.mapId);
     this.projectiles = new Projectiles(this, this.gameMap.collision);
     this.addMerchants();
@@ -329,6 +354,7 @@ export class GameScene extends Phaser.Scene {
     });
     room.onMessage(Msg.gain, (m: GainMessage) => {
       this.gains?.show(m);
+      this.showItemGet(m.kind, m.rarity);
       if (m.kind === "potion") this.sfx(SFX_HEART, { rate: 0.85 });
       else if (m.source === "shop") this.sfx(SFX_COIN, { rate: 0.8 });
       else this.sfx(SFX_CHEST, { rate: m.source === "loot" ? 1.15 : 1 });
@@ -373,6 +399,7 @@ export class GameScene extends Phaser.Scene {
     this.lastPhase = room.state.phase;
     this.ctx.audio.playMusic(MUSIC_THEME);
     this.watchRoster();
+    this.time.addEvent({ delay: GLINT_MS, loop: true, callback: () => this.glint() });
     this.showControlsHint();
     this.lookAtScreen(this.gameMap.pixelWidth / 2, this.gameMap.pixelHeight / 2, false);
 
@@ -384,6 +411,7 @@ export class GameScene extends Phaser.Scene {
       this.enemies.clear();
       this.pickups.clear();
       this.chests.clear();
+      this.itemGet = undefined;
       this.predict = undefined;
       this.input$ = undefined;
       this.predicted = undefined;
@@ -584,31 +612,163 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Whether (x, y) is on the screen the camera shows. */
+  private inView(x: number, y: number) {
+    return this.cameras.main.worldView.contains(x, y);
+  }
+
+  /** Plays tag `tag` of sheet `key` on `sprite` (missing animations are ignored). */
+  private playTag(sprite: Phaser.GameObjects.Sprite, key: string, tag: string) {
+    const anim = animKey(key, tag);
+    if (this.anims.exists(anim)) sprite.play(anim);
+  }
+
+  /**
+   * A rupee (its gem by value) or a heart on the ground, with a shadow. One
+   * dropped in view hops in; then it bobs in whole-pixel steps (out of phase
+   * with its neighbours).
+   */
   private addPickup(pickup: Pickup, id: string) {
     if (this.pickups.has(id)) return;
-    const texture = pickup.kind === "heart" ? TEX_HEART : rupeeTexture(pickup.value);
-    const image = this.add.image(pickup.x, pickup.y, texture).setDepth(actorDepth(pickup.y, PICKUP_HALF));
-    this.tweens.add({ targets: image, y: pickup.y - 2, yoyo: true, repeat: -1, duration: 500, ease: "Sine.easeInOut" });
-    this.pickups.set(id, image);
+    const x = Math.round(pickup.x);
+    const y = Math.round(pickup.y);
+    const depth = actorDepth(y, PICKUP_HALF);
+    const sprite = this.add.sprite(x, y, PICKUPS).setOrigin(0.5).setDepth(depth);
+    this.playTag(sprite, PICKUPS, pickup.kind === "heart" ? "heart" : rupeeTag(pickup.value));
+    const shadow = this.add
+      .image(x, y + PICKUP_SHADOW.dy, shadowTexture(this, PICKUP_SHADOW.width))
+      .setDepth(depth - 1e-5)
+      .setOrigin(0.5);
+    this.pickups.set(id, { sprite, shadow, kind: pickup.kind, x, y });
+    const bob = () =>
+      this.tweens.add({
+        targets: sprite,
+        y: y - 2,
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: "Stepped",
+        easeParams: [2],
+        delay: (idHash(id) % 8) * 60,
+      });
+    if (this.inView(x, y) && this.time.now - this.joinedAt > JOIN_QUIET_MS) {
+      sprite.y = y - 8;
+      this.tweens.add({ targets: sprite, y, duration: 160, ease: "Quad.easeIn", onComplete: bob });
+    } else bob();
   }
 
+  /** Taken in view: a heart vanishes, a rupee leaves a glint. Out of view it just goes. */
   private removePickup(id: string) {
-    const image = this.pickups.get(id);
-    if (!image) return;
-    this.tweens.killTweensOf(image);
-    image.destroy();
+    const view = this.pickups.get(id);
+    if (!view) return;
     this.pickups.delete(id);
+    this.tweens.killTweensOf(view.sprite);
+    const { x, y } = view;
+    if (this.inView(x, y)) {
+      if (view.kind === "heart")
+        playFx(this, PICKUPS, x, y, { tag: "heart-vanish", depth: actorDepth(y, PICKUP_HALF) });
+      else playFx(this, GLINT, x, y - 2);
+    }
+    view.sprite.destroy();
+    view.shadow.destroy();
   }
 
+  /** One glint on a random rupee or closed gold chest in view: loot catches the eye. */
+  private glint() {
+    const spots: { x: number; y: number }[] = [];
+    for (const p of this.pickups.values()) if (p.kind !== "heart" && this.inView(p.x, p.y)) spots.push(p);
+    for (const c of this.chests.values()) if (c.gold && !c.open && this.inView(c.x, c.y)) spots.push(c);
+    const spot = spots[Math.floor(Math.random() * spots.length)];
+    if (!spot) return;
+    const rnd = (n: number) => Math.floor(Math.random() * (2 * n + 1)) - n;
+    playFx(this, GLINT, spot.x + rnd(3), spot.y - 4 + rnd(2));
+  }
+
+  /** A chest, wooden or gold, shown closed or empty. A boss's gold chest falls in next to it. */
   private addChest(chest: Chest, id: string) {
     if (this.chests.has(id)) return;
-    const texture = chest.open ? TEX_CHEST_OPEN : TEX_CHEST;
-    this.chests.set(id, this.add.image(chest.x, chest.y, texture).setDepth(actorDepth(chest.y, CHEST_HALF)));
+    const x = Math.round(chest.x);
+    const y = Math.round(chest.y);
+    const key = chestKey(chest.gold);
+    const sprite = this.add.sprite(x, y, key).setOrigin(0.5).setDepth(actorDepth(y, CHEST_HALF));
+    this.playTag(sprite, key, chestAnim(undefined, chest.open));
+    this.chests.set(id, { sprite, key, open: chest.open, gold: chest.gold, x, y });
+    if (chest.gold && !chest.open && this.inView(x, y) && this.time.now - this.bossDownAt < BOSS_DROP_MS) {
+      sprite.y = y - 12;
+      this.tweens.add({ targets: sprite, y, duration: 300, ease: "Bounce.easeOut" });
+      // Dust where it first lands (Bounce.easeOut touches down at ~36 % of the fall).
+      playFx(this, "fx-smoke-32", x, y + 6, { delay: 110 });
+    }
   }
 
+  /**
+   * A chest opened (it plays the opening, a burst of light, then stays empty)
+   * or filled again (closed, with a puff and a glint). It may refill while the
+   * opening plays, so the empty frame waits for it to still be open.
+   */
+  private setChestOpen(id: string, view: ChestView, open: boolean) {
+    const was = view.open;
+    view.open = open;
+    const { sprite, key, x, y } = view;
+    sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+    this.playTag(sprite, key, chestAnim(was, open));
+    const seen = this.inView(x, y);
+    if (open) {
+      sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        if (this.chests.get(id)?.open === true) this.playTag(sprite, key, "empty");
+      });
+      // Both materials: the rarity shows in the item-get burst (Msg.gain).
+      if (seen) playFx(this, "fx-burst-gold", x, y - 10, { delay: 140 });
+    } else if (seen) {
+      playFx(this, "fx-smoke-small", x, y - 2);
+      playFx(this, GLINT, x + 5, y - 6);
+    }
+  }
+
+  /** A dropped chest that expires in view (open) goes up in smoke. */
   private removeChest(id: string) {
-    this.chests.get(id)?.destroy();
+    const view = this.chests.get(id);
+    if (!view) return;
     this.chests.delete(id);
+    if (view.open && this.inView(view.x, view.y)) playFx(this, "fx-smoke-16", view.x, view.y);
+    view.sprite.destroy();
+  }
+
+  /**
+   * "Item get": what the own hero just got, held over its head (the compass
+   * turns), with a burst behind it (purple for epic and legendary). It rises
+   * in whole pixels, holds, blinks and goes; a new one replaces it.
+   */
+  private showItemGet(kind: OfferItem, rarity: number) {
+    this.itemGet?.sprite.destroy();
+    this.itemGet = undefined;
+    const self = this.ctx.room.state.players.get(this.ctx.room.sessionId);
+    if (!self || !this.predict) return;
+    const x = Math.round(this.predict.value(self, "x"));
+    const y = Math.round(this.predict.value(self, "y"));
+    const sprite = this.add
+      .sprite(x, y - HERO_HEAD - 2, ITEMS)
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTH.fx + 1);
+    this.playTag(sprite, ITEMS, kind);
+    this.itemGet = { sprite, start: this.time.now };
+    playFx(this, burstFx(kind === "potion" ? 0 : rarity), x, y - HERO_HEAD - 10);
+  }
+
+  /** Moves the held item with the hero (at x, y) and steps its rise, hold and blink. */
+  private updateItemGet(x: number, y: number) {
+    const held = this.itemGet;
+    if (!held) return;
+    const age = this.time.now - held.start;
+    const blinkFrom = ITEM_RISE_PX * ITEM_RISE_STEP_MS + ITEM_HOLD_MS;
+    if (age >= blinkFrom + ITEM_BLINKS * ITEM_BLINK_MS) {
+      held.sprite.destroy();
+      this.itemGet = undefined;
+      return;
+    }
+    const rise = Math.min(ITEM_RISE_PX, Math.floor(age / ITEM_RISE_STEP_MS));
+    held.sprite.setPosition(Math.round(x), Math.round(y) - HERO_HEAD - 2 - rise);
+    held.sprite.setVisible(age < blinkFrom || Math.floor((age - blinkFrom) / ITEM_BLINK_MS) % 2 === 1);
   }
 
   // ─── Tall grass and pots ──────────────────────────────────────────────────
@@ -647,51 +807,120 @@ export class GameScene extends Phaser.Scene {
 
   // ─── Vendors ──────────────────────────────────────────────────────────────
 
-  /** Pedestals and price cards of a vendor's offers (this player's offers only). */
+  /**
+   * A vendor's offers (this player's only): each on a pedestal, the goods
+   * standing on it over a ring of their rarity colour, and a price card above
+   * them (details when the hero is near).
+   */
   private renderShop(vendorId: string) {
     const vendor = this.vendors.find((v) => v.id === vendorId);
     const offers = this.shops.get(vendorId);
-    this.labels?.removeAll("offer:");
     for (const p of this.pedestals) p.destroy();
     this.pedestals = [];
+    this.writeShopCards(vendorId);
     if (!vendor || !offers) return;
-    const { t } = this.ctx;
     offers.slice(0, OFFER_SLOTS).forEach((offer, slot) => {
       const at = offerPosition(vendor, slot);
-      this.pedestals.push(this.add.image(at.x, at.y + 4, TEX_PEDESTAL).setDepth(DEPTH.pedestal));
-      this.labels?.anchor(`offer:${vendorId}:${slot}`, at.x, at.y + 1, () =>
-        h(
-          "div",
-          {
-            className: offer.sold ? "sw-offer sw-offer-sold" : "sw-offer",
-            style: `--sw-rarity: ${rarityColor(offer.rarity)}`,
-            "data-offer": String(slot),
-          },
-          h(
-            "div",
-            { className: "sw-offer-details" },
-            h("strong", {}, itemName(t, offer.kind)),
-            offer.kind !== "potion" && h("span", { className: "sw-rarity" }, rarityName(t, offer.rarity)),
-            h("span", {}, itemEffect(t, offer.kind, offer.rarity)),
-          ),
-          h("span", { className: "sw-offer-icon" }, ITEM_ICONS[offer.kind]),
-          h(
-            "span",
-            { className: "sw-offer-price" },
-            ...(offer.sold ? [t("shop.sold")] : [h("span", { className: "sw-rupee-icon" }), String(offer.price)]),
-          ),
-        ),
+      const x = Math.round(at.x);
+      const y = Math.round(at.y);
+      // The hero walks onto the pedestal to buy, so it is drawn under the actors.
+      const pedestal = this.add
+        .sprite(x, y + OFFER_LAYOUT.pedestalDy, PEDESTAL)
+        .setOrigin(0.5, 1)
+        .setDepth(DEPTH.pedestal);
+      this.playTag(pedestal, PEDESTAL, "idle");
+      this.pedestals.push(pedestal);
+      if (offer.sold) return;
+      if (offer.rarity >= 1 && offer.kind !== "potion")
+        this.pedestals.push(
+          this.add
+            .image(x, y + OFFER_LAYOUT.ringDy, rarityRingTexture(this, offer.rarity))
+            .setOrigin(0.5)
+            .setDepth(DEPTH.pedestal + 0.1),
+        );
+      const goods = this.add.sprite(x, y, ITEMS).setOrigin(0.5, 1).setDepth(actorDepth(y, 0));
+      this.playTag(goods, ITEMS, offer.kind);
+      this.pedestals.push(goods);
+    });
+  }
+
+  /** The price cards of a vendor's offers, in the page's language. */
+  private writeShopCards(vendorId: string) {
+    const vendor = this.vendors.find((v) => v.id === vendorId);
+    const offers = this.shops.get(vendorId);
+    this.labels?.removeAll("offer:");
+    this.shopVendor = vendorId;
+    this.shopLang = document.documentElement.lang;
+    if (!vendor || !offers) return;
+    offers.slice(0, OFFER_SLOTS).forEach((offer, slot) => {
+      const at = offerPosition(vendor, slot);
+      this.labels?.anchor(`offer:${vendorId}:${slot}`, at.x, at.y + OFFER_LAYOUT.cardDy, () =>
+        this.offerCard(offer, slot),
       );
     });
   }
 
-  /** Keeps the offer cards on their pedestals; the one the hero stands next to shows its details. */
-  private updateShopCards(x: number, y: number) {
+  /**
+   * One offer's card: the price chip (framed in the offer's rarity colour; a
+   * potion and a sold offer get the plain frame) and the details shown near it.
+   */
+  private offerCard(offer: OfferMessage, slot: number): HTMLElement {
+    const { t } = this.ctx;
+    const potion = offer.kind === "potion";
+    const kindLine = potion
+      ? undefined
+      : isWeaponId(offer.kind)
+        ? `${t("item.weapon")} · ${rarityName(t, offer.rarity)}`
+        : rarityName(t, offer.rarity);
+    return h(
+      "div",
+      {
+        className: offer.sold ? "sw-offer sw-offer-sold" : "sw-offer",
+        style: `--sw-rarity: ${rarityColor(offer.rarity)}`,
+        "data-offer": String(slot),
+        "data-rarity": potion ? undefined : String(offer.rarity),
+      },
+      h(
+        "div",
+        { className: "sw-offer-details" },
+        h("strong", {}, itemName(t, offer.kind)),
+        kindLine && h("span", { className: "sw-rarity" }, kindLine),
+        h("span", {}, itemEffect(t, offer.kind, offer.rarity)),
+      ),
+      h(
+        "span",
+        { className: "sw-offer-price" },
+        ...(offer.sold
+          ? [t("shop.sold")]
+          : [icon("rupee-green"), h("span", { className: "sw-num" }, String(offer.price))]),
+      ),
+    );
+  }
+
+  /**
+   * Keeps the offer cards over their goods: the one the hero (at x, y) stands
+   * next to shows its details, and prices the hero cannot pay (with `rupees`)
+   * turn red. A card whose look changed is centred again.
+   */
+  private updateShopCards(x: number, y: number, rupees: number) {
+    if (this.shopVendor && document.documentElement.lang !== this.shopLang) this.writeShopCards(this.shopVendor);
     for (const vendor of this.vendors) {
+      const offers = this.shops.get(vendor.id);
       for (let slot = 0; slot < OFFER_SLOTS; slot++) {
         const at = offerPosition(vendor, slot);
-        const card = this.labels?.move(`offer:${vendor.id}:${slot}`, at.x, at.y + 1);
-        card?.classList.toggle("sw-offer-near", Math.hypot(at.x - x, at.y - y) <= OFFER_DETAILS_PX);
+        const id = `offer:${vendor.id}:${slot}`;
+        const cardY = at.y + OFFER_LAYOUT.cardDy;
+        const card = this.labels?.move(id, at.x, cardY);
+        if (!card) continue;
+        const offer = offers?.[slot];
+        const near = Math.hypot(at.x - x, at.y - y) <= OFFER_DETAILS_PX;
+        const poor = offer !== undefined && !offer.sold && rupees < offer.price;
+        if (card.classList.contains("sw-offer-near") === near && card.classList.contains("sw-offer-poor") === poor)
+          continue;
+        card.classList.toggle("sw-offer-near", near);
+        // Red price only: the labels layer is aria-hidden, and a failed purchase says "not enough" (shopFail toast).
+        card.classList.toggle("sw-offer-poor", poor);
+        this.labels?.move(id, at.x, cardY, true);
       }
     }
   }
@@ -1009,9 +1238,8 @@ export class GameScene extends Phaser.Scene {
       this.enemies.get(id)?.update(predict.value(enemy, "x"), predict.value(enemy, "y"), enemy, time);
     }
     for (const [id, chest] of room.state.chests) {
-      const image = this.chests.get(id);
-      const texture = chest.open ? TEX_CHEST_OPEN : TEX_CHEST;
-      if (image && image.texture.key !== texture) image.setTexture(texture);
+      const view = this.chests.get(id);
+      if (view && view.open !== chest.open) this.setChestOpen(id, view, chest.open);
     }
 
     this.watchPhase();
@@ -1031,7 +1259,8 @@ export class GameScene extends Phaser.Scene {
       const focusY = watched ? predict.value(watched, "y") : y;
       this.updateCamera(focusX, focusY);
       if (this.minimap) this.minimap.el.hidden = this.cameraMode === "arena";
-      this.updateShopCards(x, y);
+      this.updateShopCards(x, y, self.rupees);
+      this.updateItemGet(x, y);
       this.updateMerchants(x, y);
       this.minimap?.update(x, y, time);
       this.updateBossBar(x, y);
@@ -1059,6 +1288,32 @@ export class GameScene extends Phaser.Scene {
     }
   }
 }
+
+/** A pickup on the ground: its sprite, its shadow and where it lies. */
+interface PickupView {
+  sprite: Phaser.GameObjects.Sprite;
+  shadow: Phaser.GameObjects.Image;
+  kind: string;
+  x: number;
+  y: number;
+}
+
+/** A chest: its sprite and sheet, and the `open` flag it shows. */
+interface ChestView {
+  sprite: Phaser.GameObjects.Sprite;
+  key: string;
+  open: boolean;
+  gold: boolean;
+  x: number;
+  y: number;
+}
+
+/** A small number from an id (sum of char codes), to put neighbours' bobbing out of step. */
+const idHash = (id: string) => {
+  let sum = 0;
+  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return sum;
+};
 
 /** Quantizes an analog axis to the -1|0|1 the server accepts (8-way movement). */
 function toAxis(v: number): -1 | 0 | 1 {

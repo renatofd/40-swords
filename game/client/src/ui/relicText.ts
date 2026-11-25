@@ -1,43 +1,53 @@
 import type { Translate } from "@core/client";
 import {
   clampRarity,
+  isRelicKind,
   isWeaponId,
   type OfferItem,
+  PASSIVE_IDS,
   PASSIVES,
   passiveValue,
   RARITIES,
   RARITY_COLORS,
   RARITY_WEAPON_POWER,
+  type RelicKind,
   TICK_RATE,
+  WEAPON_IDS,
   WEAPONS,
 } from "@game/shared";
-
-/**
- * PLACEHOLDER icons (emoji) for relics and items, used by the DOM HUD, the
- * shop cards and the "found" card. Swap for images later in one place.
- */
-export const ITEM_ICONS: Record<OfferItem, string> = {
-  heart: "❤️",
-  power: "💪",
-  boots: "👢",
-  clover: "🍀",
-  eye: "🎯",
-  mark: "💥",
-  fang: "🩸",
-  shield: "🛡️",
-  haste: "⏳",
-  dagger: "🗡️",
-  fireball: "🔥",
-  arrow: "🏹",
-  nova: "❄️",
-  potion: "🧪",
-};
 
 export const rarityColor = (rarity: number) =>
   `#${(RARITY_COLORS[clampRarity(rarity)] ?? 0xffffff).toString(16).padStart(6, "0")}`;
 
 export const itemName = (t: Translate, kind: OfferItem) => t(`item.${kind}`);
 export const rarityName = (t: Translate, rarity: number) => t(`rarity.${RARITIES[clampRarity(rarity)]}`);
+
+/** Tooltip of a slot: "Boots · Rare". */
+export const slotTitle = (t: Translate, kind: OfferItem, rarity: number) =>
+  `${itemName(t, kind)} · ${rarityName(t, rarity)}`;
+
+/** One slot per relic or weapon kind: how many copies, and the best rarity among them. */
+export interface SlotGroup {
+  kind: RelicKind;
+  best: number;
+  count: number;
+}
+
+/** Fixed slot order (HUD, summary): weapons in WEAPON_IDS order, then passives in PASSIVE_IDS order. */
+const SLOT_ORDER: readonly RelicKind[] = [...WEAPON_IDS, ...PASSIVE_IDS];
+
+/** Groups relics into slots in the fixed order, so slots never jump around. Unknown kinds are skipped. */
+export function slotGroups(relics: Iterable<{ kind: string; rarity: number }>): SlotGroup[] {
+  const groups = new Map<RelicKind, SlotGroup>();
+  for (const r of relics) {
+    if (!isRelicKind(r.kind)) continue;
+    const g = groups.get(r.kind) ?? { kind: r.kind, best: 0, count: 0 };
+    g.count++;
+    g.best = Math.max(g.best, clampRarity(r.rarity));
+    groups.set(r.kind, g);
+  }
+  return SLOT_ORDER.flatMap((kind) => groups.get(kind) ?? []);
+}
 
 /** Label key of each attribute a passive relic improves. */
 const STAT_LABEL: Record<string, string> = {

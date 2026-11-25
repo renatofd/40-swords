@@ -1,19 +1,24 @@
 import { type Area, areaAt, type Portal, screenOf, type WorldInfo } from "@game/shared";
 
-/** Colour of each biome letter (see tools/world-gen/src/world.ts). */
+const GRASS = "#6ab417";
+/** Colour of each biome letter (see tools/world-gen/src/world.ts), from the pack palette. */
 const BIOME_COLORS: Record<string, string> = {
-  G: "#8fcf5a",
-  F: "#3f8a2a",
-  R: "#a8402c",
-  H: "#b0a060",
-  M: "#7a5228",
-  L: "#4a78c8",
-  W: "#6a7a3a",
-  Y: "#6a9a94",
-  B: "#e6d394",
-  C: "#c8c8d0",
+  G: GRASS,
+  F: "#376d03",
+  R: "#ad4e1a",
+  H: "#c59782",
+  M: "#5c3c0d",
+  L: "#024aca",
+  W: "#939717",
+  Y: "#71a6a1",
+  B: "#e2d7b5",
+  C: "#d7d7d7",
 };
-const CELL = 8;
+const UNSEEN = "#0d2030";
+const CAVE = "#ffe737";
+const DUNGEON = "#e03c28";
+/** A screen is 6x6 canvas px plus a 1 px gap; the canvas is drawn at a whole number of art px (`--sw-u`). */
+const CELL = 7;
 
 /**
  * Overworld minimap drawn on a small canvas inside the DOM HUD: screens the
@@ -37,6 +42,9 @@ export class Minimap {
     this.el.className = "sw-minimap";
     this.el.width = info.columns * CELL;
     this.el.height = info.rows * CELL;
+    // One canvas px = one art px: an exact integer scale at every UI scale.
+    this.el.style.inlineSize = `calc(${info.columns * CELL} * var(--sw-u))`;
+    this.el.style.blockSize = `calc(${info.rows * CELL} * var(--sw-u))`;
     this.el.setAttribute("role", "img");
     this.el.setAttribute("aria-label", label);
     this.ctx = this.el.getContext("2d");
@@ -69,20 +77,18 @@ export class Minimap {
     for (let r = 0; r < this.info.rows; r++)
       for (let c = 0; c < this.info.columns; c++) {
         const seen = this.explored.has(`${c},${r}`);
-        g.fillStyle = seen
-          ? (BIOME_COLORS[this.info.biomes[r * this.info.columns + c] ?? "G"] ?? "#4f9a3c")
-          : "#1a1a24";
+        g.fillStyle = seen ? (BIOME_COLORS[this.info.biomes[r * this.info.columns + c] ?? "G"] ?? GRASS) : UNSEEN;
         g.fillRect(c * CELL, r * CELL, CELL - 1, CELL - 1);
       }
     for (const e of this.entrances.values()) {
       if (!this.explored.has(`${e.col},${e.row}`)) continue;
-      g.fillStyle = e.kind === "dungeon" ? "#ff4040" : "#ffd040";
+      g.fillStyle = e.kind === "dungeon" ? DUNGEON : CAVE;
       g.fillRect(e.col * CELL + 2, e.row * CELL + 2, 3, 3);
     }
     if (blink) {
       g.strokeStyle = "#ffffff";
-      g.lineWidth = 2;
-      g.strokeRect(col * CELL + 1, row * CELL + 1, CELL - 3, CELL - 3);
+      g.lineWidth = 1;
+      g.strokeRect(col * CELL + 0.5, row * CELL + 0.5, CELL - 2, CELL - 2);
     }
   }
 }

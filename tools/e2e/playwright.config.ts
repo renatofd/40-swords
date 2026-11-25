@@ -21,8 +21,10 @@ export default defineConfig({
     trace: "retain-on-failure",
     launchOptions: {
       executablePath,
-      // Software WebGL so the canvas renders on CI machines without a GPU.
-      args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+      // Software WebGL so the canvas renders on CI machines without a GPU. Grayscale text
+      // anti-aliasing: CI fontconfig asks for LCD subpixel text, whose colour fringes would make
+      // the pixel checks (ui.spec, Tiny5 probe) depend on the machine instead of the page.
+      args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-lcd-text"],
     },
   },
   projects: [

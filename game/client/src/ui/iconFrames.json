@@ -1,0 +1,161 @@
+{
+  "w": 101,
+  "h": 101,
+  "icons": {
+    "heart": {
+      "x": 0,
+      "y": 0,
+      "frames": 1
+    },
+    "power": {
+      "x": 17,
+      "y": 0,
+      "frames": 1
+    },
+    "boots": {
+      "x": 34,
+      "y": 0,
+      "frames": 1
+    },
+    "clover": {
+      "x": 51,
+      "y": 0,
+      "frames": 1
+    },
+    "eye": {
+      "x": 68,
+      "y": 0,
+      "frames": 1
+    },
+    "mark": {
+      "x": 85,
+      "y": 0,
+      "frames": 1
+    },
+    "fang": {
+      "x": 0,
+      "y": 17,
+      "frames": 1
+    },
+    "shield": {
+      "x": 17,
+      "y": 17,
+      "frames": 1
+    },
+    "haste": {
+      "x": 34,
+      "y": 17,
+      "frames": 4
+    },
+    "dagger": {
+      "x": 0,
+      "y": 34,
+      "frames": 1
+    },
+    "fireball": {
+      "x": 17,
+      "y": 34,
+      "frames": 1
+    },
+    "arrow": {
+      "x": 34,
+      "y": 34,
+      "frames": 1
+    },
+    "nova": {
+      "x": 51,
+      "y": 34,
+      "frames": 1
+    },
+    "potion": {
+      "x": 68,
+      "y": 34,
+      "frames": 1
+    },
+    "rupee-green": {
+      "x": 85,
+      "y": 34,
+      "frames": 1
+    },
+    "hp-4": {
+      "x": 0,
+      "y": 0,
+      "frames": 1
+    },
+    "hp-3": {
+      "x": 0,
+      "y": 51,
+      "frames": 1
+    },
+    "hp-2": {
+      "x": 17,
+      "y": 51,
+      "frames": 1
+    },
+    "hp-1": {
+      "x": 34,
+      "y": 51,
+      "frames": 1
+    },
+    "hp-0": {
+      "x": 51,
+      "y": 51,
+      "frames": 1
+    },
+    "lock": {
+      "x": 68,
+      "y": 51,
+      "frames": 1
+    },
+    "mark-boss": {
+      "x": 85,
+      "y": 51,
+      "frames": 1
+    },
+    "mark-mini": {
+      "x": 0,
+      "y": 68,
+      "frames": 1
+    },
+    "mark-danger": {
+      "x": 17,
+      "y": 68,
+      "frames": 1
+    },
+    "heroes": {
+      "x": 34,
+      "y": 68,
+      "frames": 1
+    },
+    "champion": {
+      "x": 51,
+      "y": 68,
+      "frames": 1
+    },
+    "sword": {
+      "x": 68,
+      "y": 68,
+      "frames": 1
+    },
+    "chest": {
+      "x": 85,
+      "y": 68,
+      "frames": 1
+    },
+    "sum-monsters": {
+      "x": 0,
+      "y": 85,
+      "frames": 1
+    },
+    "sum-level": {
+      "x": 17,
+      "y": 85,
+      "frames": 1
+    },
+    "sum-relics": {
+      "x": 34,
+      "y": 85,
+      "frames": 1
+    }
+  }
+}

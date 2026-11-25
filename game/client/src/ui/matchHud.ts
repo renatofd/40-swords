@@ -1,5 +1,6 @@
-import { h, type Translate } from "@core/client";
+import { h, type Translate, type TranslateParams } from "@core/client";
 import { type KillMessage, MatchPhase } from "@game/shared";
+import { icon } from "./icons";
 import { itemName } from "./relicText";
 
 const FEED_MS = 6000;
@@ -43,6 +44,33 @@ export const formatClock = (seconds: number): string => {
 };
 
 /**
+ * A translated message with its numeric parameters in `.sw-num` spans (Tiny5
+ * and left-to-right in every locale), e.g. "PvP in " + <2:41>. Numbers joined
+ * only by "/" or ":" ("7/12") share one span: as separate isolates, an RTL line
+ * would put them in reverse order ("12/7").
+ */
+export function withNumbers(t: Translate, key: string, params: TranslateParams): (string | HTMLElement)[] {
+  const values = Object.values(params).map(String);
+  const marks = Object.fromEntries(Object.keys(params).map((name, i) => [name, `\uE000${i}\uE000`]));
+  // Even pieces are text, odd ones the index of a number.
+  const pieces = t(key, marks).split(/\uE000(\d+)\uE000/);
+  const parts: (string | HTMLElement)[] = [];
+  for (let i = 0; i < pieces.length; i++) {
+    if (i % 2 === 0) {
+      if (pieces[i] !== "") parts.push(pieces[i] ?? "");
+      continue;
+    }
+    let run = values[Number(pieces[i])] ?? "";
+    while (i + 2 < pieces.length && /^[/:]$/.test(pieces[i + 1] ?? "")) {
+      run += `${pieces[i + 1]}${values[Number(pieces[i + 2])] ?? ""}`;
+      i += 2;
+    }
+    parts.push(h("span", { className: "sw-num" }, run));
+  }
+  return parts;
+}
+
+/**
  * Match HUD (DOM, like the rest of the UI): the phase and its countdown
  * (top corner, above the scoreboard) with the heroes still standing, the
  * kill feed (bottom) and a banner for what matters most right now: the
@@ -68,35 +96,54 @@ export class MatchHud {
 
   update(view: MatchView, self: MatchSelf) {
     const { t } = this;
-    const left = formatClock(view.phaseEnds - view.clock);
-    const standing = ` · 👥 ${view.alive}`;
-    let text: string;
+    const time = formatClock(view.phaseEnds - view.clock);
+    /** The phase's message, and whether the heroes still standing follow it. */
+    let message: [string, TranslateParams];
+    let standing = false;
     switch (view.phase) {
       case MatchPhase.lobby:
-        text = t("match.lobby", { ready: view.ready, total: view.total });
+        message = ["match.lobby", { ready: view.ready, total: view.total }];
         break;
       case MatchPhase.starting:
-        text = t("match.starting", { time: left });
+        message = ["match.starting", { time }];
         break;
       case MatchPhase.calm:
-        text = t("match.calm", { time: left }) + standing;
+        message = ["match.calm", { time }];
+        standing = true;
         break;
       case MatchPhase.pvp:
-        text = t("match.pvp", { time: left }) + standing;
+        message = ["match.pvp", { time }];
+        standing = true;
         break;
       case MatchPhase.prep:
-        text = t("match.prep", { time: left }) + standing;
+        message = ["match.prep", { time }];
+        standing = true;
         break;
       case MatchPhase.arena:
-        text = t("match.arena", { alive: view.alive });
+        message = ["match.arena", { alive: view.alive }];
         break;
       default:
-        text = t("match.ended", { time: left });
+        message = ["match.ended", { time }];
     }
-    const key = `${view.phase}|${text}`;
+    const key = `${view.phase}|${t(...message)}|${standing ? view.alive : ""}`;
     if (key !== this.lastTimer) {
       this.lastTimer = key;
-      this.timer.textContent = text;
+      // "PvP in 2:41 · [heroes] 40": the numbers in the pixel font, the heroes still standing as an icon.
+      // One inline run (a flex item per text piece would drop the spaces around the numbers).
+      this.timer.replaceChildren(
+        h(
+          "span",
+          {},
+          ...withNumbers(t, ...message),
+          ...(standing
+            ? [
+                " · ",
+                icon("heroes", { label: t("hud.standing") }),
+                h("span", { className: "sw-num" }, String(view.alive)),
+              ]
+            : []),
+        ),
+      );
       this.timer.dataset.phase = String(view.phase);
     }
     if (this.introPending) {
@@ -128,7 +175,7 @@ export class MatchHud {
     const bannerKey = `${kind}|${title}|${sub}`;
     if (bannerKey === this.lastBanner) return;
     this.lastBanner = bannerKey;
-    this.title.textContent = title;
+    this.title.replaceChildren(...(kind === "danger" ? [icon("mark-danger", { big: true })] : []), title);
     this.sub.textContent = sub;
     this.sub.hidden = sub === "";
     this.banner.hidden = title === "";
@@ -148,7 +195,8 @@ export class MatchHud {
     const el = this.timer;
     clearTimeout(this.introTimer);
     el.classList.remove("sw-match-settle");
-    el.style.transform = "";
+    el.style.scale = "";
+    el.style.translate = "";
     el.classList.add("sw-match-intro");
     const parent = el.offsetParent?.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
@@ -156,14 +204,20 @@ export class MatchHud {
       el.classList.remove("sw-match-intro");
       return;
     }
-    const scale = Math.max(1, Math.min(2.4, (parent.width * 0.8) / rect.width));
-    const dx = parent.left + parent.width / 2 - (rect.left + rect.width / 2);
+    // Whole scales only (pixel art and the pixel font stay crisp), moved by whole device pixels.
+    const scale = Math.max(1, Math.round(Math.min(2.4, (parent.width * 0.8) / rect.width)));
+    const dpr = globalThis.devicePixelRatio || 1;
+    const snap = (v: number) => Math.round(v * dpr) / dpr;
+    const dx = snap(parent.left + parent.width / 2 - (rect.left + rect.width / 2));
     // Above the middle: the heroes start in the middle of the square.
-    const dy = parent.top + parent.height * 0.27 - (rect.top + rect.height / 2);
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    const dy = snap(parent.top + parent.height * 0.27 - (rect.top + rect.height / 2));
+    el.style.scale = String(scale);
+    el.style.translate = `${dx}px ${dy}px`;
     this.introTimer = setTimeout(() => {
+      // Back to scale 1 at once; only the slide is animated (`.sw-match-settle`, steps(8)).
       el.classList.add("sw-match-settle");
-      el.style.transform = "";
+      el.style.scale = "";
+      el.style.translate = "";
       this.introTimer = setTimeout(() => el.classList.remove("sw-match-intro", "sw-match-settle"), INTRO_MOVE_MS + 100);
     }, INTRO_HOLD_MS);
   }

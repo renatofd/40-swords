@@ -1,7 +1,7 @@
 /**
  * Hard-edged ellipses for the pixel art (shadows, the elite glow): whole-pixel
  * rows at one alpha, instead of the anti-aliased ellipses of Phaser's Graphics.
- * Pure (tested without a browser); placeholderArt.ts draws the rows.
+ * Pure (tested without a browser); proceduralArt.ts draws the rows.
  */
 
 /** One filled run of pixels: x from `x0` to `x1` (exclusive) on row `y`. */

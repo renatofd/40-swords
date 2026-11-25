@@ -59,22 +59,14 @@ function loadSheet(classId: ClassId): Promise<Sheet | undefined> {
   return sheet;
 }
 
-/**
- * CSS size of a portrait shown about `scale` CSS px per art pixel: rounded so
- * that each art pixel is a whole number of device pixels.
- */
-export function portraitCssSize(scale: number, dpr: number): number {
-  const ratio = dpr > 0 ? dpr : 1;
-  return (Math.max(1, Math.round(scale * ratio)) / ratio) * CROP.size;
-}
-
 /** A canvas showing the hero in a colour (drawn as soon as its sheet has loaded); `small` for lists. */
 export function heroPortrait(classId: ClassId, palette: number, small = false): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = CROP.size;
   canvas.height = CROP.size;
   canvas.className = small ? "sw-portrait sw-portrait-small" : "sw-portrait";
-  const size = `${portraitCssSize(small ? 2 : 3, globalThis.devicePixelRatio ?? 1)}px`;
+  // 3 (small: 2) art pixels per sprite pixel: whole device pixels at every UI scale (ui/scale.ts).
+  const size = `calc(${(small ? 2 : 3) * CROP.size} * var(--sw-u))`;
   canvas.style.inlineSize = size;
   canvas.style.blockSize = size;
   canvas.setAttribute("aria-hidden", "true");

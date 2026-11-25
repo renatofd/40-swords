@@ -6,6 +6,7 @@ import {
   ActPhase,
   ARENA_PREP_SECONDS,
   actPhase,
+  areaAt,
   arenaRect,
   BOSS_CHEST_RARITY,
   type BossDownMessage,
@@ -62,7 +63,8 @@ const appConfig = createGameServer({ rooms, protocolVersion: PROTOCOL_VERSION })
 const v = { core: CORE_PROTOCOL_VERSION, game: PROTOCOL_VERSION };
 const objects = loadWorldObjects("overworld");
 const { props } = loadProps("overworld");
-const arena = arenaRect(loadWorldInfo("overworld"));
+const worldInfo = loadWorldInfo("overworld");
+const arena = arenaRect(worldInfo);
 /** The start square, where every match begins. */
 const START = { col: 8, row: 4 };
 
@@ -92,6 +94,7 @@ interface RoomInternals {
     summoned?: boolean,
   ): string;
   removeEnemy(id: string): void;
+  killEnemy(enemyId: string, enemy: Enemy, brain: Brain, killerId: string, killer: Player): void;
   damageEnemy(
     enemyId: string,
     enemy: Enemy,
@@ -324,6 +327,47 @@ describe("WorldRoom", () => {
     // Every kind is placed somewhere (normal kinds in the overworld or dungeons, one of each boss).
     for (const kind of ENEMY_KINDS) expect(kinds.has(kind), kind).toBe(true);
     expect(room.state.chests.size).toBe(objects.chests.length);
+  });
+
+  it("map chests in dungeons are gold, the rest wooden", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    let gold = 0;
+    for (const c of objects.chests) {
+      const { col, row } = screenOf(c.x, c.y);
+      const dungeon = areaAt(worldInfo.areas, col, row)?.kind === "dungeon";
+      expect(room.state.chests.get(c.id)?.gold, c.id).toBe(dungeon);
+      if (dungeon) gold++;
+    }
+    // The world has both kinds.
+    expect(gold).toBeGreaterThan(0);
+    expect(gold).toBeLessThan(objects.chests.length);
+  });
+
+  it("bosses and mini-bosses drop gold chests, elites wooden ones", async () => {
+    const room = await createWorld();
+    await room.waitForNextTimestep();
+    const hero = await joinAs(room, "barbarian", "Hero");
+    await play(room, hero);
+    const dropFrom = (kind: EnemyKind, elite = false) => {
+      const before = new Set(room.state.chests.keys());
+      const { id, enemy, brain } = pinEnemy(room, room.state, hero.player.x + 40, hero.player.y, { kind });
+      enemy.elite = elite;
+      const rng = internals(room).rng;
+      internals(room).rng = () => 0; // the elite chest roll always wins
+      internals(room).killEnemy(id, enemy, brain, hero.client.sessionId, hero.player);
+      internals(room).rng = rng;
+      const dropped = [...room.state.chests.entries()].filter(([chestId]) => !before.has(chestId));
+      expect(dropped, kind).toHaveLength(1);
+      return dropped[0]?.[1].gold;
+    };
+    const bosses = ENEMY_KINDS.filter((k) => ENEMIES[k].rank === "boss");
+    const minis = ENEMY_KINDS.filter((k) => ENEMIES[k].rank === "miniboss");
+    const normal = ENEMY_KINDS.find((k) => ENEMIES[k].rank === "normal");
+    if (!bosses[0] || !minis[0] || !normal) throw new Error("missing ranks");
+    expect(dropFrom(bosses[0])).toBe(true);
+    expect(dropFrom(minis[0])).toBe(true);
+    expect(dropFrom(normal, true)).toBe(false);
   });
 
   it("a sword kill gives XP, levels up and drops rupees the player can collect", async () => {
@@ -1134,7 +1178,9 @@ describe("WorldRoom", () => {
         hero.client.onMessage(Msg.summary, (m: SummaryMessage) => list.push(m));
       }
 
-      // B slays a monster and opens a chest, then falls to A once PvP is on.
+      // B carries two relics, slays a monster and opens a chest, then falls to A once PvP is on.
+      internals(room).giveRelic(b.client.sessionId, b.player, "boots", 3, "chest");
+      internals(room).giveRelic(b.client.sessionId, b.player, "clover", 1, "chest");
       const { id, enemy } = pinEnemy(room, room.state, b.player.x, b.player.y + 12, { kind: "slime" });
       enemy.hp = 1;
       b.player.facing = 2;
@@ -1150,6 +1196,9 @@ describe("WorldRoom", () => {
       b.player.y = chest.y;
       await vi.waitFor(() => expect(chest.open).toBe(true));
       await skipTo(room, DEFAULT_MATCH_TIMES.pvpAfter + 30);
+      const relicsOf = (p: Player) => p.relics.map((r) => ({ kind: r.kind, rarity: r.rarity }));
+      const carried = relicsOf(b.player);
+      expect(carried).toHaveLength(3);
       b.player.hp = 1;
       await swingAt(room, a, b, () => expect(b.player.out).toBe(true));
 
@@ -1158,10 +1207,20 @@ describe("WorldRoom", () => {
       expect(fallen).toMatchObject({ place: 2, heroes: 2, kills: 0, monsters: 1, bosses: 0, chests: 1 });
       expect(fallen?.level).toBe(b.player.level);
       expect(fallen?.seconds).toBeGreaterThanOrEqual(DEFAULT_MATCH_TIMES.pvpAfter + 30);
+      // The relic list is what the fallen hero kept: the taken one is gone, the rest as they were.
+      expect(fallen?.relics).toBe(2);
+      expect(fallen?.relicList).toHaveLength(2);
+      expect(fallen?.relicList).toEqual(relicsOf(b.player));
+      expect(a.player.relics).toHaveLength(1);
 
       // A is the last one standing: the winner's summary, and the room remembers.
       await vi.waitFor(() => expect(summaries.get(a.client.sessionId)).toHaveLength(1));
-      expect(summaries.get(a.client.sessionId)?.[0]).toMatchObject({ place: 1, heroes: 2, kills: 1, monsters: 0 });
+      const won = summaries.get(a.client.sessionId)?.[0];
+      expect(won).toMatchObject({ place: 1, heroes: 2, kills: 1, monsters: 0, relics: 1 });
+      expect(won?.relicList).toEqual(relicsOf(a.player));
+      // B's list plus the relic A took is what B carried.
+      const order = (list: { kind: string; rarity: number }[]) => list.map((r) => `${r.kind}:${r.rarity}`).sort();
+      expect(order([...(fallen?.relicList ?? []), ...(won?.relicList ?? [])])).toEqual(order(carried));
       expect(room.state.roster.get(a.client.sessionId)).toMatchObject({ wins: 1, kills: 1 });
       expect(room.state.roster.get(b.client.sessionId)).toMatchObject({ wins: 0, kills: 0 });
       await skipTo(room, room.state.phaseEnds);

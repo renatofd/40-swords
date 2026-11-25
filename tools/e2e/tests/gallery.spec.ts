@@ -38,6 +38,17 @@ test.describe("enemy gallery", () => {
     expect(errors).toEqual([]);
   });
 
+  test("draws every item, pickup, chest, pedestal and loot effect at 1x and 3x", async ({ page }, info) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.setViewportSize({ width: 3300, height: 900 });
+    for (const zoom of [1, 3]) {
+      expect(await open(page, `view=items&zoom=${zoom}`)).toEqual([]);
+      await page.locator("#wrap").screenshot({ path: info.outputPath(`items-${zoom}x.png`) });
+    }
+    expect(errors).toEqual([]);
+  });
+
   test("runs the shooters live (shots, impacts, deaths) without page errors", async ({ page }) => {
     // The frozen shots stop before any release: this run lets the shot code play out.
     const errors: string[] = [];

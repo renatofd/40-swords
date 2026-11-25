@@ -103,6 +103,9 @@ importers:
       '@core/shared':
         specifier: workspace:*
         version: link:../../packages/core-shared
+      '@fontsource/tiny5':
+        specifier: 5.3.0
+        version: 5.3.0
       '@game/shared':
         specifier: workspace:*
         version: link:../shared
@@ -231,6 +234,10 @@ importers:
   packages/core-shared: {}
 
   tools/art:
+    dependencies:
+      '@game/shared':
+        specifier: workspace:*
+        version: link:../../game/shared
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -275,6 +282,12 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
 
   tools/loadtest:
     dependencies:
@@ -687,6 +700,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/tiny5@5.3.0':
+    resolution: {integrity: sha512-29H01ByMRs6uiLeOoBnZLedf0dR3pF5A53cIBzhp1/Y6Bu5D0t5selTb4TWs3ENoc/OK71rOed5xAdvBywe4aQ==}
 
   '@ioredis/commands@1.10.0':
     resolution: {integrity: sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q==}
@@ -2113,6 +2129,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/tiny5@5.3.0': {}
 
   '@ioredis/commands@1.10.0': {}
 

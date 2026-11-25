@@ -9,16 +9,17 @@ content/
 │   └── overworld.tmj        O mundo do 40 Swords (gerado por tools/world-gen, editável no Tiled)
 ├── tilesets/world.png       Tileset do mundo, gerado por tools/world-gen a partir de src/notzelda (16x16, extrudado)
 ├── src/notzelda/            Folhas originais do pacote "Super Overhead Adventure 3" (CC BY-SA 4.0, veja ReadMe.txt): mundo, personagens, efeitos e itens; não vão para o jogo
-├── CREDITS.md               Créditos e licença da arte (CC BY-SA 4.0) e o que foi modificado
+├── CREDITS.md               Créditos e licença da arte (CC BY-SA 4.0) e da fonte (OFL), e o que foi modificado
+├── ui/frame-*.png           Molduras 9-slice da interface, geradas por `pnpm art` a partir de src/notzelda/Menu/Menu.png
 ├── sprites/
-│   ├── *.png + *.json       Heróis, inimigos, efeitos e projéteis, gerados por `pnpm art` (tools/art) a partir de src/notzelda
+│   ├── *.png + *.json       Heróis, inimigos, efeitos, projéteis, itens, rupees, corações, baús e pedestais, gerados por `pnpm art` (tools/art) a partir de src/notzelda
 │   └── src/                 Seus arquivos .aseprite (fonte)
 └── audio/
     ├── music/theme.wav      Música (carregada sozinha, chave "theme")
     └── sfx/*.wav            Efeitos (a chave é o nome do arquivo: "join", "ui", "swing", "hit"...)
 ```
 
-O mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja "Como o mundo é gerado" em [`docs/JOGO.md`](../docs/JOGO.md)). A arte do mundo é *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença CC BY-SA 4.0. O `tilesets/world.png` é uma obra derivada, recortada, recomposta e extrudada, compartilhada sob a mesma licença. Os créditos completos e a lista das mudanças estão em [`CREDITS.md`](CREDITS.md); mantenha esse arquivo junto com a arte se ela for redistribuída. Heróis, inimigos, efeitos e projéteis vêm do mesmo pacote: `pnpm art` gera os sprites de `content/sprites/` (obras derivadas, mesma licença). Baús, rupees, corações, ícones de itens e sons ainda são **provisórios** (veja [`docs/JOGO.md`](../docs/JOGO.md)): a música e os sons `join` e `ui` vêm de `pnpm assets:placeholder`, e os efeitos do jogo (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória) de `pnpm sfx`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
+O mapa e o tileset vêm de `pnpm --filter @tools/world-gen generate` (veja "Como o mundo é gerado" em [`docs/JOGO.md`](../docs/JOGO.md)). A arte do mundo é *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença CC BY-SA 4.0. O `tilesets/world.png` é uma obra derivada, recortada, recomposta e extrudada, compartilhada sob a mesma licença. Os créditos completos e a lista das mudanças estão em [`CREDITS.md`](CREDITS.md); mantenha esse arquivo junto com a arte se ela for redistribuída. Heróis, inimigos, efeitos, projéteis, itens (com os ícones da interface), rupees, corações, baús e pedestais vêm do mesmo pacote: `pnpm art` gera os sprites de `content/sprites/`, as molduras da interface de `content/ui/` e o `game/client/src/ui/iconFrames.json` (obras derivadas, mesma licença). Só os sons ainda são **provisórios** (veja [`docs/JOGO.md`](../docs/JOGO.md)): a música e os sons `join` e `ui` vêm de `pnpm assets:placeholder`, e os efeitos do jogo (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória) de `pnpm sfx`. Substitua à vontade. O `assets:placeholder` se recusa a rodar quando os arquivos já existem; **não use `--force`** neste jogo, porque ele recria os arquivos do jogo de exemplo do template (arena, terrain, player).
 
 `pnpm content:validate` confere mapas, sprites e áudio. Ele roda na CI e no `pnpm check`.
 
@@ -43,11 +44,13 @@ As animações respeitam a duração de cada quadro, a direção (forward, rever
    - **Manual no Aseprite:** *File → Export Sprite Sheet*. Na aba Output, marque **JSON Data** com formato **Array**, em *Item Filename* escreva `{frame}` e marque **Tags**. Salve como `content/sprites/hero.png` + `hero.json`.
 4. Rode `pnpm content:validate`.
 
-Para mudar a cor em tempo real (cor por jogador), desenhe o corpo em branco ou cinza claro e use `setTint` no jogo, como faz o jogador de exemplo. No 40 Swords as cores não são tingimento: as cores dos heróis e os elites dourados trocam cores exatas da folha na hora (veja "Cores do herói" e "Trocar a arte" em [`docs/JOGO.md`](../docs/JOGO.md)).
+No 40 Swords as cores nunca são tingimento (`setTint`): as cores dos heróis e os elites dourados trocam cores exatas da folha na hora (veja "Cores do herói" e "Trocar a arte" em [`docs/JOGO.md`](../docs/JOGO.md)).
 
 ### Sprites do 40 Swords (`pnpm art`)
 
-Os sprites do jogo não são exportados do Aseprite: o importador `pnpm art` (`tools/art`) recorta as folhas de `src/notzelda/` e escreve `sprites/<nome>.png` + `<nome>.json` no mesmo formato (json-array do Aseprite, um quadro por passo de cada tag), além de `game/client/src/render/spriteAnchors.json` (o ponto dos pés). A lista de sprites, quadros e tags fica em `tools/art/src/manifest.ts`. Não edite esses arquivos à mão: rode `pnpm art` de novo (`pnpm art --check` diz se algum ficou desatualizado). O importador só apaga os sprites que ele mesmo gerou.
+Os sprites do jogo não são exportados do Aseprite: o importador `pnpm art` (`tools/art`) recorta as folhas de `src/notzelda/` e escreve `sprites/<nome>.png` + `<nome>.json` no mesmo formato (json-array do Aseprite, um quadro por passo de cada tag), além de `game/client/src/render/spriteAnchors.json` (o ponto dos pés). A lista de sprites, quadros e tags fica em `tools/art/src/manifest.ts`; os ícones dos itens e da interface, em `tools/art/src/icons.ts` (todos na folha `items`).
+
+O mesmo comando gera as molduras da interface em `content/ui/frame-*.png` (`tools/art/src/ui.ts`: os cantos do `Menu/Menu.png` viram 9-slices, com o traço na cor de cada raridade) e o `game/client/src/ui/iconFrames.json` (onde fica cada ícone no `items.png`, para o CSS). A pasta `content/ui/` é toda do `pnpm art`: arquivos que não estão em `UI_FRAMES` são apagados. Ela não passa pelo `content:validate`; quem confere é o `pnpm art --check` e os testes de `tools/art`. Não edite esses arquivos à mão: rode `pnpm art` de novo (`pnpm art --check` diz se algum ficou desatualizado). O importador só apaga os sprites que ele mesmo gerou.
 
 ## Áudio
 

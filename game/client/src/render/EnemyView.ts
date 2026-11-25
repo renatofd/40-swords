@@ -32,7 +32,7 @@ import {
 } from "./enemyLooks";
 import { playFx } from "./fx";
 import { ellipseRing } from "./pixelEllipse";
-import { shadowTexture, TEX_ELITE_GLOW } from "./placeholderArt";
+import { shadowTexture, TEX_ELITE_GLOW } from "./proceduralArt";
 import { addRecoloredSprite, textureColors } from "./recolor";
 
 /** What the server tells about an enemy each frame (the schema fields the view draws). */

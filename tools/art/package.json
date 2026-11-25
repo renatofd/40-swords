@@ -3,10 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "GAME (40 Swords): imports the character, FX and shot sheets of the pack (content/src/notzelda) into content/sprites as Aseprite-format sprites.",
+  "description": "GAME (40 Swords): imports the pack sheets (content/src/notzelda) into content/sprites as Aseprite-format sprites, plus the item icon sheet frames (game/client/src/ui/iconFrames.json) and the UI 9-slice frames (content/ui).",
   "scripts": {
     "generate": "tsx src/import.ts",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@game/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

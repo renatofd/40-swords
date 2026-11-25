@@ -14,8 +14,13 @@ export const clampRarity = (r: number): number => Math.min(MAX_RARITY, Math.max(
 export const RARITY_POWER = [1, 1.5, 2.2, 3.2, 5] as const;
 /** Damage multiplier of a weapon relic at each rarity. */
 export const RARITY_WEAPON_POWER = [1, 1.35, 1.8, 2.5, 3.5] as const;
-/** Colour of each rarity (relic borders, names). */
-export const RARITY_COLORS = [0xc8c8d0, 0x4fd16a, 0x4a9eff, 0xb35cff, 0xff9a2a] as const;
+/**
+ * Colour of each rarity (relic frames, names, shop rings), all taken from the art pack palette.
+ * The UI frame PNGs are generated from these, so text and frame colours never diverge.
+ * Legendary is the pack's gold, not its orange: under deuteranopia orange and the uncommon
+ * green look the same (slots and the summary strip show rarity by colour only).
+ */
+export const RARITY_COLORS = [0xd7d7d7, 0x58d332, 0x5ba8ff, 0xa675fe, 0xffe737] as const;
 
 /** Base chance weights of each rarity, and how much one point of luck raises each (0.25 = +25%). */
 const RARITY_WEIGHTS = [60, 25, 10, 4, 1] as const;

@@ -1,5 +1,6 @@
 import { h, type Translate } from "@core/client";
 import { MAX_PLAYERS_PER_ROOM } from "@game/shared";
+import { icon } from "./icons";
 
 export interface LobbyEntry {
   id: string;
@@ -62,7 +63,12 @@ export class LobbyPanel {
           h("span", { "aria-hidden": "true" }, e.away ? "⏳" : e.ready ? "✔" : "…"),
           e.name,
           e.wins > 0
-            ? h("span", { className: "sw-lobby-wins", title: t("lobby.wins", { wins: e.wins }) }, `🏆${e.wins}`)
+            ? h(
+                "span",
+                { className: "sw-lobby-wins", title: t("lobby.wins", { wins: e.wins }) },
+                icon("champion"),
+                h("span", { className: "sw-num" }, String(e.wins)),
+              )
             : null,
         ),
       ),

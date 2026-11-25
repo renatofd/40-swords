@@ -1,7 +1,10 @@
 import { h, type Translate } from "@core/client";
 import { type Career, type ClassId, PALETTES, type SummaryMessage } from "@game/shared";
 import { heroPortrait } from "./heroPortrait";
+import { SUMMARY_ICON, type SummaryRow } from "./iconMap";
+import { icon, slot } from "./icons";
 import { hexColor } from "./palette";
+import { slotGroups, slotTitle } from "./relicText";
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
@@ -25,31 +28,48 @@ export class SummaryPanel {
   show(m: SummaryMessage, career: Career, unlocked: number[], classId?: ClassId) {
     const { t } = this;
     const won = m.place === 1;
-    const rows: [string, string][] = [
-      [t("summary.kills"), String(m.kills)],
-      [t("summary.monsters"), String(m.monsters)],
-      [t("summary.bosses"), String(m.bosses)],
-      [t("summary.chests"), String(m.chests)],
-      [t("summary.level"), String(m.level)],
-      [t("summary.relics"), String(m.relics)],
-      [t("summary.time"), clock(m.seconds)],
+    const rows: [SummaryRow, string][] = [
+      ["kills", String(m.kills)],
+      ["monsters", String(m.monsters)],
+      ["bosses", String(m.bosses)],
+      ["chests", String(m.chests)],
+      ["level", String(m.level)],
+      ["relics", String(m.relics)],
+      ["time", clock(m.seconds)],
     ];
+    const title = won ? t("summary.won") : t("summary.place", { place: m.place, total: m.heroes });
+    // The relics the hero ended with (sent with the summary: the room state may already have lost the stolen one).
+    const groups = slotGroups(m.relicList ?? []);
     this.el.dataset.won = String(won);
-    this.el.setAttribute(
-      "aria-label",
-      won ? t("summary.won") : t("summary.place", { place: m.place, total: m.heroes }),
-    );
+    this.el.setAttribute("aria-label", title);
     this.el.replaceChildren(
-      h(
-        "h2",
-        { className: "sw-summary-title" },
-        won ? `🏆 ${t("summary.won")}` : t("summary.place", { place: m.place, total: m.heroes }),
-      ),
+      h("h2", { className: "sw-summary-title" }, won && icon("champion", { big: true }), title),
       h(
         "dl",
         { className: "sw-summary-stats" },
-        ...rows.flatMap(([label, value]) => [h("dt", {}, label), h("dd", {}, value)]),
+        ...rows.flatMap(([row, value]) => {
+          const mark = SUMMARY_ICON[row];
+          return [
+            // A row without an icon keeps an empty icon-sized space, so the labels line up.
+            h(
+              "dt",
+              {},
+              mark ? icon(mark) : h("span", { className: "sw-icon", style: "visibility: hidden" }),
+              t(`summary.${row}`),
+            ),
+            h("dd", {}, h("span", { className: "sw-num" }, value)),
+          ];
+        }),
       ),
+      ...(groups.length > 0
+        ? [
+            h(
+              "div",
+              { className: "sw-summary-relics" },
+              ...groups.map((g) => slot(g.kind, g.best, g.count, undefined, slotTitle(t, g.kind, g.best))),
+            ),
+          ]
+        : []),
       h("p", { className: "sw-summary-career" }, careerLine(t, career)),
       ...unlocked.map((i) =>
         h(

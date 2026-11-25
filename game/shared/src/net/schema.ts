@@ -106,6 +106,8 @@ export const Chest = schema({
   x: t.number().default(0),
   y: t.number().default(0),
   open: t.boolean().default(false),
+  /** Gold chests (dungeons, mini-boss and boss drops) hold at least an uncommon relic. */
+  gold: t.boolean().default(false),
 });
 export type Chest = SchemaType<typeof Chest>;
 

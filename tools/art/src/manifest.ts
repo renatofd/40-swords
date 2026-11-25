@@ -13,7 +13,8 @@
  * (an alias of `idle-down`, or of the main loop for creatures without idle frames).
  * One-shot effects use `play` (repeat 1), loops use `loop`.
  */
-import type { FrameRef, SpriteDef, TagDef } from "./sheet";
+import { ICON_SHEETS, type IconDef, ITEM_ICONS, UI_ICONS } from "./icons";
+import type { AsepriteJson, FrameRef, SpriteDef, TagDef } from "./sheet";
 
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
@@ -109,6 +110,53 @@ const fx = (
 /** Four pixel-exact quarter turns of frame 0: a spinning shot. */
 const quarterTurns = (i: number, src?: string): FrameRef[] =>
   (["none", "rot90", "rot180", "rot270"] as const).map((t) => ({ i, t, ...(src ? { src } : {}) }));
+
+/**
+ * The `items` sprite: one tag per icon (items first, then the HUD icons), frames `i..i+frames-1` of its
+ * sheet. Animated icons loop; single frames have no `repeat`. The DOM reads the same sheet (iconFrames.json).
+ */
+export function iconSprite(key: string, icons: Readonly<Record<string, IconDef>>, idle: string): SpriteDef {
+  const tags: TagDef[] = Object.entries(icons).map(([name, d]) => ({
+    name,
+    src: d.src,
+    frames: range(d.i, d.i + (d.frames ?? 1) - 1),
+    duration: d.ms ?? 1000,
+  }));
+  return { key, src: ICON_SHEETS, frame: [16, 16], tags, aliases: [["idle", idle]], anchor: [8, 16] };
+}
+
+/**
+ * game/client/src/ui/iconFrames.json: where each icon's first frame sits in the built `items` sheet
+ * (aliases excluded), so the DOM draws it as a CSS sprite. The compass stays on its first frame in the
+ * DOM (packed frames are not guaranteed to be adjacent); it animates only in the world.
+ */
+export function iconFrames(json: AsepriteJson) {
+  const icons: Record<string, { x: number; y: number; frames: number }> = {};
+  for (const name of Object.keys({ ...ITEM_ICONS, ...UI_ICONS })) {
+    const tag = json.meta.frameTags.find((t) => t.name === name);
+    const first = tag && json.frames[tag.from];
+    if (!tag || !first) throw new Error(`items: no tag for icon "${name}"`);
+    icons[name] = { x: first.frame.x, y: first.frame.y, frames: tag.to - tag.from + 1 };
+  }
+  return { w: json.meta.size.w, h: json.meta.size.h, icons };
+}
+
+const PICKUPS = "Items/Pickups.png";
+const TREASURES = "Items/Books and Treasures.png";
+
+/** A chest on Books and Treasures: closed `c`, opening `c+1..c+4` (lid up, glow), then empty `c+5`. */
+const chest = (key: string, c: number): SpriteDef => ({
+  key,
+  src: TREASURES,
+  frame: [16, 16],
+  tags: [
+    { name: "closed", frames: [c], duration: 1000 },
+    { name: "open", frames: range(c + 1, c + 4), duration: [80, 60, 80, 200], repeat: 1 },
+    { name: "empty", frames: [c + 5], duration: 1000 },
+  ],
+  aliases: [["idle", "closed"]],
+  anchor: [8, 8],
+});
 
 const H = "Characters/Humanoid";
 const S = "Characters/Small";
@@ -569,5 +617,63 @@ export const SPRITES: readonly SpriteDef[] = [
       { name: "impact", frames: range(5, 7), duration: 60, repeat: 1 },
     ],
     aliases: [["idle", "fly"]],
+  },
+
+  // ─── Items, pickups, chests, shop (stage 9) ────────────────────────────────
+  // Every relic, weapon, potion and HUD icon (icons.ts); the DOM draws the same sheet.
+  iconSprite("items", { ...ITEM_ICONS, ...UI_ICONS }, "potion"),
+  {
+    // Rupees by value: green 1-4, blue 5-19, pink 20-49, a spinning gold coin from 50 (row 7, cols 0-4).
+    // The dark purple gem (57) is not used: it vanishes on the crypt and tomb floors.
+    key: "pickups",
+    src: PICKUPS,
+    frame: [16, 16],
+    tags: [
+      { name: "rupee-green", frames: [56], duration: 1000 },
+      { name: "rupee-blue", frames: [55], duration: 1000 },
+      { name: "rupee-pink", frames: [54], duration: 1000 },
+      { name: "rupee-gold", frames: range(91, 95), duration: 100 },
+      { name: "heart", frames: [13], duration: 1000 },
+      { name: "heart-vanish", frames: range(14, 17), duration: 60, repeat: 1 },
+    ],
+    aliases: [["idle", "heart"]],
+    anchor: [8, 8],
+  },
+  chest("chest", 63),
+  // Gold chest: dungeon chests and mini-boss/boss drops (holds at least an uncommon relic).
+  chest("chest-gold", 70),
+  {
+    // Shop pedestal: the dungeon statue plinth (2560,432): tan-framed top with a cream oval, brown front.
+    key: "pedestal",
+    src: "Environments/Dungeon.png",
+    frame: [16, 16],
+    tags: [{ name: "idle", frames: [9664], duration: 1000 }],
+    anchor: [8, 16],
+  },
+  {
+    // Loot burst, gold: pickup frames 27-31 (26 is the Lucky Star icon, never part of the burst).
+    key: "fx-burst-gold",
+    src: PICKUPS,
+    frame: [16, 16],
+    tags: [{ name: "play", frames: range(27, 31), duration: 60, repeat: 1 }],
+    aliases: [["idle", "play"]],
+  },
+  {
+    // Loot burst, purple (epic and legendary): frames 40-44 (39 is the `sum-level` icon).
+    key: "fx-burst-purple",
+    src: PICKUPS,
+    frame: [16, 16],
+    tags: [{ name: "play", frames: range(40, 44), duration: 60, repeat: 1 }],
+    aliases: [["idle", "play"]],
+  },
+  {
+    // Loot glint: the gold sparkle's last two frames (specks, then a 14 px cross) recoloured to grey, so
+    // it never reads as fx-shine ("attack coming") or fx-spark twinkle ("stunned").
+    key: "fx-glint",
+    src: PICKUPS,
+    frame: [16, 16],
+    recolor: [[0xffbb31, 0xd7d7d7]],
+    tags: [{ name: "play", frames: [30, 31], duration: 80, repeat: 1 }],
+    aliases: [["idle", "play"]],
   },
 ];
