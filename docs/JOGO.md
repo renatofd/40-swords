@@ -383,6 +383,8 @@ Há dois caminhos:
     - a decoração de cada bioma.
 
     As paredes são retângulos de pelo menos 2×2 (rocha, floresta densa, pinheiros), porque a arte do pacote não tem cantos côncavos. Retângulos que se sobrepõem são desenhados do norte para o sul, cada um na frente do anterior.
+
+    A floresta densa nunca mostra meia árvore. A árvore grande do pacote ocupa 2×2 células, e na mata fechada cada árvore fica uma célula abaixo e uma ao lado da vizinha. `skin/forest.ts` põe as árvores uma a uma, só onde a árvore inteira cabe (quatro células de floresta na mesma tela) e só juntando metades que o pacote desenha juntas. As células que sobram recebem árvores pequenas de 1×1. O teste `skin/forest.test.ts` confere isso com retângulos sorteados.
   - **`src/build.ts`:** as salas de masmorra: paredes de 2 tiles, portas, e os arranjos de estátuas `I` e blocos `J` em `ROOM_PATTERNS`, desenhados sobre o chão de 16×7.
   - **Mato alto e potes:** são colocados depois, com um sorteio separado. Há de 1 a 3 moitas de 2 a 4 tufos em cada tela de grama, menos a praça, e de 2 a 4 potes por caverna e sala de masmorra, primeiro nos cantos (nas masmorras, longe de estátuas e blocos e fora dos tapetes entre as portas). Nada disso fica nas bordas das telas, na frente das passagens, nem perto de portais, baús e ofertas.
   - **Para gerar:** rode `pnpm --filter @tools/world-gen generate`. Ele regrava `content/maps/overworld.tmj` e `content/tilesets/world.png`, e apaga de `content/tilesets/` os PNGs que o mapa não usa mais.
