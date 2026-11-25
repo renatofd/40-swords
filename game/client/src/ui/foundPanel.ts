@@ -52,6 +52,11 @@ export class FoundPanel {
   private revealed = 0;
   private total = 0;
   private now = 0;
+  /**
+   * Called when a box opens, filled and visible, before the browser paints it:
+   * GameScene moves it to the bottom of the screen when it would cover the hero.
+   */
+  onShow?: (el: HTMLElement) => void;
   private reduceMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   constructor(private readonly t: Translate) {
@@ -152,6 +157,7 @@ export class FoundPanel {
     this.el.style.animation = "";
     this.shownAt = undefined;
     this.reveal(this.reduceMotion ? this.total : 0);
+    this.onShow?.(this.el);
   }
 
   /**
