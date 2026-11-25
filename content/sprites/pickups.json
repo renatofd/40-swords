@@ -1,0 +1,346 @@
+{
+  "frames": [
+    {
+      "filename": "0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 1000
+    },
+    {
+      "filename": "1",
+      "frame": {
+        "x": 17,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 1000
+    },
+    {
+      "filename": "2",
+      "frame": {
+        "x": 34,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 1000
+    },
+    {
+      "filename": "3",
+      "frame": {
+        "x": 51,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 100
+    },
+    {
+      "filename": "4",
+      "frame": {
+        "x": 0,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 100
+    },
+    {
+      "filename": "5",
+      "frame": {
+        "x": 17,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 100
+    },
+    {
+      "filename": "6",
+      "frame": {
+        "x": 34,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 100
+    },
+    {
+      "filename": "7",
+      "frame": {
+        "x": 51,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 100
+    },
+    {
+      "filename": "8",
+      "frame": {
+        "x": 0,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 1000
+    },
+    {
+      "filename": "9",
+      "frame": {
+        "x": 17,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "10",
+      "frame": {
+        "x": 34,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "11",
+      "frame": {
+        "x": 51,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "12",
+      "frame": {
+        "x": 0,
+        "y": 51,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "tools/art (40 Swords)",
+    "version": "1",
+    "image": "pickups.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 67,
+      "h": 67
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "rupee-green",
+        "from": 0,
+        "to": 0,
+        "direction": "forward"
+      },
+      {
+        "name": "rupee-blue",
+        "from": 1,
+        "to": 1,
+        "direction": "forward"
+      },
+      {
+        "name": "rupee-pink",
+        "from": 2,
+        "to": 2,
+        "direction": "forward"
+      },
+      {
+        "name": "rupee-gold",
+        "from": 3,
+        "to": 7,
+        "direction": "forward"
+      },
+      {
+        "name": "heart",
+        "from": 8,
+        "to": 8,
+        "direction": "forward"
+      },
+      {
+        "name": "heart-vanish",
+        "from": 9,
+        "to": 12,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
+        "name": "idle",
+        "from": 8,
+        "to": 8,
+        "direction": "forward"
+      }
+    ]
+  }
+}

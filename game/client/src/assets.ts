@@ -87,4 +87,6 @@ export function preloadAssets(scene: Phaser.Scene) {
   for (const [id, url] of Object.entries(MAPS)) scene.load.tilemapTiledJSON(mapKey(id), url);
   loadSprites(scene, SPRITES);
   loadAudio(scene, AUDIO);
+  // The UI's pixel font (bundled by theme.ts); start it now so the first menu is not drawn in the fallback.
+  if (typeof document !== "undefined") void document.fonts?.load("16px Tiny5", "0").catch(() => undefined);
 }

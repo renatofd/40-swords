@@ -1,0 +1,141 @@
+{
+  "frames": [
+    {
+      "filename": "0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "1",
+      "frame": {
+        "x": 17,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "2",
+      "frame": {
+        "x": 34,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "3",
+      "frame": {
+        "x": 0,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    },
+    {
+      "filename": "4",
+      "frame": {
+        "x": 17,
+        "y": 17,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 60
+    }
+  ],
+  "meta": {
+    "app": "tools/art (40 Swords)",
+    "version": "1",
+    "image": "fx-burst-gold.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 50,
+      "h": 33
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "play",
+        "from": 0,
+        "to": 4,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
+        "name": "idle",
+        "from": 0,
+        "to": 4,
+        "direction": "forward",
+        "repeat": "1"
+      }
+    ]
+  }
+}

@@ -83,6 +83,44 @@ O `game/client/src/render/spriteAnchors.json` também sai do importador: só o t
 
 Os arquivos de `content/sprites/` gerados pelo `pnpm art` são compartilhados sob a mesma licença, **CC BY-SA 4.0**, com crédito a *#NotZelda Overhead Adventure Tiles* e a Raphael Azcueta.
 
+## Itens, baús, pedestais e interface
+
+Os ícones de relíquias, armas e poção, as rupees, os corações, os baús, o pedestal da loja, os brilhos de saque e as molduras da interface também vêm do pacote (*#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, CC BY-SA 4.0).
+
+### Arquivos de origem
+
+Ficam em `content/src/notzelda/`, copiados como vieram (mesmos bytes, nomes de pasta do pacote). Não vão para o jogo: são a fonte do `pnpm art`.
+
+| Pasta do pacote | Arquivos | Uso no jogo |
+|---|---|---|
+| `Items/` | `Equipment.png` | Ícones das relíquias manopla, botas, máscaras, elmo e escudo, e os elmos de cavaleiro do HUD (heróis de pé, vitórias) |
+| `Items/` | `Books and Treasures.png` | Baú de madeira e baú dourado (fechado, abrindo, vazio) e o ícone de baú |
+| `Items/` | `Pickups.png`, `Tools.png`, `Weapons.png` (já usados pelos projéteis) | Rupees (verde, azul, rosa, moeda dourada girando), coração e o seu sumiço, o coração do HUD em quartos, a estrela, a bússola, a poção, as armas, os brilhos de saque (dourado e roxo) e os ícones do resumo da partida |
+| `Menu/` | `Menu.png` | Cantos das molduras 9-slice, o cursor vermelho de seleção, o cadeado e as marcas de chefe, minichefe e perigo |
+| `Environments/` | `Dungeon.png` (já usado pelo mundo) | O pedestal da loja: o pedestal de estátua da célula (2560,432) |
+
+### O que vai para o jogo e como foi modificado
+
+O `pnpm art` (`tools/art/src/icons.ts` diz de onde vem cada ícone; `tools/art/src/manifest.ts`, os sprites; `tools/art/src/ui.ts`, as molduras) escreve estes arquivos, que são obras derivadas:
+
+- `content/sprites/items.png` + `.json`: a folha de ícones. Cada ícone é uma célula de 16×16 recortada de uma das folhas acima e reorganizada numa folha nova. O mundo (Phaser) e a interface (DOM) leem a mesma folha; `game/client/src/ui/iconFrames.json` diz onde fica cada ícone nela.
+- `content/sprites/pickups.png`, `chest.png`, `chest-gold.png`, `pedestal.png`, `fx-burst-gold.png`, `fx-burst-purple.png`, `fx-glint.png` (+ `.json`): rupees e corações, os dois baús, o pedestal e os efeitos de saque. Recortados e reorganizados; o brilho de saque (`fx-glint`) são os dois últimos quadros do brilho dourado do pacote com o dourado trocado por cinza (`#FFBB31` → `#D7D7D7`), para não ser confundido com os avisos de ataque e de atordoamento.
+- `content/ui/frame-*.png` (19 molduras pequenas, desenhadas com `border-image` do CSS): geradas dos cantos de `Menu/Menu.png` (o canto chanfrado, o redondo e o muito redondo). Cada canto é espelhado nos outros três e a borda do meio repete a borda do pacote (9-slice); o traço, de uma cor só, foi recolorido com cores da paleta do pacote (azul das janelas, vermelho dos botões principais e uma cor por raridade de item: `RARITY_COLORS` em `game/shared/src/relics.ts`); o interior foi preenchido de preto ou de cores escuras, às vezes translúcidas. O cursor (`frame-cursor.png`) é o quadro vermelho de seleção do pacote, recortado como veio. A moldura das barras (`frame-bar.png`, anéis preto e branco) é desenhada pelo gerador.
+
+O resto (ícones, rupees, corações, baús, pedestal e brilhos) tem os pixels do pacote sem mudança.
+
+### Licença das obras derivadas
+
+Os arquivos acima (`content/sprites/`, `content/ui/` e o `iconFrames.json`) são compartilhados sob a mesma licença, **CC BY-SA 4.0**, com crédito a *#NotZelda Overhead Adventure Tiles* e a Raphael Azcueta.
+
+## No jogo
+
+Os créditos aparecem no jogo: botão **Créditos** na escolha de herói (`game/client/src/ui/credits.ts`). O pacote do cliente (`pnpm build:client`, `pnpm pack:client`) leva na raiz `CREDITS.txt` (em inglês: obra, autor, licença com o endereço, o aviso de licença do `ReadMe.txt` do autor e as mudanças) e `licenses/OFL-1.1-Tiny5.txt`. Os dois ficam em `apps/client/public/`.
+
+## Fonte
+
+Os números e os rótulos curtos da interface usam a fonte pixelada **Tiny5**, de The Tiny5 Project Authors (Copyright 2022-2024), sob a [SIL Open Font License 1.1](https://openfontlicense.org) (código-fonte: <https://github.com/Gissio/font_tiny5>). Ela vem do pacote npm `@fontsource/tiny5` e não faz parte do pacote de arte. O texto da licença vai junto com o jogo em `licenses/OFL-1.1-Tiny5.txt`. As fontes do pacote de arte (`Font/`) não são usadas: são "All Rights Reserved".
+
 ## Demais arte e sons
 
-Baús, pedestais, corações, rupees e ícones de itens ainda são provisórios: desenhados em código (`game/client/src/render/placeholderArt.ts`) ou emojis. Os sons são sintetizados pelas ferramentas do repositório (`pnpm sfx` e `pnpm assets:placeholder`). Nada disso vem do pacote.
+As sombras, o brilho dos inimigos de elite e os anéis de raridade sob os itens da loja são desenhados em código (`game/client/src/render/proceduralArt.ts`), com cores da paleta do pacote. Os sons são sintetizados pelas ferramentas do repositório (`pnpm sfx` e `pnpm assets:placeholder`). Nada disso vem do pacote.

@@ -2,7 +2,7 @@
 
 > **40 Swords** é um RPG de ação top-down multiplayer (estilo aventura clássica, com roguelite e PvP). Regras, controles, classes, mapa e roteiro do jogo: [`docs/JOGO.md`](docs/JOGO.md). O restante deste README descreve o template em que o jogo se baseia.
 >
-> **Arte (mundo, heróis, inimigos, efeitos e projéteis):** [#NotZelda Overhead Adventure Tiles](content/src/notzelda/ReadMe.txt), de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo (`content/tilesets/world.png`) e os sprites (`content/sprites/`, gerados por `pnpm art`) são obras derivadas sob a mesma licença. Créditos e mudanças: [`content/CREDITS.md`](content/CREDITS.md).
+> **Arte (mundo, heróis, inimigos, efeitos, projéteis, itens, baús e interface):** [#NotZelda Overhead Adventure Tiles](content/src/notzelda/ReadMe.txt), de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo (`content/tilesets/world.png`), os sprites (`content/sprites/`) e as molduras da interface (`content/ui/`), gerados por `pnpm art` e pelo gerador do mundo, são obras derivadas sob a mesma licença. **Fonte:** [Tiny5](https://github.com/Gissio/font_tiny5), sob a SIL Open Font License 1.1. Créditos e mudanças: [`content/CREDITS.md`](content/CREDITS.md); no jogo, botão **Créditos** na escolha de herói, e `CREDITS.txt` junto do jogo publicado.
 
 Base para jogos online web: começa como um jogo estilo `.io` e foi organizada para poder crescer até um multiplayer massivo.
 
@@ -62,7 +62,7 @@ Abra http://localhost:3000 em **duas ou mais abas** para ver os jogadores sincro
 | `pnpm pack:client` | Gera o `.zip` do cliente para GamePush/itch.io (depois do build) |
 | `pnpm e2e` | Testes ponta a ponta com navegadores reais (Playwright) |
 | `pnpm loadtest` | Bots para teste de carga |
-| `pnpm art` | Importa os sprites do pacote de arte (`content/src/notzelda`) para `content/sprites` (veja `docs/JOGO.md`) |
+| `pnpm art` | Importa os sprites do pacote de arte (`content/src/notzelda`) para `content/sprites` e gera as molduras da interface em `content/ui` (veja `docs/JOGO.md`) |
 | `pnpm assets:placeholder --force` | Volta a arte, os sons e o mapa provisórios do template (sobrescreve os arquivos em `content/`; no 40 Swords, não use: veja `content/README.md`) |
 | `pnpm init-game --name "Meu Jogo"` | Renomeia o projeto ao criar um jogo novo |
 

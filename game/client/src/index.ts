@@ -4,7 +4,9 @@ import { MUSIC_THEME, preloadAssets, SFX_UI } from "./assets";
 import { messages } from "./messages";
 import { ACTION_ATTACK, ACTION_READY, ACTION_STATS, GAME_SCENE_KEY, GameScene } from "./scenes/GameScene";
 import { chooseHero } from "./ui/heroSelect";
-import "./styles.css";
+import { installTheme } from "./ui/theme";
+
+installTheme();
 
 /** 40 Swords: everything the template core needs to run this game. */
 export const game: GameModule<WorldState> = {

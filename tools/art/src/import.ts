@@ -2,25 +2,31 @@
  * `pnpm art`: turns the pack sheets in content/src/notzelda into
  * content/sprites/<key>.png + <key>.json (Aseprite json-array), as listed in
  * manifest.ts, plus game/client/src/render/spriteAnchors.json (frame size and
- * anchor pixel of each sprite: feet point, overlay attach point or centre).
+ * anchor pixel of each sprite: feet point, overlay attach point or centre),
+ * game/client/src/ui/iconFrames.json (where each icon sits in items.png, for
+ * the DOM's CSS sprite) and the UI 9-slice frames in content/ui/ (ui.ts).
  *
  * Deterministic: the same manifest and sources give the same bytes.
- * Sprites this tool wrote earlier that are no longer in the manifest are deleted.
+ * Sprites this tool wrote earlier that are no longer in the manifest are deleted,
+ * and so is any file in content/ui/ that is not in UI_FRAMES (the tool owns that folder).
  *
  *   pnpm art            write everything
  *   pnpm art --check    exit 1 if any output is missing or out of date (writes nothing)
  */
-import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
-import { SPRITES } from "./manifest";
+import { iconFrames, SPRITES } from "./manifest";
 import { APP, buildSprite, formatJson, type Rgba, type SpriteAnchor, spriteSources } from "./sheet";
+import { buildUiFrame, MENU_SHEET, UI_FRAMES } from "./ui";
 
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const SOURCE_DIR = resolve(ROOT, "content/src/notzelda");
 const SPRITES_DIR = resolve(ROOT, "content/sprites");
 const ANCHORS_FILE = resolve(ROOT, "game/client/src/render/spriteAnchors.json");
+const ICON_FRAMES_FILE = resolve(ROOT, "game/client/src/ui/iconFrames.json");
+const UI_DIR = resolve(ROOT, "content/ui");
 
 const check = process.argv.includes("--check");
 
@@ -55,6 +61,7 @@ for (const def of SPRITES) {
   anchors[def.key] = built.anchor;
   output(resolve(SPRITES_DIR, `${def.key}.png`), encodePng(built.image));
   output(resolve(SPRITES_DIR, `${def.key}.json`), formatJson(built.json));
+  if (def.key === "items") output(ICON_FRAMES_FILE, formatJson(iconFrames(built.json)));
   const tags = built.json.meta.frameTags.map((t) => t.name).join(" ");
   if (!check)
     console.log(
@@ -77,10 +84,26 @@ for (const file of readdirSync(SPRITES_DIR).filter((f) => f.endsWith(".json"))) 
     }
 }
 
+// UI 9-slice frames, rebuilt from the Menu.png corners.
+const menu = sheets.get(MENU_SHEET) ?? readPng(resolve(SOURCE_DIR, MENU_SHEET));
+if (!check) mkdirSync(UI_DIR, { recursive: true });
+const frameFiles = new Set<string>();
+for (const def of UI_FRAMES) {
+  const file = `${def.name}.png`;
+  if (frameFiles.has(file)) throw new Error(`duplicate UI frame "${def.name}"`);
+  frameFiles.add(file);
+  output(resolve(UI_DIR, file), encodePng(buildUiFrame(def, menu)));
+}
+for (const file of existsSync(UI_DIR) ? readdirSync(UI_DIR) : []) {
+  if (frameFiles.has(file)) continue;
+  if (check) outdated.push(`content/ui/${file} (not in UI_FRAMES)`);
+  else unlinkSync(resolve(UI_DIR, file));
+}
+
 if (check) {
   if (outdated.length > 0) {
     console.error(`Out of date (run \`pnpm art\`):\n${outdated.map((p) => `  ${p}`).join("\n")}`);
     process.exit(1);
   }
-  console.log(`✓ ${SPRITES.length} sprites up to date`);
-} else console.log(`${SPRITES.length} sprites written to content/sprites/`);
+  console.log(`✓ ${SPRITES.length} sprites, ${UI_FRAMES.length} frames up to date`);
+} else console.log(`${SPRITES.length} sprites written to content/sprites/, ${UI_FRAMES.length} frames to content/ui/`);

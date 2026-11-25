@@ -22,6 +22,8 @@ export interface MatchSummary {
   /** Level and relics at the end (or when falling). */
   level: number;
   relics: number;
+  /** The relics themselves, for the summary strip (the room state may already have lost the one taken). */
+  relicList: { kind: string; rarity: number }[];
   /** Seconds in the match until falling, or until the end. */
   seconds: number;
 }

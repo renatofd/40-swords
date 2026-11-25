@@ -1,207 +1,46 @@
-/* 40 Swords DOM HUD and hero select. Core UI variables (--ui-*) can be overridden here too. */
+/*
+ * 40 Swords DOM layout: where the HUD boxes sit and how they are laid out.
+ * The look (pack frames, fonts, colours) is in ui/skin.css, which loads after
+ * this file. Lengths touching art are whole art pixels (--sw-u); text-driven
+ * lengths are font pixels (--sw-fp = 2 art px). See ui/scale.ts.
+ */
 :root {
-  --ui-accent: #f2c94a;
-  --ui-accent-fg: #2a1f05;
+  /* Top of the HUD boxes under the core HUD buttons (same formula as .ui-hud-inner + .ui-icon-button). */
+  --sw-hud-top: calc(max(8px, var(--ui-safe-top)) + max(44px, calc(24 * var(--sw-u))) + 4 * var(--sw-u));
 }
 
-/* ─── Status (HP, level, XP, rupees) ───────────────────────────────────── */
+/* ─── Status (HP, level, XP, rupees, slots, minimap, details) ─────────── */
 
 .sw-status {
   position: absolute;
   /* Above the touch joystick zone (z-index 1), like the core HUD buttons: it is tapped to open the details. */
   z-index: 2;
   pointer-events: auto;
-  inset-block-start: max(56px, calc(var(--ui-safe-top) + 48px));
+  inset-block-start: var(--sw-hud-top);
   inset-inline-start: max(8px, var(--ui-safe-inline-start));
-  display: grid;
-  gap: 4px;
-  inline-size: 180px;
-  padding: 6px 8px;
-  background: rgb(16 16 24 / 0.6);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  font-size: 12px;
-  text-shadow: 0 1px 0 #000;
-}
-
-.sw-status-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sw-level {
-  font-weight: bold;
-  color: var(--ui-accent);
-  min-inline-size: 3.5em;
-}
-
-.sw-bar {
-  position: relative;
-  flex: 1;
-  block-size: 12px;
-  background: #2a1a1a;
-  border: 1px solid #000;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.sw-bar-fill {
-  block-size: 100%;
-  inline-size: 0;
-  background: #e04848;
-  transition: inline-size 0.15s;
-}
-
-.sw-xp {
-  block-size: 5px;
-  background: #1a1a2a;
-}
-
-.sw-xp .sw-bar-fill {
-  background: #6aa8ff;
-}
-
-.sw-bar-text {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 10px;
-  line-height: 1;
-}
-
-.sw-rupee-icon {
-  inline-size: 8px;
-  block-size: 12px;
-  background: #3fe07a;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-}
-
-.sw-rupees {
-  font-weight: bold;
-}
-
-/* ─── Hero and map select (shown by the core before joining) ──────────── */
-
-.sw-select {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  inline-size: min(760px, 100%);
+  gap: calc(2 * var(--sw-u));
+  inline-size: calc(124 * var(--sw-u));
+  /* Never past the bottom of the screen: the details shrink and scroll instead (phones). */
+  max-block-size: calc(100% - var(--sw-hud-top) - 8px);
+  padding: calc(2 * var(--sw-u));
 }
 
-.sw-select-title {
-  margin: 0;
-  font-size: 22px;
-  text-shadow: 0 2px 0 #000;
+/* Details open: wider, like the 720p layout scaled (130 font px = 260 px at 720p), and above the
+   waiting room panel it then reaches into. */
+.sw-status-open {
+  z-index: 3;
+  inline-size: max(calc(124 * var(--sw-u)), calc(130 * var(--sw-fp)));
 }
-
-/* The match rules under the title (while there is only one map, so no map step). */
-.sw-select-rules {
-  margin: 0;
-  max-inline-size: 640px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--ui-muted);
-}
-
-.sw-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-
-.sw-card {
-  --sw-class: var(--ui-accent);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  inline-size: 220px;
-  padding: 10px 12px;
-  font: inherit;
-  color: var(--ui-fg);
-  text-align: start;
-  background: var(--ui-bg);
-  border: 2px solid var(--ui-border);
-  border-block-start: 4px solid var(--sw-class);
-  border-radius: var(--ui-radius);
-  cursor: pointer;
-}
-
-.sw-card:hover,
-.sw-card:focus-visible {
-  border-color: var(--sw-class);
-  outline: none;
-  transform: translateY(-2px);
-}
-
-.sw-card-swatch {
-  display: grid;
-  place-items: center;
-  align-self: center;
-  inline-size: 72px;
-  block-size: 72px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--sw-class) 30%, rgb(0 0 0 / 0.35));
-  box-shadow: inset 0 -6px 0 rgb(0 0 0 / 0.3);
-}
-
-.sw-card-title {
-  font-size: 17px;
-}
-
-.sw-card-desc {
-  font-size: 12px;
-  color: var(--ui-muted);
-}
-
-.sw-stats {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 8px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.sw-stats dt {
-  color: var(--ui-muted);
-}
-
-.sw-stats dd {
-  margin: 0;
-  font-weight: bold;
-  text-align: end;
-}
-
-.sw-map {
-  inline-size: 280px;
-}
-
-.sw-map .ui-button {
-  margin-block-start: 6px;
-  text-align: center;
-}
-
-@media (max-height: 420px) {
-  .sw-card {
-    inline-size: 190px;
-    padding: 8px;
-  }
-  .sw-stats {
-    font-size: 11px;
-  }
-}
-
-/* ─── Relics: bar, details panel, "found" cards ─────────────────────── */
 
 .sw-status-main {
+  flex: none;
   display: grid;
-  gap: 4px;
+  gap: calc(2 * var(--sw-u));
+  inline-size: 100%;
   padding: 0;
+  margin: 0;
   font: inherit;
   color: inherit;
   text-align: start;
@@ -210,169 +49,286 @@
   cursor: pointer;
 }
 
-.sw-relic-bar {
+.sw-status-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-inline-start: 6px;
+  align-items: center;
+  gap: calc(2 * var(--sw-u));
+  min-inline-size: 0;
 }
 
-.sw-relic {
-  --sw-rarity: #ccc;
-  position: relative;
+.sw-rupees {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-u);
+  margin-inline-start: auto;
+}
+
+/* Relic and weapon slots: 5 per row, fixed order (weapons, then passives). */
+.sw-slots {
   display: grid;
-  place-items: center;
-  inline-size: 20px;
-  block-size: 20px;
-  font-size: 12px;
-  background: rgb(0 0 0 / 0.4);
-  border: 2px solid var(--sw-rarity);
-  border-radius: 4px;
+  grid-template-columns: repeat(5, calc(22 * var(--sw-u)));
+  gap: var(--sw-u);
 }
 
-.sw-relic-count {
-  position: absolute;
-  inset-block-end: -5px;
-  inset-inline-end: -5px;
-  min-inline-size: 12px;
-  padding-inline: 2px;
-  font-size: 9px;
-  font-weight: bold;
-  line-height: 12px;
-  text-align: center;
-  color: #000;
-  background: var(--sw-rarity);
-  border-radius: 6px;
+.sw-slots:empty {
+  display: none;
+}
+
+.sw-minimap {
+  display: block;
+  flex: none;
+  margin-inline: auto;
 }
 
 .sw-details {
-  max-block-size: min(60vh, 420px);
-  margin-block-start: 6px;
-  padding-block-start: 6px;
+  min-block-size: 0;
+  max-block-size: min(60vh, calc(210 * var(--sw-fp)));
+  padding-block-start: calc(2 * var(--sw-u));
   overflow-y: auto;
-  border-block-start: 1px solid var(--ui-border);
 }
 
 .sw-details h3 {
-  margin: 6px 0 4px;
-  font-size: 12px;
-  color: var(--ui-accent);
-  text-transform: uppercase;
+  margin: calc(2 * var(--sw-u)) 0 var(--sw-u);
+}
+
+.sw-details h3:not(:first-child) {
+  padding-block-start: calc(2 * var(--sw-u));
 }
 
 .sw-relic-list {
   display: grid;
-  gap: 4px;
+  gap: calc(2 * var(--sw-u));
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 11px;
 }
 
 .sw-relic-list li {
   display: flex;
-  gap: 6px;
+  gap: calc(3 * var(--sw-u));
   align-items: center;
-  padding-inline-start: 4px;
-  border-inline-start: 3px solid var(--sw-rarity);
 }
 
-.sw-relic-icon {
-  font-size: 16px;
+.sw-relic-list li > :last-child {
+  min-inline-size: 0;
 }
 
-.sw-rarity {
-  color: var(--sw-rarity, #ccc);
-  font-weight: bold;
+@media (max-height: 420px) {
+  /* Phones: with 2-3 slot rows (or the details open) the minimap makes way for the touch buttons and chat. */
+  .sw-status[data-slot-rows="2"] .sw-minimap,
+  .sw-status[data-slot-rows="3"] .sw-minimap,
+  .sw-status.sw-status-open .sw-minimap {
+    display: none;
+  }
+
+  /* Open, the details get the height: each of their weapon and relic lines shows its slot anyway. */
+  .sw-status.sw-status-open .sw-slots {
+    display: none;
+  }
+
+  /* RTL: the status sits over the physical-right touch buttons (core); open, it stops above them. */
+  [dir="rtl"] .sw-status-open {
+    max-block-size: calc(100% - var(--sw-hud-top) - max(20px, var(--ui-safe-bottom)) - 80px);
+  }
 }
 
-.sw-muted {
-  color: var(--ui-muted);
+/* ─── Stat lists (hero cards, details, summary) ──────────────────────── */
+
+.sw-stats,
+.sw-summary-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 calc(4 * var(--sw-u));
+  margin: 0;
 }
 
-/* Beside the play area (under the scoreboard), so they never hide a vendor or an enemy. */
+.sw-stats dt,
+.sw-summary-stats dt {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--sw-u));
+  min-inline-size: 0;
+}
+
+.sw-stats dd,
+.sw-summary-stats dd {
+  margin: 0;
+  text-align: end;
+}
+
+/* ─── Hero and map select (shown by the core before joining) ──────────── */
+
+.sw-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--sw-u));
+  inline-size: min(calc(380 * var(--sw-fp)), 100%);
+}
+
+.sw-select-title {
+  margin: 0;
+}
+
+/* The match rules under the title (while there is only one map, so no map step). */
+.sw-select-rules {
+  margin: 0;
+  max-inline-size: calc(320 * var(--sw-fp));
+  text-align: center;
+}
+
+.sw-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(6 * var(--sw-u));
+}
+
+.sw-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(3 * var(--sw-u));
+  inline-size: calc(112 * var(--sw-fp));
+  padding: calc(2 * var(--sw-u)) calc(3 * var(--sw-u));
+  margin: 0;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.sw-card-swatch {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  inline-size: calc(36 * var(--sw-fp));
+  block-size: calc(36 * var(--sw-fp));
+}
+
+.sw-map {
+  inline-size: calc(140 * var(--sw-fp));
+}
+
+.sw-map .ui-button {
+  margin-block-start: calc(3 * var(--sw-u));
+  text-align: center;
+}
+
+@media (max-height: 420px) {
+  .sw-card {
+    inline-size: calc(100 * var(--sw-fp));
+  }
+}
+
+.sw-colours {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--sw-u));
+}
+
+.sw-colours-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(6 * var(--sw-u));
+}
+
+.sw-colour {
+  display: block;
+  inline-size: max(calc(24 * var(--sw-u)), 32px);
+  block-size: max(calc(24 * var(--sw-u)), 32px);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.sw-colour-fill {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.sw-colour-locked {
+  cursor: help;
+}
+
+.sw-colours-note,
+.sw-career {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(2 * var(--sw-u));
+  margin: 0;
+}
+
+/* ─── "Found" cards (beside the play area, under the scoreboard) ───────── */
+
 .sw-gains {
   position: absolute;
-  inset-block-start: max(170px, calc(var(--ui-safe-top) + 162px));
+  inset-block-start: calc(var(--sw-hud-top) + 144 * var(--sw-u));
   inset-inline-end: max(8px, var(--ui-safe-inline-end));
   display: grid;
   justify-items: end;
-  gap: 6px;
+  gap: calc(2 * var(--sw-u));
   pointer-events: none;
 }
 
 .sw-gain {
-  --sw-rarity: #ccc;
   display: flex;
-  gap: 10px;
+  gap: calc(4 * var(--sw-u));
   align-items: center;
-  inline-size: 200px;
-  padding: 6px 10px;
-  font-size: 12px;
-  background: var(--ui-bg);
-  border: 2px solid var(--sw-rarity);
-  border-radius: var(--ui-radius);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--sw-rarity) 60%, transparent);
-  animation: sw-pop 0.25s ease-out;
-  transition: opacity 0.4s;
+  inline-size: calc(100 * var(--sw-fp));
+  padding: var(--sw-u) calc(2 * var(--sw-u));
 }
 
-.sw-gain-out {
-  opacity: 0;
+.sw-gain > :last-child:not(.sw-icon) {
+  min-inline-size: 0;
 }
 
-.sw-gain-icon {
-  font-size: 24px;
-}
-
-.sw-gain-name {
-  color: var(--sw-rarity);
-  font-size: 15px;
-}
-
-@keyframes sw-pop {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
+@media (max-height: 420px) {
+  /* Phones: between the (shorter) scoreboard and the touch buttons there is room for the newest card only. */
+  .sw-gains {
+    inset-block-start: calc(var(--sw-hud-top) + 106 * var(--sw-u));
+  }
+  .sw-gain {
+    inline-size: calc(90 * var(--sw-fp));
+  }
+  .sw-gain:nth-child(n + 2),
+  .sw-gain-source {
+    display: none;
+  }
+  /* Top 3 and the own row. */
+  .ui-scoreboard .ui-score-row:nth-child(n + 4):not(.self) {
+    display: none;
   }
 }
 
-/* ─── Vendor offers (anchored over their pedestals) ─────────────────── */
+/* ─── Vendor offers (world-anchored over their pedestals, see WorldLabels) ── */
 
 .sw-offer {
-  --sw-rarity: #ccc;
   display: grid;
   justify-items: center;
-  gap: 1px;
-  font-size: max(10px, calc(var(--sw-px, 4px) * 2.6));
-  text-shadow: 0 1px 0 #000;
-}
-
-.sw-offer-icon {
-  font-size: max(14px, calc(var(--sw-px, 4px) * 4.5));
-  filter: drop-shadow(0 0 3px var(--sw-rarity));
+  gap: var(--sw-u);
 }
 
 .sw-offer-price {
   display: flex;
-  gap: 3px;
+  gap: var(--sw-u);
   align-items: center;
-  font-weight: bold;
-}
-
-.sw-offer-sold {
-  opacity: 0.5;
+  padding: 0 var(--sw-u);
 }
 
 .sw-offer-details {
   display: none;
   inline-size: max-content;
-  max-inline-size: 180px;
-  padding: 4px 8px;
+  max-inline-size: calc(90 * var(--sw-fp));
+  padding: 0 calc(2 * var(--sw-u));
   text-align: center;
-  background: var(--ui-bg);
-  border: 2px solid var(--sw-rarity);
-  border-radius: var(--ui-radius);
+  white-space: normal;
 }
 
 .sw-offer-details > * {
@@ -392,15 +348,17 @@
   margin-inline: auto;
   inline-size: max-content;
   max-inline-size: 90%;
-  padding: 6px 12px;
-  background: rgb(16 16 24 / 0.7);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  font-size: 13px;
+  padding: var(--sw-u) calc(4 * var(--sw-u));
   text-align: center;
 }
 
 /* ─── World labels (names, damage numbers) ───────────────────────────── */
+
+/* The labels layer comes after the core toasts and scoreboard in the HUD: those stay above the names. */
+.ui-toasts,
+.ui-scoreboard {
+  z-index: 2;
+}
 
 .sw-labels {
   position: absolute;
@@ -417,113 +375,36 @@
   will-change: transform;
 }
 
+/* Bottom-centred on the anchor: WorldLabels sets a whole-pixel `left` (no translateX(-50%), which lands on half pixels). */
 .sw-anchor > * {
   position: absolute;
   bottom: 0;
-  transform: translateX(-50%);
   white-space: nowrap;
-}
-
-.sw-name,
-.sw-dmg {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  text-shadow:
-    0 1px 0 #000,
-    1px 0 0 #000,
-    -1px 0 0 #000,
-    0 -1px 0 #000;
-}
-
-.sw-name-self {
-  color: #fff7a8;
-}
-
-.sw-dmg {
-  font-size: 14px;
-  font-weight: bold;
-  animation: sw-float 0.7s ease-out forwards;
-}
-
-.sw-dmg-crit {
-  font-size: 19px;
-  color: #ffe04a;
-}
-
-.sw-dmg-player {
-  color: #ff5a5a;
-}
-
-.sw-dmg-heal {
-  color: #6ef08a;
-}
-
-/* A blow a guard or a stone body shrugged off. */
-.sw-dmg-blocked {
-  color: #a8a8b0;
-}
-
-@keyframes sw-float {
-  from {
-    opacity: 1;
-    translate: 0 0;
-  }
-  to {
-    opacity: 0;
-    translate: 0 -28px;
-  }
 }
 
 /* ─── Boss bar and minimap ─────────────────────────────────────────── */
 
 .sw-bossbar {
   position: absolute;
-  inset-block-start: max(60px, calc(var(--ui-safe-top) + 52px));
+  inset-block-start: var(--sw-hud-top);
   inset-inline: 0;
   margin-inline: auto;
-  inline-size: min(360px, 60vw);
-  padding: 4px 10px 6px;
-  text-align: center;
-  background: rgb(16 16 24 / 0.75);
-  border: 2px solid #a03030;
-  border-radius: var(--ui-radius);
+  display: grid;
+  justify-items: center;
+  gap: var(--sw-u);
+  inline-size: max-content;
+  padding: var(--sw-u) calc(3 * var(--sw-u)) calc(2 * var(--sw-u));
   pointer-events: none;
 }
 
 .sw-bossbar-name {
-  margin-block-end: 3px;
-  font-size: 13px;
-  font-weight: bold;
-  color: #ffb0a0;
-  text-shadow: 0 1px 0 #000;
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--sw-u));
 }
 
 .sw-bossbar .sw-bar {
-  block-size: 10px;
-}
-
-.sw-bossbar .sw-bar-fill {
-  background: linear-gradient(#ff6a50, #c02020);
-}
-
-.sw-bossbar-mini {
-  inline-size: min(260px, 50vw);
-  border-color: #a06a30;
-}
-
-.sw-bossbar-mini .sw-bar-fill {
-  background: linear-gradient(#ffb050, #c06a20);
-}
-
-.sw-minimap {
-  display: block;
-  inline-size: 100%;
-  margin-block-start: 6px;
-  image-rendering: pixelated;
-  border: 1px solid var(--ui-border);
-  border-radius: 2px;
-  background: #101018;
+  inline-size: min(60vw, calc(200 * var(--sw-fp)));
 }
 
 /* ─── The match: timer, kill feed, banner ──────────────────────────────── */
@@ -531,33 +412,24 @@
 /* One line in the top corner, above the core scoreboard. */
 .sw-match {
   position: absolute;
-  inset-block-start: max(12px, var(--ui-safe-top));
+  /* Above the world labels (names would paint over the timer), like the status panel. */
+  z-index: 2;
+  inset-block-start: max(8px, var(--ui-safe-top));
   inset-inline-end: max(8px, var(--ui-safe-inline-end));
+  display: flex;
+  align-items: center;
+  gap: var(--sw-u);
   max-inline-size: 46vw;
-  padding: 3px 10px;
-  background: rgb(16 16 24 / 0.75);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  font-size: 13px;
-  font-weight: 600;
+  padding: 0 calc(3 * var(--sw-u));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
 }
 
-/* data-phase is the MatchPhase number. PvP (3) and the arena fight (5): red. */
-.sw-match[data-phase="3"],
-.sw-match[data-phase="5"] {
-  border-color: #b03838;
-  color: #ffd2c8;
-}
-
-/* Countdowns: the match about to start (1), the arena about to fight (4). */
-.sw-match[data-phase="1"],
-.sw-match[data-phase="4"] {
-  border-color: #c09030;
-  color: #ffe9b0;
+/* The heroes icon before the number still standing. */
+.sw-match .sw-icon {
+  margin-inline-end: var(--sw-u);
 }
 
 /* The start of a match: big in the middle of the screen, then it slides to its corner (MatchHud.intro). */
@@ -565,14 +437,11 @@
   z-index: 5;
   max-inline-size: none;
   overflow: visible;
-  border-color: #c09030;
-  color: #ffe9b0;
-  box-shadow: 0 4px 18px rgb(0 0 0 / 0.55);
 }
 
-/* Keep the duration in step with INTRO_MOVE_MS (matchHud.ts). */
+/* Keep the duration in step with INTRO_MOVE_MS (matchHud.ts). Scale is 1 at once; only the slide is animated. */
 .sw-match-settle {
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: translate 0.8s steps(8);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -591,16 +460,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--sw-u);
   pointer-events: none;
 }
 
 .sw-feed-line {
-  padding: 1px 8px;
-  font-size: 12px;
-  background: rgb(16 16 24 / 0.6);
-  border-radius: 4px;
-  transition: opacity 0.4s;
+  padding: 0 calc(3 * var(--sw-u));
+  transition: opacity 0.4s steps(4);
 }
 
 .sw-feed-out {
@@ -615,49 +481,28 @@
   margin-inline: auto;
   inline-size: max-content;
   max-inline-size: 90%;
-  padding: 6px 18px;
+  padding: calc(2 * var(--sw-u)) calc(6 * var(--sw-u));
   text-align: center;
-  background: rgb(16 16 24 / 0.8);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
   pointer-events: none;
 }
 
+/* The end-of-match summary opens over the banner's spot: the banner waits behind it, unseen. */
+.sw-banner:has(~ .sw-summary:not([hidden])) {
+  visibility: hidden;
+}
+
 .sw-banner-title {
-  font-size: 20px;
-  font-weight: bold;
-  text-shadow: 0 2px 0 #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(3 * var(--sw-u));
 }
 
 .sw-banner-sub {
-  margin-block-start: 2px;
-  font-size: 13px;
-  color: var(--ui-muted);
-}
-
-.sw-banner[data-kind="win"] {
-  border-color: #e0b840;
-  color: #ffe68a;
-}
-
-.sw-banner[data-kind="danger"] {
-  border-color: #c03030;
-  color: #ff9090;
-  animation: sw-blink 0.9s steps(2, jump-none) infinite;
-}
-
-@keyframes sw-blink {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-.sw-name-foe {
-  color: #ff9c8c;
+  margin-block-start: var(--sw-u);
 }
 
 .sw-card-rules {
-  font-size: 12px;
   color: var(--ui-muted);
 }
 
@@ -667,82 +512,65 @@
 .sw-lobby {
   position: absolute;
   z-index: 2;
-  inset-block-start: max(56px, calc(var(--ui-safe-top) + 48px));
+  inset-block-start: var(--sw-hud-top);
   inset-inline: 0;
   margin-inline: auto;
-  inline-size: min(360px, 46vw);
+  box-sizing: border-box;
+  inline-size: min(calc(180 * var(--sw-fp)), 46vw);
   max-block-size: calc(100% - 140px);
   overflow-y: auto;
-  padding: 8px 12px 10px;
+  padding: calc(2 * var(--sw-u)) calc(4 * var(--sw-u)) calc(3 * var(--sw-u));
   text-align: center;
-  background: rgb(16 16 24 / 0.85);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
   pointer-events: auto;
 }
 
 .sw-lobby-title {
-  margin: 0 0 4px;
-  font-size: 16px;
+  margin: 0 0 var(--sw-u);
 }
 
 .sw-lobby-hint,
 .sw-lobby-key {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--ui-muted);
+  margin: 0 0 calc(3 * var(--sw-u));
 }
 
 .sw-lobby-key {
-  margin: 6px 0 0;
-  font-size: 11px;
+  margin: calc(2 * var(--sw-u)) 0 0;
 }
 
 .sw-lobby-list {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 4px;
-  margin: 0 0 8px;
+  gap: calc(2 * var(--sw-u));
+  margin: 0 0 calc(3 * var(--sw-u));
   padding: 0;
   list-style: none;
 }
 
 .sw-lobby-player {
   display: inline-flex;
-  gap: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: var(--ui-muted);
-  background: rgb(255 255 255 / 0.06);
-  border: 1px solid var(--ui-border);
-  border-radius: 999px;
-}
-
-.sw-lobby-player-ready {
-  color: #b8f0a8;
-  border-color: #4a8a3a;
-}
-
-.sw-lobby-player-away {
-  opacity: 0.5;
-}
-
-.sw-lobby-self {
-  font-weight: bold;
+  align-items: center;
+  gap: calc(2 * var(--sw-u));
+  padding: 0 calc(2 * var(--sw-u));
 }
 
 .sw-lobby-ready {
-  min-inline-size: 140px;
+  min-inline-size: calc(70 * var(--sw-fp));
 }
 
 .sw-lobby-bots {
-  margin-block-start: 10px;
-  font-size: 12px;
+  margin-block-start: calc(3 * var(--sw-u));
 }
 
 .sw-lobby-bots-hint {
-  margin: 4px 0 0;
+  margin: var(--sw-u) 0 0;
+}
+
+.sw-lobby-wins {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-u);
+  margin-inline-start: var(--sw-u);
 }
 
 /* ─── Progression: end-of-match summary, hero colours, room wins ─────────── */
@@ -750,144 +578,119 @@
 .sw-summary {
   position: absolute;
   z-index: 3;
-  inset-block-start: 26%;
+  inset-block-start: 22%;
   inset-inline: 0;
   margin-inline: auto;
-  inline-size: min(340px, 90vw);
-  max-block-size: calc(100% - 30% - 16px);
+  box-sizing: border-box;
+  inline-size: min(calc(170 * var(--sw-fp)), 90vw);
+  max-block-size: calc(100% - 22% - 16px);
   overflow-y: auto;
-  padding: 10px 14px 12px;
+  padding: calc(3 * var(--sw-u)) calc(5 * var(--sw-u)) calc(4 * var(--sw-u));
   text-align: center;
-  background: rgb(16 16 24 / 0.92);
-  border: 2px solid var(--ui-border);
-  border-radius: var(--ui-radius);
   pointer-events: auto;
 }
 
-.sw-summary[data-won="true"] {
-  border-color: #e0b840;
-}
-
 .sw-summary-title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  text-shadow: 0 2px 0 #000;
-}
-
-.sw-summary[data-won="true"] .sw-summary-title {
-  color: #ffe68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(3 * var(--sw-u));
+  margin: 0 0 calc(3 * var(--sw-u));
 }
 
 .sw-summary-stats {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 calc(3 * var(--sw-u));
   text-align: start;
 }
 
-.sw-summary-stats dt {
-  color: var(--ui-muted);
+/* Phones: the whole height, and OK stays in view while the rest scrolls. */
+@media (max-height: 420px) {
+  .sw-summary {
+    inset-block-start: max(8px, var(--ui-safe-top));
+    max-block-size: calc(100% - 2 * max(8px, var(--ui-safe-top)));
+  }
+
+  .sw-summary > .ui-button {
+    position: sticky;
+    inset-block-end: 0;
+  }
 }
 
-.sw-summary-stats dd {
-  margin: 0;
-  font-weight: bold;
-  text-align: end;
+/* The relics the hero ended with, grouped like the HUD slots. */
+.sw-summary-relics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sw-u);
+  margin: 0 0 calc(3 * var(--sw-u));
 }
 
 .sw-summary-career {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--ui-muted);
+  margin: 0 0 calc(3 * var(--sw-u));
 }
 
 .sw-summary-unlock {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: #ffe68a;
+  gap: calc(3 * var(--sw-u));
+  margin: 0 0 calc(3 * var(--sw-u));
 }
 
 .sw-swatch {
   display: inline-block;
-  inline-size: 14px;
-  block-size: 14px;
-  border-radius: 50%;
+  inline-size: calc(8 * var(--sw-u));
+  block-size: calc(8 * var(--sw-u));
   background: var(--sw-swatch);
-  border: 1px solid rgb(255 255 255 / 0.5);
 }
 
-.sw-colours {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.sw-colours-label {
-  font-size: 13px;
-  color: var(--ui-muted);
-}
-
-.sw-colours-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
-.sw-colour {
-  display: grid;
-  place-items: center;
-  inline-size: 32px;
-  block-size: 32px;
-  padding: 0;
-  font-size: 13px;
-  border-radius: 50%;
-  border: 2px solid rgb(255 255 255 / 0.25);
-  background: var(--sw-swatch);
-  cursor: pointer;
-}
-
-.sw-colour:focus-visible,
-.sw-colour-on {
-  border-color: #fff;
-  box-shadow: 0 0 0 2px var(--ui-accent, #f0c040);
-}
-
-.sw-colour-locked {
-  filter: grayscale(0.85) brightness(0.6);
-  cursor: help;
-}
-
-.sw-colours-note,
-.sw-career {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ui-muted);
-}
-
-.sw-lobby-wins {
-  margin-inline-start: 2px;
-  color: #ffe68a;
-}
-
-/* Hero sprites in the DOM (ui/heroPortrait.ts): 20 px canvases scaled 3x / 2x (inline sizes in JS round them to whole device pixels). */
+/* Hero sprites in the DOM (ui/heroPortrait.ts): 20 px canvases, 3 (small: 2) art px per sprite pixel, sized inline. */
 .sw-portrait {
   display: block;
-  inline-size: 60px;
-  block-size: 60px;
-  image-rendering: pixelated;
 }
 
 .sw-portrait-small {
   display: inline-block;
-  inline-size: 40px;
-  block-size: 40px;
   vertical-align: middle;
+}
+
+/* ─── Credits (from hero select) ─────────────────────────────────────── */
+
+.sw-credits {
+  box-sizing: border-box;
+  inline-size: min(calc(280 * var(--sw-fp)), 100%);
+  max-inline-size: min(calc(280 * var(--sw-fp)), 100%);
+  padding: calc(4 * var(--sw-u)) calc(6 * var(--sw-u));
+  text-align: start;
+}
+
+.sw-credits h2 {
+  margin: 0 0 calc(3 * var(--sw-u));
+  text-align: center;
+}
+
+.sw-credits h3 {
+  margin: calc(4 * var(--sw-u)) 0 var(--sw-u);
+}
+
+.sw-credits p {
+  margin: var(--sw-u) 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Names, URLs and licences move to the next line whole; only one longer than a line breaks inside. */
+.sw-credits bdi {
+  display: inline-block;
+  max-inline-size: 100%;
+}
+
+.sw-credits .ui-actions {
+  justify-content: center;
+}
+
+.sw-credits-icons {
+  display: flex;
+  gap: calc(2 * var(--sw-u));
 }

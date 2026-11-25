@@ -4,7 +4,7 @@ import Phaser from "phaser";
 import { type Dir, facingDir, feetOrigin, playAnim, setFlipAnchored, spriteAnchor } from "./anim";
 import { actorDepth, DEPTH } from "./depth";
 import { heroRecolor, heroSheetKey } from "./heroPalettes";
-import { shadowTexture } from "./placeholderArt";
+import { shadowTexture } from "./proceduralArt";
 import { addRecoloredSprite } from "./recolor";
 
 /** Below this distance (px per frame) the player counts as standing still. */

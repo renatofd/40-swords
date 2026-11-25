@@ -2,21 +2,21 @@
 
 RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Cada partida é uma corrida de roguelite com **uma vida só**: a partida começa quando todos os jogadores da sala estão prontos, todos começam no nível 1 no centro, ficam mais fortes explorando, depois de 5 minutos podem se enfrentar, e quem cai está fora. Vence o último de pé; se aos 30 minutos ainda houver mais de um, a decisão é numa arena de battle royale.
 
-> **Arte:** o mundo (chão, água, árvores, rochas, casas, masmorras, cavernas e arena) usa os tiles em pixel art de *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo é uma obra derivada sob a mesma licença (veja [`content/CREDITS.md`](../content/CREDITS.md)). Heróis, inimigos, chefes, o vendedor, os efeitos e os projéteis também vêm desse pacote (sprites gerados por `pnpm art`, obras derivadas sob a mesma licença). Baús, rupees, corações, pedestais e os ícones de itens ainda são **provisórios, feitos em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
+> **Arte:** o mundo (chão, água, árvores, rochas, casas, masmorras, cavernas e arena) usa os tiles em pixel art de *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo é uma obra derivada sob a mesma licença (veja [`content/CREDITS.md`](../content/CREDITS.md)). Heróis, inimigos, chefes, o vendedor, os efeitos, os projéteis, os itens, rupees, corações, baús, pedestais e a interface (molduras e ícones) também vêm desse pacote (gerados por `pnpm art`, obras derivadas sob a mesma licença). A fonte em pixel é a [Tiny5](https://github.com/Gissio/font_tiny5) (SIL Open Font License 1.1). Os créditos aparecem no jogo (botão **Créditos** na escolha de herói) e vão junto do jogo em `CREDITS.txt`. Só os sons ainda são provisórios. Veja "Trocar a arte" e "Interface" abaixo.
 
 ## Como jogar (etapa 7)
 
 1. No menu, digite o nome e clique em **Jogar**.
-2. Escolha a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e clique no **herói** (cada classe mostra os atributos) para entrar. A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados. Por enquanto há um mapa só (o Vale das Espadas), então não há passo de escolha de mapa: as regras da partida aparecem embaixo do título. A escolha de mapa volta quando houver mais mapas, em versões depois do lançamento.
+2. Escolha a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e clique no **herói** (cada classe mostra os atributos) para entrar. O botão **Créditos**, ao lado de Voltar, mostra os créditos da arte e da fonte. A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados. Por enquanto há um mapa só (o Vale das Espadas), então não há passo de escolha de mapa: as regras da partida aparecem embaixo do título. A escolha de mapa volta quando houver mais mapas, em versões depois do lançamento.
 3. Você entra na **sala de espera**: dá para andar pelo mundo, mas nada fere e nada pode ser pego. Aperte **Pronto** (botão no painel, tecla R ou Start no controle). Quando todos estão prontos, há uma contagem de 5 s e a partida começa, com todos de volta à praça (veja "A partida"). Com **🤖 Bots: ligados** (o padrão), bots completam a partida até 40 heróis; qualquer um na sala pode desligar no mesmo painel (veja "Bots").
-4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
-5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
+4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. A cor do rupee mostra quanto ele vale: **verde** de 1 a 4, **azul** de 5 a 19, **rosa** de 20 a 49 e a **moeda de ouro** girando de 50 para cima (chefes soltam de 80 a 150). O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
+5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória (ela aparece por um instante sobre a cabeça do herói). Eles voltam a encher depois de 2 minutos. **Um baú dourado guarda pelo menos uma relíquia incomum:** são dourados os baús das masmorras e os que chefes e minichefes soltam; os do mundo aberto, das cavernas e os que os elites soltam são de madeira.
 6. **Cavernas** (8 espalhadas pelo mundo): entre pela abertura escura. Duas guardam baús; nas outras seis um **vendedor** oferece uma relíquia, uma arma e uma poção. Ande até o item para comprar. Cada jogador vê as próprias ofertas, sorteadas com a sua sorte e renovadas a cada 3 minutos. Para sair, use a passagem no fundo da caverna.
 7. **Masmorras** (4, atrás de uma cripta, de um santuário ou de um templo): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
 8. **Elites** (dourados, com um brilho sob os pés): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
 9. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
 10. Ao subir de nível, os atributos melhoram e a vida enche. **Cuidado: é uma vida só.** Quem cai (para um monstro, outro herói ou a tempestade) está fora da partida e passa a assistir. Se foi outro herói, ele leva **uma relíquia sua, sorteada, e todos os seus rupees**.
-11. **Curar:** monstros às vezes deixam cair um **coração** ❤ (10%; elites 50%; chefes e minichefes sempre), que devolve 25% da vida (só um herói ferido o pega; com a vida cheia ele fica no chão para os outros). Fora de combate (6 s sem levar dano) a vida também volta devagar, 1% por segundo, menos na arena. E há as poções das lojas.
+11. **Curar:** monstros às vezes deixam cair um **coração** (10%; elites 50%; chefes e minichefes sempre), que devolve 25% da vida (só um herói ferido o pega; com a vida cheia ele fica no chão para os outros). Fora de combate (6 s sem levar dano) a vida também volta devagar, 1% por segundo, menos na arena. E há as poções das lojas.
 12. **Matos e potes:** o **mato alto** (tufos claros e pontudos nas telas de grama; as moitas redondas e escuras continuam bloqueando o caminho) se corta com a espada, e os **potes** (nos cantos das cavernas e das masmorras) se quebram com ela. Os dois deixam o herói passar por cima. Alguns guardam rupees ou um coração (veja a tabela). Eles voltam depois de um tempo, mas só quando nenhum herói está na tela (ninguém vê nada brotar do nada); numa partida nova, tudo volta inteiro.
 
 | | Coração | Rupees | Volta depois de |
@@ -199,28 +199,30 @@ Cinco raridades: **comum**, **incomum**, **rara**, **épica** e **lendária**. Q
 
 Com sorte 8 (Ladino), por exemplo, uma lendária sai em cerca de 2% dos sorteios, e com sorte 20 em cerca de 4%. A sorte também dá chance (4% por ponto, máx. 60%) de dobrar os rupees de um inimigo. Fórmulas em `game/shared/src/relics.ts`.
 
-**Relíquias de atributo** (valor da comum; se acumulam sem limite):
+**Relíquias de atributo** (valor da comum; se acumulam sem limite). As relíquias passivas parecem coisas que o herói veste ou carrega; as armas, coisas que disparam:
 
-| Relíquia | Efeito |
-|---|---|
-| ❤️ Amuleto do Coração | Vida +12 |
-| 💪 Manopla do Gigante | Força +1,5 |
-| 👢 Botas do Vento | Velocidade +5 (máximo físico: 200) |
-| 🍀 Trevo de Quatro Folhas | Sorte +2 |
-| 🎯 Olho de Falcão | Chance de crítico +3% |
-| 💥 Marca do Carrasco | Dano crítico +15% |
-| 🩸 Presa de Vampiro | Roubo de vida +1,5% (máximo 50%) |
-| 🛡️ Escudo de Pedra | Defesa +1 |
-| ⏳ Amuleto da Ampulheta | Recarga −4% da espada e das armas (mínimo 30%) |
+| Relíquia | Ícone | Efeito |
+|---|---|---|
+| Amuleto do Coração | coração | Vida +12 |
+| Manopla do Gigante | manopla dourada | Força +1,5 |
+| Botas do Vento | bota com asa | Velocidade +5 (máximo físico: 200) |
+| Estrela da Sorte | estrela dourada | Sorte +2 |
+| Máscara do Duelista | máscara roxa | Chance de crítico +3% |
+| Elmo do Berserker | elmo azul com chifres | Dano crítico +15% |
+| Máscara de Vampiro | máscara dourada com presas | Roubo de vida +1,5% (máximo 50%) |
+| Escudo de Pedra | escudo de ferro | Defesa +1 |
+| Bússola do Tempo | bússola (o ponteiro gira) | Recarga −4% da espada e das armas (mínimo 30%) |
+
+Na etapa 9 cinco relíquias mudaram de nome para combinar com o ícone (antes: Trevo de Quatro Folhas, Olho de Falcão, Marca do Carrasco, Presa de Vampiro e Amuleto da Ampulheta). Os ids (`clover`, `eye`, `mark`, `fang`, `haste`), a rede e os saves não mudaram.
 
 **Armas** (disparam com o botão da espada). Cada cópia repetida **soma projéteis**, sem limite, e cada cópia mantém a própria raridade:
 
-| Arma | Projéteis por cópia | Dano (comum) | Recarga | Alcance | Detalhe |
-|---|---|---|---|---|---|
-| 🗡️ Adagas de Arremesso | 1, em leque | 5 | 0,8 s | 120 px | rápidas |
-| 🔥 Varinha de Fogo | 1, em leque | 12 | 1,4 s | 150 px | lenta, empurra forte |
-| 🏹 Arco do Caçador | 1, em leque | 7 | 1,1 s | 220 px | atravessa 2 inimigos |
-| ❄️ Cristal de Gelo | 8, em círculo | 6 | 2 s | 72 px | anel em volta do herói |
+| Arma | Ícone | Projéteis por cópia | Dano (comum) | Recarga | Alcance | Detalhe |
+|---|---|---|---|---|---|---|
+| Adagas de Arremesso | faca azul | 1, em leque | 5 | 0,8 s | 120 px | rápidas |
+| Varinha de Fogo | cajado com orbe vermelho | 1, em leque | 12 | 1,4 s | 150 px | lenta, empurra forte |
+| Arco do Caçador | arco prateado | 1, em leque | 7 | 1,1 s | 220 px | atravessa 2 inimigos |
+| Cristal de Gelo | cristal azul | 8, em círculo | 6 | 2 s | 72 px | anel em volta do herói |
 
 O dano de cada projétil soma uma parte da força do herói (20% a 40%, conforme a arma).
 
@@ -298,7 +300,9 @@ Cada inimigo fica na tela onde nasceu e só age quando há um herói na tela. Da
 |---|---|
 | Relíquia de atributo | 6 (comum), 12, 25, 50, 100 (lendária) |
 | Arma | 50% a mais que uma relíquia da mesma raridade |
-| 🧪 Poção de Vida (enche a vida) | 10 |
+| Poção de Vida (frasco rosa; enche a vida) | 10 |
+
+Cada oferta fica num pedestal, com um anel da cor da raridade embaixo (só da incomum para cima) e uma etiqueta de preço com a moldura da mesma cor (a da poção é neutra, cinza). Perto do pedestal aparecem o nome, a raridade e o efeito; o preço fica vermelho quando faltam rupees, e o item some do pedestal quando é vendido.
 
 ## O mapa
 
@@ -396,6 +400,33 @@ Há dois caminhos:
 
 Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes que conferem portais, baús, vendedores, matos e potes do mapa).
 
+## Interface
+
+Os menus e o HUD são DOM (texto em qualquer escrita, inclusive árabe da direita para a esquerda, devanágari e CJK), desenhados com a arte do pacote:
+
+- **Molduras:** 9-slices gerados por `pnpm art` (`tools/art/src/ui.ts`) a partir dos cantos de `Menu/Menu.png` e gravados em `content/ui/frame-*.png`; o CSS os desenha com `border-image`. Painéis e HUD têm canto quadrado (`frame-panel`, `frame-hud`), os cartões de herói o canto redondo grande (`frame-card`), os botões o canto médio (`frame-button*`, o vermelho é o principal) e o foco do teclado é o **cursor vermelho** do pacote (`frame-cursor`). As molduras de raridade (`frame-slot-N`, `frame-rarity-N`) usam as cores de `RARITY_COLORS`.
+- **Ícones:** uma folha só, `items` (`tools/art/src/icons.ts`), usada pelo Phaser (itens no mundo) e pelo DOM (`game/client/src/ui/icons.ts`, sprite em CSS com as posições de `ui/iconFrames.json`). Nenhum emoji para itens; o `✔ … ⏳` e o `🤖` da sala de espera continuam como estão.
+- **Vida:** um coração que se esvazia em quartos (um coração do chão cura exatamente um quarto), a barra e o número. Com um quarto ou menos, o coração pisca e o número fica vermelho.
+- **Espaços de relíquia:** 5 por linha, armas primeiro, depois as passivas, sempre na mesma ordem. A moldura tem a cor da melhor cópia; o número no canto é a quantidade (nas armas, `×` o total de projéteis), e uma sombra que desce mostra a recarga de cada arma.
+- **Raridade:** só pela cor (moldura, anel sob o item na loja, explosão de brilho roxa para épica e lendária, dourada para o resto) e pelo material do baú; nada de `setTint`, brilho ou filtro. A lendária usa o amarelo-ouro do pacote, não o laranja: com deuteranopia (daltonismo verde-vermelho) o laranja e o verde da incomum ficam iguais, e os espaços de relíquia mostram a raridade só pela cor.
+- **Fonte:** a **Tiny5** (8 px por em, `@fontsource/tiny5`, sem CDN) nos números em todos os idiomas e nos rótulos curtos e títulos em pt, en, es, fr, de, it, tr, ru e id. Em árabe, hindi, japonês, chinês e coreano os rótulos usam a fonte do sistema; textos longos, nomes de jogadores, chat e campos de texto usam sempre a fonte do sistema. As fontes do pacote não são usadas (não são livres).
+- **Escala:** o pixel da arte (`--sw-u`) é um número inteiro de pixels **do aparelho**, mais ou menos um terço do zoom do mundo, e o pixel da fonte é sempre 2 pixels da arte (`game/client/src/ui/scale.ts`). Assim o layout é o mesmo em toda resolução, só maior:
+
+| Tela (CSS) @ DPR | Zoom do mundo | Pixel da arte (aparelho / CSS) | Texto Tiny5 |
+|---|---|---|---|
+| 1280×720 @1 | 4 | 1 / 1 | 16 px |
+| Pixel 7 deitado, 863×360 @2,625 | 2 | 3 / 1,14 | 18,3 px |
+| 1440×900 @2 (MacBook) | 4 | 3 / 1,5 | 24 px |
+| 1920×1080 @1 | 6 | 2 / 2 | 32 px |
+| 2560×1440 @1 | 8 | 3 / 3 | 48 px |
+| 3840×2160 @1 | 12 | 4 / 4 | 64 px |
+
+> **DPR fracionário:** ícones e texto ficam exatos em qualquer DPR, mas o Chrome encaixa as nove peças de um `border-image` em pixels CSS inteiros. Quando o pixel da arte não é um número inteiro de pixels CSS (DPR 2 com pixel ímpar, 1,25, 1,5, 2,625), as molduras podem ficar 1 pixel do aparelho fora do lugar (o teste `ui.spec.ts` aceita essa folga só nesses casos). Posições calculadas pelo layout (centralizações, porcentagens) também podem cair a ±1 pixel do aparelho. O teste de pixels roda em DPR 1 e 2.
+
+**Galeria da interface:** com `pnpm dev`, abra `http://localhost:3000/ui-gallery.html` para ver todas as telas e peças do HUD com dados fixos, sem servidor (só em desenvolvimento). Parâmetros: `lang=<idioma>`, `u=<pixels do aparelho por pixel da arte>`, `freeze` (sem animações), `section=<grupo>` (`core`, `select`, `credits`, `hud`, `gains`, `shop`, `boss`, `match`, `lobby`, `summary`; `status` é o HUD na posição real, com `details` para abrir os atributos; `pixels` são todos os ícones e molduras mais a amostra da Tiny5). Os testes `tools/e2e/tests/ui.spec.ts` comparam pixel a pixel os ícones e as molduras com as folhas de origem, conferem que a Tiny5 não tem pixels borrados, que nada transborda em 9 idiomas a 1280×720 e 1920×1080, e que o painel de vida não reescreve o DOM sem motivo.
+
+**Créditos:** na escolha de herói, **Créditos** abre o painel com a arte (obra, pacote e versão, autor, licença e endereço da licença, o que mudamos) e a fonte (Tiny5, OFL). Os endereços são texto selecionável, não links (as plataformas não aceitam links para fora). O `apps/client/public/CREDITS.txt` (a atribuição completa, o aviso de licença do autor e a lista do que é derivado) e o `licenses/OFL-1.1-Tiny5.txt` vão junto no `dist/` e no zip do cliente.
+
 ## Trocar a arte
 
 - **Tileset (mundo):** a arte do mundo vem do pacote *Super Overhead Adventure 3* (#NotZelda Overhead Adventure Tiles, de Raphael Azcueta, CC BY-SA 4.0; créditos e mudanças em [`content/CREDITS.md`](../content/CREDITS.md)). As folhas ficam em `content/src/notzelda/`. Não edite o `content/tilesets/world.png` à mão: o gerador o refaz a cada execução.
@@ -425,9 +456,12 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
   - **Conferir:** `pnpm art --check` falha se algum sprite estiver desatualizado; ele roda no `pnpm check` e na CI. Depois de mudar a lista, atualize `content/CREDITS.md`.
   - **Acrescentar ou trocar um sprite:** copie a folha do pacote para `content/src/notzelda/` (com o nome de pasta do pacote), acrescente ou mude a entrada em `manifest.ts` (recorte, quadros, tags e, se for o caso, cores trocadas ou contorno), rode `pnpm art` e confira com `pnpm content:validate` e no jogo. O `pnpm art` só apaga os sprites que ele mesmo gerou; os exportados do Aseprite (`pnpm assets:sprites`) convivem na mesma pasta.
   - **Pixel art nítido:** sprites sempre em posições inteiras e em escala 1 (elites e chefes não crescem: o elite é dourado por troca de paleta); só os projéteis com direção giram, em passos de 45°. Sombras e o brilho dos elites são elipses de pixels inteiros, sem borda suavizada (`render/pixelEllipse.ts`). As cores mudam trocando cores exatas da folha (`render/recolor.ts`), nunca com `setTint`; o único tingimento é o pisca branco de quem leva um golpe.
-- **Baús, rupees, corações, pedestais, sombras e o brilho dos elites:** ainda desenhados em `game/client/src/render/placeholderArt.ts`.
-- **Ícones de relíquias e itens:** emojis em `game/client/src/ui/relicText.ts`.
-- **Sons:** arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`). Os efeitos provisórios (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória, mato cortado e pote quebrado) são sintetizados por `pnpm sfx` (`tools/sfx/src/generate.ts`); para trocar um, coloque um arquivo com o mesmo nome (`swing.ogg`, por exemplo) e apague o `.wav`.
+- **Itens, rupees, corações, baús, pedestais e brilhos do saque:** também vêm do pacote (`Items/Equipment.png`, `Items/Books and Treasures.png`, `Items/Pickups.png`, `Items/Tools.png`, `Items/Weapons.png` e o pedestal de `Dungeon`), importados por `pnpm art` como os sprites `items`, `pickups`, `chest`, `chest-gold`, `pedestal`, `fx-burst-gold`, `fx-burst-purple` e `fx-glint`.
+  - **Ícone de cada item:** `ITEM_ICONS` em `tools/art/src/icons.ts` (folha e célula; o tipo `Record<OfferItem, IconDef>` faz faltar um ícone virar erro de compilação). Os ícones só da interface (corações em quartos, rupee, cadeado, troféu, marcas de chefe e perigo, ícones dos atributos) ficam em `UI_ICONS`. O mesmo `items.png` serve ao jogo e ao DOM (`game/client/src/ui/iconFrames.json`, escrito pelo `pnpm art`).
+  - **No mundo** (`game/client/src/render/itemArt.ts` e `scenes/GameScene.ts`): o rupee tem a cor do valor (`rupeeTag`), cai com um pulinho, balança em passos e às vezes brilha; o coração some piscando ao ser pego. O baú abre com o feixe de luz e fica vazio; o dourado (`chestKey`) é o dos chefes e das masmorras. Ao ganhar um item, ele sobe sobre a cabeça do herói com uma explosão de brilho (roxa para épico e lendário).
+  - **Molduras da interface:** `UI_FRAMES` em `tools/art/src/ui.ts` (cantos de `Menu/Menu.png` espelhados, traço trocado pela cor de raridade, miolo preenchido), gravadas em `content/ui/`. O `pnpm art --check` confere que estão em dia, e o teste de `ui.ts` confere que o CSS usa cada uma com o corte certo.
+  - **Feitos em código** (sem equivalente no pacote): sombras, o brilho dos elites e os anéis de raridade sob os itens da loja, em `game/client/src/render/proceduralArt.ts`.
+- **Sons:** são a única arte ainda provisória. Arquivos em `content/audio/sfx` e `content/audio/music` (veja `content/README.md`). Os efeitos provisórios (espada, golpe, dano, rupee, coração, baú, nível, armas, derrota, vitória, mato cortado e pote quebrado) são sintetizados por `pnpm sfx` (`tools/sfx/src/generate.ts`); para trocar um, coloque um arquivo com o mesmo nome (`swing.ogg`, por exemplo) e apague o `.wav`.
 
 ## Onde fica cada coisa
 
@@ -457,7 +491,13 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Visual do mundo: o que vai em cada célula (skin), catálogo de tiles, atlas, render em PNG | `tools/world-gen/src/skin/`, `tiles.ts`, `atlas.ts`, `render.ts` |
 | Sprites de heróis, inimigos, efeitos e projéteis: lista, animações e o importador | `tools/art/src/manifest.ts`, `sheet.ts`, `import.ts` |
 | Camadas de profundidade, direção dos sprites e ponto dos pés | `game/client/src/render/depth.ts`, `anim.ts`, `spriteAnchors.json` |
-| Créditos e licença da arte | `content/CREDITS.md` |
+| Créditos e licença da arte e da fonte | `content/CREDITS.md`, `apps/client/public/CREDITS.txt`, `apps/client/public/licenses/`, tela de créditos em `game/client/src/ui/credits.ts` |
+| Ícones dos itens e da interface (folha e célula) | `tools/art/src/icons.ts` |
+| Molduras da interface (9-slices gerados de `Menu.png`) | `tools/art/src/ui.ts` → `content/ui/` |
+| Itens no mundo: rupees por valor, baús, explosões de brilho | `game/client/src/render/itemArt.ts`, `scenes/GameScene.ts` |
+| Visual da interface: cores, fontes, molduras, ícones, animações | `game/client/src/ui/skin.css` (aparência), `game/client/src/styles.css` (posições e tamanhos) |
+| Ícones e espaços de relíquia no DOM, escala da interface, tema | `game/client/src/ui/icons.ts`, `ui/iconMap.ts`, `ui/scale.ts`, `ui/theme.ts` |
+| Galeria da interface (só em desenvolvimento) | `apps/client/ui-gallery.html`, `game/client/src/uiGallery.ts`, `tools/e2e/tests/ui.spec.ts` |
 | Efeitos sonoros provisórios | `tools/sfx/src/generate.ts` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
 | Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis, mato e potes quebrando | `game/client/src/scenes/GameScene.ts` |
@@ -476,4 +516,5 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 5. ✅ **Bots, equilíbrio e progressão:** bots com IA que completam a partida até 40 heróis; combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); progressão entre partidas (resumo, placar da sala, carreira no navegador e cores desbloqueáveis).
 6. ✅ **Ajustes:** mato alto e potes com rupees e corações; monstros do centro mais fracos; bots que não ficam parados (se recuperam cortando mato ou passeando); contagem do PvP em destaque no começo da partida; um mapa só até o lançamento (sem passo de escolha de mapa).
 7. ✅ **Mundo em pixel art:** o mundo inteiro desenhado com os tiles do pacote *#NotZelda Overhead Adventure Tiles* (CC BY-SA 4.0). O overworld foi refeito com regiões novas (montanhas e cachoeiras, cemitério, floresta vermelha, pântano, lagos e rios com pontes, florestas de pinheiros, litoral com píeres e ilhotas). Masmorras com paredes em perspectiva, portas, estátuas, tapetes e estandartes; cavernas de rocha; arena de areia com faixa pintada e círculos de runas nos pontos de entrada. O gerador monta o tileset com colisão, animações e a camada `above`, e há uma ferramenta para ver o mundo em PNG.
-8. ✅ **Personagens em pixel art:** heróis, inimigos, chefes, vendedor, golpes, efeitos e projéteis com os sprites do mesmo pacote (CC BY-SA 4.0), importados por `pnpm art`: pés no chão e ordem pela altura dos pés, quatro direções, golpe com a arma da classe em sincronia, cores dos heróis e elites dourados por troca de paleta, mortes e faíscas com os efeitos do pacote. Na etapa 8B, 25 tipos de inimigo (10 comuns e 2 minichefes novos) que se movem e atacam como o sprite mostra, com preparação visível ("brilho = golpe vindo"), espalhados por bioma, distância e masmorra; bots que se esquivam. Baús, itens e a interface ganham arte na etapa 9.
+8. ✅ **Personagens em pixel art:** heróis, inimigos, chefes, vendedor, golpes, efeitos e projéteis com os sprites do mesmo pacote (CC BY-SA 4.0), importados por `pnpm art`: pés no chão e ordem pela altura dos pés, quatro direções, golpe com a arma da classe em sincronia, cores dos heróis e elites dourados por troca de paleta, mortes e faíscas com os efeitos do pacote. Na etapa 8B, 25 tipos de inimigo (10 comuns e 2 minichefes novos) que se movem e atacam como o sprite mostra, com preparação visível ("brilho = golpe vindo"), espalhados por bioma, distância e masmorra; bots que se esquivam.
+9. ✅ **Itens e interface em pixel art:** itens, relíquias, rupees, corações, baús e pedestais com a arte do mesmo pacote; ícones de item no lugar dos emojis, com cinco relíquias renomeadas para combinar com eles; rupees de quatro cores pelo valor; baús dourados nas masmorras e nos chefes (pelo menos incomum); o item ganho aparece sobre o herói; loja com pedestais, anel de raridade e preço vermelho quando falta dinheiro. Interface inteira com molduras geradas do `Menu.png` do pacote, cursor vermelho no foco, fonte Tiny5 nos números e rótulos, escala inteira em pixels do aparelho, coração em quartos, recarga das armas nos espaços de relíquia e as relíquias no resumo da partida. Tela de créditos (CC BY-SA 4.0 e OFL) na escolha de herói, e `CREDITS.txt` no jogo publicado.

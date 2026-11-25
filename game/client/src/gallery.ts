@@ -11,30 +11,45 @@
  * `seg=<idle|walk|hop|slot0…slot5|tell|stunned|stone|hurt|interrupt|death>&at=<ms>`:
  * every view plays that segment with the releases lined up, and the scene
  * freezes `at` ms after the release (negative: during the wind-up).
+ *
+ * `view=items` shows the loot instead (see ItemsView): every item icon, every
+ * pickup, both chests, the shop pedestals with goods of each rarity and the
+ * loot effects, on grass, sand and each dungeon floor; it freezes after one
+ * chest cycle (2 s).
  */
 import { animKey } from "@core/client";
+import type { TiledMap, TiledTileLayer } from "@core/maps";
 import type { CollisionGrid } from "@core/shared";
 import {
   ACT_MOVE,
   ACT_STONE,
   ActPhase,
   angleFacing,
+  areaAt,
   ENEMIES,
   ENEMY_KINDS,
   type EnemyKind,
   type EnemyShotMessage,
   encodeAct,
   enemyStats,
+  type OfferItem,
+  parseWorldInfo,
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
   type ShotStyle,
   type ShotVolley,
+  TILE_SIZE,
 } from "@game/shared";
 import Phaser from "phaser";
-import { preloadAssets } from "./assets";
+import { mapKey, preloadAssets, tilesetKey } from "./assets";
 import { directionalAnim } from "./render/anim";
+import { actorDepth, DEPTH } from "./render/depth";
 import { EnemyView } from "./render/EnemyView";
 import { actInfo, ENEMY_LOOKS, SKINS, TICK_MS } from "./render/enemyLooks";
+import { burstFx, chestKey, OFFER_LAYOUT, PICKUP_SHADOW, rupeeTag } from "./render/itemArt";
 import { Projectiles } from "./render/Projectiles";
-import { createPlaceholderArt } from "./render/placeholderArt";
+import { createProceduralArt, rarityRingTexture, shadowTexture } from "./render/proceduralArt";
+import iconFrames from "./ui/iconFrames.json";
 
 const CELL_W = 80;
 const CELL_H = 72;
@@ -88,6 +103,7 @@ const only = params.get("only")?.split(",").filter(Boolean);
 const seg = params.get("seg") ?? undefined;
 const freezeAt = Number(params.get("at") ?? 0);
 const debug = params.has("debug");
+const itemsView = params.get("view") === "items";
 
 function entries(): Entry[] {
   const list: Entry[] = [];
@@ -401,6 +417,7 @@ class Actor {
 
 class GalleryScene extends Phaser.Scene {
   projectiles?: Projectiles;
+  private items?: ItemsView;
   private actors: Actor[] = [];
   private acc = 0;
   private patchAcc = 0;
@@ -416,7 +433,13 @@ class GalleryScene extends Phaser.Scene {
   }
 
   create() {
-    createPlaceholderArt(this);
+    createProceduralArt(this);
+    if (itemsView) {
+      this.items = new ItemsView(this);
+      hook.missing = [...new Set(this.items.missing)];
+      hook.ready = true;
+      return;
+    }
     const list = entries();
     const { width, height } = this.scale;
     const grid: CollisionGrid = {
@@ -485,6 +508,18 @@ class GalleryScene extends Phaser.Scene {
 
   override update(time: number, delta: number) {
     if (!hook.ready) return;
+    if (this.items) {
+      // Freezes after one chest cycle (the cycling chests then show their empty frame).
+      if (this.items.elapsed + delta >= ITEMS_FREEZE_MS && !hook.frozen) {
+        hook.frozen = true;
+        hook.frozenAt = Math.round(this.items.elapsed);
+        hook.fps = Math.round(this.game.loop.actualFps);
+        this.scene.pause();
+        return;
+      }
+      this.items.update(delta);
+      return;
+    }
     this.acc += delta;
     this.patchAcc += delta;
     while (this.acc >= TICK_MS) {
@@ -509,13 +544,228 @@ class GalleryScene extends Phaser.Scene {
   }
 }
 
+// ─── Items view ─────────────────────────────────────────────────────────────
+
+/** Columns of the items view: one ground each (biome letter or dungeon id, see the map's world info). */
+const ITEM_GROUNDS = [
+  { label: "grass", biome: "G" },
+  { label: "sand", biome: "B" },
+  { label: "crypt", dungeon: "crypt" },
+  { label: "lair", dungeon: "lair" },
+  { label: "tomb", dungeon: "tomb" },
+  { label: "hall", dungeon: "hall" },
+] as const;
+const ITEMS_COL_W = 176;
+const ITEMS_H = 272;
+/** Chests cycle closed → open → empty this often; the view freezes after one cycle. */
+const CHEST_CYCLE_MS = 2000;
+const CHEST_OPEN_AT = 800;
+const ITEMS_FREEZE_MS = CHEST_CYCLE_MS;
+/** One-shot pickups and effects replay this often. */
+const REPLAY_MS = 1000;
+/** Rows (y of the sprites' bottoms or spots) inside a column. */
+const ROW = { icons: 30, pickups: 136, chests: 166, offers: 204, fx: 236, frames: 262 } as const;
+const ICONS_PER_ROW = 8;
+const ICON_STEP = 20;
+/** Every shop offer the view shows: each rarity of a relic, a weapon, a potion and a sold one. */
+const OFFERS: { kind: OfferItem; rarity: number; sold?: boolean }[] = [
+  { kind: "boots", rarity: 0 },
+  { kind: "shield", rarity: 1 },
+  { kind: "fireball", rarity: 2 },
+  { kind: "eye", rarity: 3 },
+  { kind: "haste", rarity: 4 },
+  { kind: "potion", rarity: 0 },
+  { kind: "mark", rarity: 2, sold: true },
+];
+/** Sheets the view needs (tools/art manifest.ts). */
+const ITEM_SHEETS = [
+  "items",
+  "pickups",
+  "chest",
+  "chest-gold",
+  "pedestal",
+  "fx-burst-gold",
+  "fx-burst-purple",
+  "fx-glint",
+] as const;
+
+/** The loot, laid out on each ground the game puts it on. */
+class ItemsView {
+  readonly missing: string[] = [];
+  elapsed = 0;
+  private readonly cycling: { sprite: Phaser.GameObjects.Sprite; key: string }[] = [];
+  private readonly replays: { sprite: Phaser.GameObjects.Sprite; anim: string }[] = [];
+  private lastCycle = -1;
+  private opened = false;
+  private lastReplay = 0;
+
+  constructor(private readonly scene: Phaser.Scene) {
+    for (const key of ITEM_SHEETS) if (!scene.textures.exists(key)) this.missing.push(key);
+    this.drawGrounds();
+    const labels = document.getElementById("labels");
+    ITEM_GROUNDS.forEach((ground, i) => {
+      const x0 = i * ITEMS_COL_W;
+      this.column(x0);
+      if (labels) {
+        const el = document.createElement("div");
+        el.className = "label";
+        el.textContent = ground.label;
+        el.style.insetInlineStart = `${x0 * zoom + 2}px`;
+        el.style.insetBlockStart = "1px";
+        labels.append(el);
+      }
+    });
+  }
+
+  /** The most common ground tile of each column's place in the real map, as a tilemap under everything. */
+  private drawGrounds() {
+    const raw = this.scene.cache.tilemap.get(mapKey("overworld"))?.data as TiledMap | undefined;
+    const ground = raw?.layers.find((l): l is TiledTileLayer => l.type === "tilelayer" && l.name === "ground");
+    const tileset = raw?.tilesets[0];
+    if (!raw || !Array.isArray(ground?.data) || !tileset) {
+      this.missing.push("map:overworld");
+      return;
+    }
+    const info = parseWorldInfo(raw);
+    const tilesX = SCREEN_WIDTH / TILE_SIZE;
+    const tilesY = SCREEN_HEIGHT / TILE_SIZE;
+    const data = ground.data;
+    const floorOf = (col: number, row: number) => {
+      const count = new Map<number, number>();
+      for (let y = row * tilesY; y < (row + 1) * tilesY; y++)
+        for (let x = col * tilesX; x < (col + 1) * tilesX; x++) {
+          const gid = data[y * raw.width + x] ?? 0;
+          count.set(gid, (count.get(gid) ?? 0) + 1);
+        }
+      return [...count].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+    };
+    const gids = ITEM_GROUNDS.map((g) => {
+      if ("dungeon" in g) {
+        const area = info.areas.find((a) => a.id === g.dungeon);
+        return area && areaAt(info.areas, area.col, area.row) ? floorOf(area.col, area.row) : 0;
+      }
+      const i = info.biomes.indexOf(g.biome);
+      return i < 0 ? 0 : floorOf(i % info.columns, Math.floor(i / info.columns));
+    });
+    const colTiles = ITEMS_COL_W / TILE_SIZE;
+    const rows = Array.from({ length: Math.ceil(ITEMS_H / TILE_SIZE) }, () =>
+      gids.flatMap((gid) => Array.from({ length: colTiles }, () => gid - tileset.firstgid)),
+    );
+    const map = this.scene.make.tilemap({ data: rows, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
+    const set = map.addTilesetImage(
+      "ground",
+      tilesetKey(tileset.image ?? ""),
+      TILE_SIZE,
+      TILE_SIZE,
+      tileset.margin ?? 0,
+      tileset.spacing ?? 0,
+    );
+    if (!set) this.missing.push("tileset");
+    else map.createLayer(0, set, 0, 0)?.setDepth(DEPTH.ground);
+  }
+
+  private anim(key: string, tag: string): string {
+    const anim = animKey(key, tag);
+    if (!this.scene.anims.exists(anim)) this.missing.push(`${key}:${tag}`);
+    return anim;
+  }
+
+  private sprite(x: number, y: number, key: string, tag: string, origin: [number, number] = [0.5, 0.5]) {
+    const anim = this.anim(key, tag);
+    const sprite = this.scene.add.sprite(x, y, key).setOrigin(...origin);
+    if (this.scene.anims.exists(anim)) sprite.play(anim);
+    return sprite;
+  }
+
+  /** A sprite on frame `index` of a tag (to show every frame of a one-shot at once). */
+  private still(x: number, y: number, key: string, tag: string, index: number) {
+    const anim = this.scene.anims.get(this.anim(key, tag));
+    const frame = anim?.frames[index]?.frame;
+    if (!frame) this.missing.push(`${key}:${tag}:${index}`);
+    return this.scene.add.sprite(x, y, key, frame?.name).setDepth(DEPTH.fx);
+  }
+
+  private column(x0: number) {
+    // Every icon of the items sheet (the compass turns), standing on its bottom like goods.
+    Object.keys(iconFrames.icons).forEach((tag, i) => {
+      const x = x0 + 18 + (i % ICONS_PER_ROW) * ICON_STEP;
+      const y = ROW.icons + Math.floor(i / ICONS_PER_ROW) * ICON_STEP;
+      this.sprite(x, y, "items", tag, [0.5, 1]);
+    });
+    // Pickups with their shadows: each rupee tier, the heart, and the heart vanishing.
+    const pickups = [...[1, 5, 20, 50].map(rupeeTag), "heart", "heart-vanish"];
+    pickups.forEach((tag, i) => {
+      const x = x0 + 18 + i * 24;
+      const y = ROW.pickups;
+      this.scene.add
+        .image(x, y + PICKUP_SHADOW.dy, shadowTexture(this.scene, PICKUP_SHADOW.width))
+        .setDepth(actorDepth(y, 4) - 1e-5);
+      const sprite = this.sprite(x, y, "pickups", tag).setDepth(actorDepth(y, 4));
+      if (tag === "heart-vanish") this.replays.push({ sprite, anim: animKey("pickups", tag) });
+    });
+    // Chests: closed, half open, empty, and one cycling; wooden then gold.
+    [false, true].forEach((gold, m) => {
+      const key = chestKey(gold);
+      const x = x0 + 18 + m * 84;
+      const y = ROW.chests;
+      this.sprite(x, y, key, "closed");
+      this.still(x + 20, y, key, "open", 2).setDepth(DEPTH.actors);
+      this.sprite(x + 40, y, key, "empty");
+      this.cycling.push({ sprite: this.sprite(x + 60, y, key, "closed"), key });
+    });
+    // Shop offers: pedestal, rarity ring (relics and weapons above common), goods; a sold one is bare.
+    OFFERS.forEach((offer, i) => {
+      const x = x0 + 16 + i * 24;
+      const y = ROW.offers;
+      this.sprite(x, y + OFFER_LAYOUT.pedestalDy, "pedestal", "idle", [0.5, 1]).setDepth(DEPTH.pedestal);
+      if (offer.sold) return;
+      if (offer.rarity >= 1 && offer.kind !== "potion")
+        this.scene.add
+          .image(x, y + OFFER_LAYOUT.ringDy, rarityRingTexture(this.scene, offer.rarity))
+          .setDepth(DEPTH.pedestal + 0.1);
+      this.sprite(x, y, "items", offer.kind, [0.5, 1]).setDepth(actorDepth(y, 0));
+    });
+    // Loot effects, replaying: the bursts (gold up to rare, purple for epic+) and the glint; then each frame.
+    [burstFx(0), burstFx(4), "fx-glint"].forEach((key, i) => {
+      const sprite = this.sprite(x0 + 18 + i * 24, ROW.fx, key, "play").setDepth(DEPTH.fx);
+      this.replays.push({ sprite, anim: animKey(key, "play") });
+    });
+    for (const f of [0, 1]) this.still(x0 + 98 + f * 24, ROW.fx, "fx-glint", "play", f);
+    ["fx-burst-gold", "fx-burst-purple"].forEach((key, k) => {
+      for (let f = 0; f < 5; f++) this.still(x0 + 10 + (k * 5 + f) * 16, ROW.frames, key, "play", f);
+    });
+  }
+
+  /** Chests cycle closed → open → empty; one-shots replay. */
+  update(delta: number) {
+    this.elapsed += delta;
+    const cycle = Math.floor(this.elapsed / CHEST_CYCLE_MS);
+    if (cycle !== this.lastCycle) {
+      this.lastCycle = cycle;
+      this.opened = false;
+      for (const c of this.cycling) c.sprite.play(animKey(c.key, "closed"));
+    }
+    if (!this.opened && this.elapsed % CHEST_CYCLE_MS >= CHEST_OPEN_AT) {
+      this.opened = true;
+      for (const c of this.cycling) {
+        c.sprite.play(animKey(c.key, "open"));
+        c.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => c.sprite.play(animKey(c.key, "empty")));
+      }
+    }
+    if (this.elapsed - this.lastReplay >= REPLAY_MS) {
+      this.lastReplay = this.elapsed;
+      for (const r of this.replays) r.sprite.play(r.anim);
+    }
+  }
+}
+
 /** Starts the gallery in `#gallery` (see apps/client/gallery.html). */
 export function startGallery() {
   new Phaser.Game({
     type: Phaser.AUTO,
     parent: "gallery",
-    width: COLUMNS * CELL_W,
-    height: Math.ceil(entries().length / COLUMNS) * CELL_H,
+    width: itemsView ? ITEM_GROUNDS.length * ITEMS_COL_W : COLUMNS * CELL_W,
+    height: itemsView ? ITEMS_H : Math.ceil(entries().length / COLUMNS) * CELL_H,
     backgroundColor: "#101018",
     pixelArt: true,
     scale: { mode: Phaser.Scale.NONE, zoom },

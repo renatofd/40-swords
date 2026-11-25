@@ -19,6 +19,7 @@ const match = (over: Partial<MatchSummary> = {}): MatchSummary => ({
   chests: 2,
   level: 9,
   relics: 4,
+  relicList: [],
   seconds: 600,
   ...over,
 });
@@ -45,6 +46,9 @@ describe("progression between matches", () => {
     career = addMatch(career, match({ place: 30 }));
     expect(career.best).toBe(1);
     expect(career.matches).toBe(3);
+    // The relic list is only for the summary screen; the career doesn't keep it.
+    const withRelics = addMatch(career, match({ relicList: [{ kind: "boots", rarity: 3 }] }));
+    expect(withRelics).toEqual(addMatch(career, match()));
   });
 
   it("reads a saved career, counting anything broken as zero", () => {

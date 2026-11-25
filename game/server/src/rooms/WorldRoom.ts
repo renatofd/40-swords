@@ -341,10 +341,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.state.mapId = mapId;
     this.spawners = this.objects.enemies.map((s) => ({ ...s, respawnAt: 0 }));
     for (const c of this.objects.chests) {
-      this.state.chests.set(c.id, new Chest({ x: c.x, y: c.y, open: false }));
-      // Chests deep in dungeons hold at least uncommon relics.
+      // Chests deep in dungeons hold at least uncommon relics, and look gold.
       const { col, row } = screenOf(c.x, c.y);
       const floor = areaAt(this.info.areas, col, row)?.kind === "dungeon" ? 1 : 0;
+      this.state.chests.set(c.id, new Chest({ x: c.x, y: c.y, open: false, gold: floor >= 1 }));
       this.chestMeta.set(c.id, { floor, dropped: false, at: 0 });
     }
     for (const v of this.objects.vendors) this.vendorByScreen.set(this.screenIndexAt(v.x, v.y), v);
@@ -1208,6 +1208,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       chests: stats.chests,
       level: player.level,
       relics: player.relics.length,
+      relicList: player.relics.map((r) => ({ kind: r.kind, rarity: r.rarity })),
       seconds: Math.floor((this.tick - this.matchStart) / TICK_RATE),
     };
     client.send(Msg.summary, message);
@@ -1288,10 +1289,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.clientOf(id)?.send(Msg.gain, message);
   }
 
-  /** A one-shot chest (bosses, elites): at least `floor` rarity; gone a while after it is opened. */
+  /** A one-shot chest (bosses, elites): at least `floor` rarity; gold from uncommon up; gone a while after it is opened. */
   private dropChest(x: number, y: number, floor: number) {
     const id = `d${this.nextId++}`;
-    this.state.chests.set(id, new Chest({ x, y, open: false }));
+    this.state.chests.set(id, new Chest({ x, y, open: false, gold: floor >= 1 }));
     this.chestMeta.set(id, { floor, dropped: true, at: this.tick + DROPPED_CHEST_LIFETIME_SECONDS * TICK_RATE });
   }
 
