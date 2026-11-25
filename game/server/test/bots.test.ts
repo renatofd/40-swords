@@ -5,6 +5,7 @@ import { CORE_PROTOCOL_VERSION } from "@core/shared";
 import {
   arenaRect,
   type BotsMessage,
+  createRng,
   inRect,
   type KillMessage,
   MAX_PLAYERS_PER_ROOM,
@@ -13,6 +14,7 @@ import {
   type Player,
   PROTOCOL_VERSION,
   RESULTS_SECONDS,
+  type Rng,
   ROOM_WORLD,
   screenOf,
   TICK_DT,
@@ -36,6 +38,7 @@ const grid = loadMap("overworld", { tileSize: TILE_SIZE }).collision;
 const arena = arenaRect(loadWorldInfo("overworld"));
 
 interface RoomInternals {
+  rng: Rng;
   times: { pvpAfter: number; arenaAfter: number };
   matchStart: number;
   bots: Map<string, { mode: string }>;
@@ -44,6 +47,8 @@ interface RoomInternals {
   endMatch(winner: [string, Player] | undefined): void;
 }
 const internals = (room: unknown) => room as RoomInternals;
+/** Seed of the whole-match test. */
+const MATCH_SEED = 3;
 
 describe("bots", () => {
   let colyseus: ColyseusTestServer<typeof appConfig>;
@@ -151,6 +156,9 @@ describe("bots", () => {
     timeout: 180_000,
   }, async () => {
     const room = await createWorld();
+    // A fixed seed (the room rolls one per match, and the bots' own seeds come from it), so the
+    // thresholds below check behaviour, not luck.
+    internals(room).rng = createRng(Number(process.env.BOTS_SEED ?? MATCH_SEED));
     internals(room).times = { pvpAfter: 90, arenaAfter: 300 };
     const ana = await join(room, "Ana");
     const causes: KillMessage["cause"][] = [];

@@ -30,7 +30,7 @@ A sorte do herói pode dobrar os rupees, como nos monstros. Só a espada corta e
 |---|---|---|---|
 | Mover (8 direções) | WASD / setas | analógico esquerdo | joystick |
 | Espada e armas | Espaço / J | A / X | botão "Espada" |
-| Atributos e relíquias | C | Y | toque no painel de vida |
+| Atributos e relíquias | C | Y | toque no painel de vida (a seta no canto) |
 | Pronto (sala de espera) | R | Start | botão "Pronto" no painel |
 
 Um toque rápido no botão de ataque nunca se perde, mesmo mais curto que um quadro.
@@ -383,6 +383,8 @@ Há dois caminhos:
     - a decoração de cada bioma.
 
     As paredes são retângulos de pelo menos 2×2 (rocha, floresta densa, pinheiros), porque a arte do pacote não tem cantos côncavos. Retângulos que se sobrepõem são desenhados do norte para o sul, cada um na frente do anterior.
+
+    A floresta densa nunca mostra meia árvore. A árvore grande do pacote ocupa 2×2 células, e na mata fechada cada árvore fica uma célula abaixo e uma ao lado da vizinha. `skin/forest.ts` põe as árvores uma a uma, só onde a árvore inteira cabe (quatro células de floresta na mesma tela) e só juntando metades que o pacote desenha juntas. As células que sobram recebem árvores pequenas de 1×1. O teste `skin/forest.test.ts` confere isso com retângulos sorteados.
   - **`src/build.ts`:** as salas de masmorra: paredes de 2 tiles, portas, e os arranjos de estátuas `I` e blocos `J` em `ROOM_PATTERNS`, desenhados sobre o chão de 16×7.
   - **Mato alto e potes:** são colocados depois, com um sorteio separado. Há de 1 a 3 moitas de 2 a 4 tufos em cada tela de grama, menos a praça, e de 2 a 4 potes por caverna e sala de masmorra, primeiro nos cantos (nas masmorras, longe de estátuas e blocos e fora dos tapetes entre as portas). Nada disso fica nas bordas das telas, na frente das passagens, nem perto de portais, baús e ofertas.
   - **Para gerar:** rode `pnpm --filter @tools/world-gen generate`. Ele regrava `content/maps/overworld.tmj` e `content/tilesets/world.png`, e apaga de `content/tilesets/` os PNGs que o mapa não usa mais.
@@ -406,6 +408,8 @@ Os menus e o HUD são DOM (texto em qualquer escrita, inclusive árabe da direit
 
 - **Molduras:** 9-slices gerados por `pnpm art` (`tools/art/src/ui.ts`) a partir dos cantos de `Menu/Menu.png` e gravados em `content/ui/frame-*.png`; o CSS os desenha com `border-image`. Painéis e HUD têm canto quadrado (`frame-panel`, `frame-hud`), os cartões de herói o canto redondo grande (`frame-card`), os botões o canto médio (`frame-button*`, o vermelho é o principal) e o foco do teclado é o **cursor vermelho** do pacote (`frame-cursor`). As molduras de raridade (`frame-slot-N`, `frame-rarity-N`) usam as cores de `RARITY_COLORS`.
 - **Ícones:** uma folha só, `items` (`tools/art/src/icons.ts`), usada pelo Phaser (itens no mundo) e pelo DOM (`game/client/src/ui/icons.ts`, sprite em CSS com as posições de `ui/iconFrames.json`). Nenhum emoji para itens; o `✔ … ⏳` e o `🤖` da sala de espera continuam como estão.
+- **Abrir e fechar:** o painel de vida tem uma seta no canto (para baixo: abre os atributos e relíquias; para cima: fecha), e o placar dos oponentes tem a mesma seta no título, que recolhe o placar até a barra do título (o template guarda essa escolha para as próximas partidas). Um clique nas setas não tira o teclado do jogo: Espaço continua atacando.
+- **Barras de rolagem:** quadradas, nas cores do pacote (trilho azul-marinho com um fio azul, alça azul com borda clara e escura, dourada sob o mouse), em vez das barras do sistema. O Chrome e o Safari desenham essa barra; o Firefox só usa as duas cores.
 - **Vida:** um coração que se esvazia em quartos (um coração do chão cura exatamente um quarto), a barra e o número. Com um quarto ou menos, o coração pisca e o número fica vermelho.
 - **Espaços de relíquia:** 5 por linha, armas primeiro, depois as passivas, sempre na mesma ordem. A moldura tem a cor da melhor cópia; o número no canto é a quantidade (nas armas, `×` o total de projéteis), e uma sombra que desce mostra a recarga de cada arma.
 - **Raridade:** só pela cor (moldura, anel sob o item na loja, explosão de brilho roxa para épica e lendária, dourada para o resto) e pelo material do baú; nada de `setTint`, brilho ou filtro. A lendária usa o amarelo-ouro do pacote, não o laranja: com deuteranopia (daltonismo verde-vermelho) o laranja e o verde da incomum ficam iguais, e os espaços de relíquia mostram a raridade só pela cor.

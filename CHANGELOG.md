@@ -2,6 +2,18 @@
 
 Mudanças do template. Jogos derivados: leia antes de `git merge template/main`. Veja [`docs/TEMPLATE.md`](docs/TEMPLATE.md).
 
+## 0.7.0
+
+Placar que o jogador pode recolher.
+
+### Novo
+- **Placar recolhível:** o placar do canto ganhou um botão de seta no título que recolhe a lista e deixa só a barra do título; o mesmo botão abre de novo. A escolha fica salva no navegador (`storage`) e vale nas próximas partidas. A lista completa continua no Tab.
+- O botão não tira o teclado do jogo: depois de um clique, Espaço e Enter continuam indo para o jogo.
+- Textos novos nos 14 idiomas: `scoreboard.hide` e `scoreboard.show` (rótulos do botão para leitores de tela).
+
+### Ao atualizar um jogo
+- Nada quebra. O placar agora tem um título (`.ui-scoreboard-title`), o botão (`.ui-scoreboard-toggle`, com `aria-expanded`) e a classe `.collapsed` quando recolhido. Se o jogo estiliza o placar, confira o título e a seta.
+
 ## 0.6.0
 
 Tela antes da partida e toques rápidos que não se perdem.

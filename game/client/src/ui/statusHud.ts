@@ -58,7 +58,9 @@ export class StatusHud {
   private level = h("span", { className: "sw-level" });
   private rupees = h("span", { className: "sw-num" });
   private slots = h("div", { className: "sw-slots" });
-  private details = h("div", { className: "sw-details", hidden: true });
+  private details = h("div", { className: "sw-details", id: "sw-status-details", hidden: true });
+  /** The button that opens and closes the details (the whole top of the panel). */
+  private main: HTMLButtonElement;
   /** Slot of each weapon in the grid, and its shaded rows now. */
   private weaponSlots = new Map<WeaponId, { el: HTMLElement; rows: number }>();
   private last = "";
@@ -67,30 +69,31 @@ export class StatusHud {
   private values?: StatusValues;
 
   constructor(private readonly t: Translate) {
-    this.el = h(
-      "div",
-      { className: "sw-status", hidden: true },
+    this.main = h(
+      "button",
+      {
+        type: "button",
+        className: "sw-status-main",
+        onclick: () => this.toggle(),
+        // A mouse click must not take the keyboard from the game (Space would toggle it again).
+        onpointerdown: (e: PointerEvent) => e.preventDefault(),
+        "aria-label": t("hud.attributes"),
+        "aria-controls": "sw-status-details",
+        "aria-expanded": "false",
+      },
+      // The chevron says the panel opens (down) and closes (up), like the scoreboard's.
+      h("div", { className: "sw-status-row" }, this.heart, this.hpText, h("span", { className: "sw-chevron" })),
+      h("div", { className: "sw-bar sw-hp" }, this.hpFill),
+      h("div", { className: "sw-bar sw-xp" }, this.xpFill),
       h(
-        "button",
-        {
-          type: "button",
-          className: "sw-status-main",
-          onclick: () => this.toggle(),
-          "aria-label": t("hud.attributes"),
-        },
-        h("div", { className: "sw-status-row" }, this.heart, this.hpText),
-        h("div", { className: "sw-bar sw-hp" }, this.hpFill),
-        h("div", { className: "sw-bar sw-xp" }, this.xpFill),
-        h(
-          "div",
-          { className: "sw-status-row" },
-          this.level,
-          h("span", { className: "sw-rupees" }, icon("rupee-green"), this.rupees),
-        ),
-        this.slots,
+        "div",
+        { className: "sw-status-row" },
+        this.level,
+        h("span", { className: "sw-rupees" }, icon("rupee-green"), this.rupees),
       ),
-      this.details,
+      this.slots,
     );
+    this.el = h("div", { className: "sw-status", hidden: true }, this.main, this.details);
     this.el.dataset.slotRows = "0";
   }
 
@@ -106,6 +109,7 @@ export class StatusHud {
   toggle() {
     this.details.hidden = !this.details.hidden;
     this.el.classList.toggle("sw-status-open", this.open);
+    this.main.setAttribute("aria-expanded", String(this.open));
     this.lastDetails = ""; // re-render the details now
     if (this.values) this.update(this.values);
   }

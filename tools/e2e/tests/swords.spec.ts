@@ -108,6 +108,22 @@ test("C opens the attributes and relics panel", async ({ page }) => {
   await expect(page.locator(".sw-details")).toBeHidden();
 });
 
+test("the status panel's chevron button opens the details and leaves the keyboard to the game", async ({ page }) => {
+  await joinMatch(page, "Cora", "lang=en", "knight");
+  const main = page.getByRole("button", { name: "Attributes" });
+  await expect(main).toHaveAttribute("aria-expanded", "false");
+  await expect(main.locator(".sw-chevron")).toBeVisible();
+  await main.click();
+  await expect(page.locator(".sw-details")).toBeVisible();
+  await expect(main).toHaveAttribute("aria-expanded", "true");
+  // Space swings the sword; it does not press the panel button again.
+  await page.keyboard.press("Space");
+  await expect(page.locator(".sw-details")).toBeVisible();
+  await main.click();
+  await expect(page.locator(".sw-details")).toBeHidden();
+  await expect(main).toHaveAttribute("aria-expanded", "false");
+});
+
 test("the waiting room starts the match once everyone is ready", async ({ page }) => {
   await page.goto("/?lang=en");
   await page.locator(".ui-input").fill("Duda");

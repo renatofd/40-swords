@@ -77,6 +77,25 @@ test("holding Tab shows the player list", async ({ page }) => {
   await expect(page.locator(".ui-playerlist")).toBeHidden();
 });
 
+test("the scoreboard collapses to its title bar and stays collapsed next time", async ({ page }) => {
+  await joinMatch(page, "Hana");
+  const board = page.locator(".ui-scoreboard");
+  await expect(board).toContainText("Hana");
+  await page.getByRole("button", { name: "Hide leaderboard" }).click();
+  await expect(board.locator("ol")).toBeHidden();
+  await expect(board).toContainText("Leaderboard");
+  // The click left the keyboard to the game: Space does not toggle it back.
+  await page.keyboard.press("Space");
+  await expect(board.locator("ol")).toBeHidden();
+
+  // Joining again (a new page load) keeps it collapsed.
+  await joinMatch(page, "Hana");
+  await expect(page.getByRole("button", { name: "Show leaderboard" })).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Show leaderboard" }).click();
+  await expect(board.locator("ol")).toBeVisible();
+  await expect(board).toContainText("Hana");
+});
+
 test("a dropped connection shows the reconnect screen until the room is back", async ({ page, context }) => {
   await joinMatch(page, "Ivy");
   const before = await sessionId(page);

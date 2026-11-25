@@ -33,6 +33,7 @@ import {
   tiles,
 } from "../tiles";
 import { blob, E, mask4, mask8, N, noise, patch, S, type SkinLayers, variant, W, type WorldView } from "./common";
+import { layForest } from "./forest";
 
 /** Column offsets of the colour variants of the tree/rock rows (10-34): A green, B birch, C orange, D red, E dark, F blue. */
 const V = { A: 0, B: 9, C: 18, D: 27, E: 36, F: 45 } as const;
@@ -120,19 +121,6 @@ function rockId(m: number, seed: number, x: number, y: number): number {
   const role = (v + h || "mid") as keyof typeof CLIFF;
   const ids = role === "mid" ? CLIFF_INSIDE : CLIFF[role];
   return typeof ids === "number" ? ids : variant(ids as readonly number[], seed, x, y, 11);
-}
-
-/** Dense forest: canopy row (642/643), checkerboard (709/773), trunks and shadow at the bottom (706/707). */
-function forestId(r: Shape, x: number, y: number): number {
-  const dx = x - r.x;
-  const dy = y - r.y;
-  const top = (d: number) => (d % 2 === 0 ? 642 : 643);
-  const mid = (d: number, row: number) => ((d + row) % 2 === 1 ? 709 : 773);
-  if (dy === 0) return top(dx);
-  if (dy < r.h - 1) return mid(dx, dy);
-  // Bottom: the trunk under the tree above.
-  const above = r.h === 2 ? top(dx) : mid(dx, r.h - 2);
-  return above === 642 || above === 773 ? 706 : 707;
 }
 
 // ─── Landmarks ──────────────────────────────────────────────────────────────
@@ -280,8 +268,29 @@ export function skinOverworld(view: WorldView, out: SkinLayers) {
     return plain(rockId(m, seed, x, y) + p.rock, true);
   };
 
+  // ─── Forest: whole big trees only (skin/forest.ts) ─────────────────────
+  // Cells another shape or a landmark also covers are left to it.
+  const forestShape = new Set<number>();
+  for (const { s } of shapes)
+    if (s.kind === "forest")
+      for (let y = s.y; y < s.y + s.h; y++)
+        for (let x = s.x; x < s.x + s.w; x++) if (view.solid(x, y) && g(x, y) !== "W") forestShape.add(y * width + x);
+  const notForest = new Set<number>(landmarkCells.keys());
+  for (const { s } of shapes)
+    if (s.kind !== "forest")
+      for (let y = s.y; y < s.y + s.h; y++) for (let x = s.x; x < s.x + s.w; x++) notForest.add(y * width + x);
+  const isForest = (x: number, y: number) =>
+    inWorld(x, y) && forestShape.has(y * width + x) && !notForest.has(y * width + x);
+  const forest = layForest(
+    shapes.filter(({ s }) => s.kind === "forest").map(({ s }) => s),
+    width,
+    isForest,
+    sameScreen,
+  );
+
   // ─── Wall rectangles, back to front ───────────────────────────────────
-  const rockDone = new Set<number>();
+  // Rock and forest cells are drawn once, whichever of their rectangles comes first.
+  const drawnOnce = new Set<number>();
   for (const { s } of shapes) {
     const p = pal(s.x, s.y);
     for (let y = s.y; y < s.y + s.h; y++)
@@ -290,10 +299,14 @@ export function skinOverworld(view: WorldView, out: SkinLayers) {
         const i = y * width + x;
         covered.add(i);
         if (s.kind === "rock") {
-          if (!rockDone.has(i)) push(x, y, rockKey(x, y));
-          rockDone.add(i);
-        } else if (s.kind === "forest") push(x, y, plain(forestId(s, x, y) + p.tree, true));
-        else if (y < s.y + s.h - 1) {
+          if (!drawnOnce.has(i)) push(x, y, rockKey(x, y));
+          drawnOnce.add(i);
+        } else if (s.kind === "forest") {
+          if (!isForest(x, y) || drawnOnce.has(i)) continue;
+          drawnOnce.add(i);
+          const id = forest.get(i);
+          push(x, y, plain((id ?? variant(SMALL_TREES, seed, x, y, 5)) + p.tree, true));
+        } else if (y < s.y + s.h - 1) {
           // A pine (top over bottom) on every cell; the row below holds its foot.
           push(x, y, plain(896 + p.tree, true));
           push(x, y + 1, plain(960 + p.tree, true));
