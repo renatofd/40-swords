@@ -731,6 +731,8 @@
   background: #000;
   border-color: var(--sw-blue);
   font-size: max(12px, calc(4 * var(--sw-fp)));
+  /* The whole inside of the circle for the label: "Schwert" in a wide system font needs it. */
+  padding-inline: 0;
 }
 
 .touch-button.pressed {
