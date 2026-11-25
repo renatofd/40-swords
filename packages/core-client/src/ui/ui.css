@@ -467,6 +467,54 @@ body {
   letter-spacing: 0.05em;
 }
 
+/* Title bar: the title, and the button that collapses the scoreboard to this bar. */
+.ui-scoreboard h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ui-scoreboard.collapsed h3 {
+  margin: 0;
+}
+
+.ui-scoreboard-toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  margin-block: -4px;
+  margin-inline-end: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ui-scoreboard-toggle:hover,
+.ui-scoreboard-toggle:focus-visible {
+  background: rgb(255 255 255 / 0.15);
+}
+
+/* A chevron: up to collapse, down to open again. */
+.ui-scoreboard-toggle::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border: solid currentColor;
+  border-width: 2px 0 0 2px;
+  transform: translateY(2px) rotate(45deg);
+}
+
+.ui-scoreboard.collapsed .ui-scoreboard-toggle::before {
+  transform: translateY(-2px) rotate(225deg);
+}
+
 .ui-scoreboard ol,
 .ui-playerlist ol {
   list-style: none;
