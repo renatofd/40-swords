@@ -2,9 +2,9 @@
 
 RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas em telas: o mundo é uma grade de telas, a câmera mostra uma tela por vez e desliza para a próxima quando o herói sai pela borda. Cada partida é uma corrida de roguelite com **uma vida só**: a partida começa quando todos os jogadores da sala estão prontos, todos começam no nível 1 no centro, ficam mais fortes explorando, depois de 5 minutos podem se enfrentar, e quem cai está fora. Vence o último de pé; se aos 30 minutos ainda houver mais de um, a decisão é numa arena de battle royale.
 
-> Toda a arte atual é **provisória, feita em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
+> **Arte:** o mundo (chão, água, árvores, rochas, casas, masmorras, cavernas e arena) usa os tiles em pixel art de *#NotZelda Overhead Adventure Tiles*, de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo é uma obra derivada sob a mesma licença (veja [`content/CREDITS.md`](../content/CREDITS.md)). Heróis, inimigos, baús, projéteis e ícones ainda são **provisórios, feitos em código** (formas, cores e emojis). Veja "Trocar a arte" abaixo.
 
-## Como jogar (etapa 6)
+## Como jogar (etapa 7)
 
 1. No menu, digite o nome e clique em **Jogar**.
 2. Escolha a **cor** (as cores extras se desbloqueiam com a carreira; veja "Progressão") e clique no **herói** (cada classe mostra os atributos) para entrar. A escolha acontece antes de entrar na sala; o último herói e a última cor ficam lembrados. Por enquanto há um mapa só (o Vale das Espadas), então não há passo de escolha de mapa: as regras da partida aparecem embaixo do título. A escolha de mapa volta quando houver mais mapas, em versões depois do lançamento.
@@ -12,7 +12,7 @@ RPG de ação top-down, multiplayer online, no estilo das aventuras clássicas e
 4. Você começa na praça, no centro de um mundo de **16×8 telas**. Quanto mais longe do centro, mais fortes os inimigos (e mais XP e rupees). Mate inimigos para ganhar **XP** e pegue os **rupees** que eles deixam cair. O **minimapa** (no painel de vida) mostra as telas que você já viu, as cavernas (amarelo) e as masmorras (vermelho) encontradas.
 5. **Baús** espalhados pelo mapa: encoste para abrir e ganhar uma **relíquia** aleatória. Eles voltam a encher depois de 2 minutos.
 6. **Cavernas** (8 espalhadas pelo mundo): entre pela abertura escura. Duas guardam baús; nas outras seis um **vendedor** oferece uma relíquia, uma arma e uma poção. Ande até o item para comprar. Cada jogador vê as próprias ofertas, sorteadas com a sua sorte e renovadas a cada 3 minutos. Para sair, use a passagem no fundo da caverna.
-7. **Masmorras** (4, atrás de portas com pilares): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
+7. **Masmorras** (4, atrás de uma cripta, de um santuário ou de um templo): 3×3 salas com inimigos mais fortes, um **minichefe** no caminho e o **chefe** na sala do fundo. Chefes e minichefes soltam um **baú** (raro ou melhor do chefe; incomum ou melhor do minichefe) e todos ficam sabendo quem venceu. Eles voltam depois de alguns minutos.
 8. **Elites** (dourados e maiores): qualquer inimigo comum pode nascer elite (10%, 20% nas masmorras). Têm o triplo de vida, batem mais forte, dão o triplo de XP e rupees e têm 30% de chance de soltar um baú.
 9. **Armas** disparam com o mesmo botão da espada, cada uma com a sua recarga. Segurando o botão, a espada e as armas atacam sozinhas assim que podem.
 10. Ao subir de nível, os atributos melhoram e a vida enche. **Cuidado: é uma vida só.** Quem cai (para um monstro, outro herói ou a tempestade) está fora da partida e passa a assistir. Se foi outro herói, ele leva **uma relíquia sua, sorteada, e todos os seus rupees**.
@@ -97,27 +97,40 @@ O que um bot faz, em ordem de prioridade (decide 5 vezes por segundo):
 
 1. **Na arena:** fica dentro da zona segura e luta com o herói mais perto (recua se estiver fraco).
 2. **No PvP:** luta com heróis que consegue vencer (compara vida, dano, defesa e armas) e foge dos mais fortes.
-3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo.
-4. **Vida baixa:** pega os corações da tela. Abaixo da metade da vida, se recupera longe das lutas até 85%: numa tela calma, corta o mato e quebra os potes (pode sair coração) ou passeia pela tela; numa tela perigosa, vai para a tela fácil mais perto. Se tiver rupees, vai à loja mais perto comprar poção.
+3. **Monstros:** luta com os que consegue vencer com folga (estima golpes e dano recebido) e foge dos fortes demais, saindo da tela (monstros não saem da tela deles) e evitando aquela tela por um tempo. Quando foge, vai até a outra tela antes de decidir de novo.
+4. **Vida baixa:** pega os corações da tela. Abaixo da metade da vida, se recupera longe das lutas até 85%: numa tela calma, corta o mato e quebra os potes (pode sair coração) ou passeia pela tela; numa tela perigosa, vai para a tela fácil mais perto. Se tiver rupees, vai comprar poção na loja mais perto que consegue alcançar sem passar por telas difíceis demais.
 5. **Loja, baús e rupees:** compra a melhor relíquia que pode pagar (sem pisar nas outras ofertas), abre baús e pega rupees da tela.
 6. **Mato e potes:** corta boa parte dos que estão perto (não todos: tem para onde ir).
 7. **Explorar:** vai para telas que não viu há algum tempo, cada vez mais longe da praça (inimigos mais fortes) conforme sobe de nível e junta relíquias, sem atravessar telas perigosas demais. Sem tela nova por perto, passeia pela tela em vez de ficar parado.
 
 O caminho usa um grafo das partes transitáveis de cada tela (ligadas pelas bordas abertas e pelos portais das cavernas e masmorras) e mapas de distância dentro da tela; se um bot ficar preso numa parede, ele tenta outro caminho. Com 40 heróis, o servidor gasta cerca de 1 ms por tick (de 33 ms disponíveis).
 
-O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (calmaria, PvP, arena) com 39 bots e confere que eles se espalham, sobem de nível, se enfrentam e que alguém vence.
+O teste `game/server/test/bots.test.ts` simula uma partida inteira acelerada (calmaria, PvP, arena) com 39 bots e confere que eles se espalham, sobem de nível, se enfrentam, nunca ficam parados por 10 s e que alguém vence.
 
-**Equilíbrio medido com os bots** (3 partidas simuladas de 30 min com 40 bots, tempos padrão, depois dos ajustes da etapa 6):
+**Equilíbrio medido com os bots** (6 partidas simuladas de 30 min com 40 bots, tempos padrão, no mundo novo da etapa 7, antes da última revisão visual, que redesenhou algumas telas mas não mudou regras nem quantidades):
 
 | Momento | Heróis de pé | Níveis |
 |---|---|---|
-| 5 min (começa o PvP) | 39 | 2 a 11 |
-| 10 min | 25–29 | 5 a 17 |
-| 15 min | 20–23 | 7 a 21 |
-| 20 min | 17–20 | 15 a 24 |
-| 30 min (arena) | 15–18 | 20 a 30 |
+| 5 min (começa o PvP) | 37–39 | 2 a 12 |
+| 10 min | 19–28 | 6 a 19 |
+| 15 min | 14–23 | 10 a 24 |
+| 20 min | 12–20 | 13 a 26 |
+| 30 min (arena) | 9–18 | 20 a 30 |
 
-Comparado com a etapa 5 (38–39, 24–27, 18–19, 15–16 e 11–14 heróis de pé nos mesmos momentos), um pouco mais de heróis chegam à arena: quase ninguém cai para monstros na calmaria (1 por partida) e os níveis seguem o mesmo ritmo.
+**Comparação com o mapa antigo.** Com as mesmas regras, o mapa da etapa 6 medido do mesmo jeito (7 partidas) deu 37–40, 23–29, 17–25, 16–22 e 14–18 heróis de pé nos mesmos momentos.
+
+- **Monstros:** derrubam quase o mesmo número de heróis nos dois mapas, de 1 a 14 por partida, quase todos depois da calmaria.
+- **Níveis:** sobem no mesmo ritmo.
+- **PvP:** no mapa novo ele derruba um pouco mais, 16 a 24 heróis por partida contra 13 a 20 no antigo. Por isso chegam cerca de 2 heróis a menos à arena: 13 a 14 em média, contra 16.
+
+Na etapa 6 (mapa antigo, 3 partidas) a medida tinha dado 39, 25–29, 20–23, 17–20 e 15–18.
+
+**Bots presos.** O mundo novo revelou dois casos em que um bot ficava preso:
+
+- **Loja inalcançável:** o bot escolhia uma loja que não conseguia alcançar sem passar por telas difíceis demais e ficava parado decidindo ir de novo, a cada tick.
+- **Vai e volta:** ao fugir de um monstro forte, o bot dava meia-volta para lutar com um monstro fácil ao lado do perigo assim que saía do alcance, e ficava indo e voltando por minutos. Numa das partidas, 23 bots ficaram assim, quase todos no lago ao lado da praça.
+
+Agora o bot só escolhe lojas que consegue alcançar e, quando foge, vai até a outra tela antes de decidir de novo. Nas 6 partidas, o maior tempo parado de um bot foi de 4 s, e só 2 bots passaram 30 s numa área de 40×40 px, os dois numa luta. Antes da correção, eram até 23 bots por partida. O teste dos bots também confere que nenhum fica parado 10 s.
 
 Antes dos ajustes da etapa 5B, os melhores chegavam ao nível 30 em 7 minutos, cerca de 1 em cada 5 heróis caía para monstros na calmaria e o começo do PvP derrubava 2/3 dos heróis em 5 minutos.
 
@@ -187,13 +200,13 @@ Os monstros comuns do centro são mais fracos, para o começo ser mais tranquilo
 
 | Inimigo | Onde | Vida | Dano | Comportamento | XP |
 |---|---|---|---|---|---|
-| Slime | prados, lagos, pântano | 18 | 6 | vagueia | 4 |
-| Goblin | colinas, montanhas | 34 | 10 | persegue | 10 |
-| Morcego | florestas, masmorras | 12 | 5 | voo errático e rápido | 5 |
+| Slime | prados, lagos, pântano, florestas, praia | 18 | 6 | vagueia | 4 |
+| Goblin | colinas, montanhas, prados | 34 | 10 | persegue | 10 |
+| Morcego | florestas, montanhas, cemitério, masmorras | 12 | 5 | voo errático e rápido | 5 |
 | Esqueleto | cemitério, montanhas | 40 | 9 | persegue e atira ossos | 14 |
-| Escorpião | deserto | 30 | 12 | persegue e dá investidas | 12 |
+| Escorpião | colinas, praia | 30 | 12 | persegue e dá investidas | 12 |
 | Lobo | florestas, prados | 28 | 9 | persegue rápido | 12 |
-| Espreitador | pântano, lagos | 26 | 10 | anda aos saltos | 11 |
+| Espreitador | pântano, lagos, floresta vermelha, praia | 26 | 10 | anda aos saltos | 11 |
 
 **Minichefes:** Bruto (investidas e pedras) e Feiticeiro (anéis de magia, rajadas e teleporte).
 
@@ -218,19 +231,86 @@ Cada inimigo fica na tela onde nasceu e só age quando há um herói por perto. 
 
 ## O mapa
 
-`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 4 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas, as 8 cavernas e a arena), ligados por portais. São 320×132 tiles, ~530 inimigos, ~40 baús, ~590 tufos de mato alto e ~130 potes.
+`content/maps/overworld.tmj`: um mundo **original** de 16×8 telas de 20×11 tiles, mais 4 fileiras de interiores embaixo (as 4 masmorras de 3×3 salas, as 8 cavernas e a arena), ligados por portais. São 320×132 tiles, ~530 inimigos, 42 baús (32 em telas sorteadas do mundo aberto, número fixo; 10 nas cavernas e salas de tesouro), ~590 tufos de mato alto e ~140 potes. Toda a arte vem do pacote *#NotZelda Overhead Adventure Tiles* (veja [`content/CREDITS.md`](../content/CREDITS.md)), mas o desenho do mundo, das masmorras, das cavernas e da arena é nosso.
 
-A **arena** é uma sala de 2×2 telas (40×22 tiles) de areia com muralhas, pilares para se proteger e 16 pontos de entrada num anel. Não há portal até ela: só o servidor leva os heróis para lá.
+A **arena** é uma sala de 2×2 telas (40×22 tiles) com muralhas de 2 tiles (o mesmo kit das masmorras, sem portas), chão de areia batida (com marcas e um círculo de runas em cada ponto de entrada) e uma placa de pedra com medalhão no centro, contornada por uma faixa pintada, 4 blocos grandes e 8 estátuas para se proteger e 16 pontos de entrada num anel. Não há portal até ela: só o servidor leva os heróis para lá.
 
-Regiões, de cima para baixo: montanhas e colinas ao norte, uma floresta larga, o cemitério e o pântano a oeste, lagos e prados no centro (a praça de início no meio), o deserto a leste e uma praia no canto sudeste.
+**Masmorras:** cada uma tem sua própria planta de 3×3 salas, feita à mão (a entrada fica na fileira de baixo, às vezes num canto; a sala do chefe só se abre para a do minichefe). Cada sala tem paredes de 2 tiles em perspectiva (o kit de salas do pacote) e chão livre de 16×7 tiles (x 2–17, y 2–8). Entre salas há portas de 2 tiles (colunas 9–10 em cima/embaixo, linhas 4–6 dos lados): um arco aberto entre salas comuns, um arco (largo, nos lados) marcado por placas com chifres na parede no caminho do chefe e um arco marcado por placas de sol em volta do minichefe (todas passáveis; ainda não há chaves). A sala de entrada tem um tapete desde a saída, placas com o número da masmorra (dado de 1 a 4) e a saída é a porta da parede sul (um portal de 2 tiles). A sala do chefe tem tapete e estandartes; o minichefe fica sobre um círculo de runas e o baú da sala do tesouro sobre um tapete. As outras salas tiram um arranjo de estátuas (sem repetir dentro da mesma masmorra) (a cabeça é desenhada por cima dos heróis) e blocos (2×2 viram um bloco grande), alguns assimétricos (um L de blocos, uma fileira de estátuas, uma divisória com passagem), e às vezes um corredor de tapete entre portas opostas ou um piso de ladrilhos em tons da masmorra. O chão tem marcas de desgaste, mais junto das paredes. Cada masmorra tem sua cor: *crypt* ardósia, *lair* verde-água e lima, *tomb* ameixa, *hall* vermelho e creme.
 
-Nem toda tela vizinha se liga: as ligações formam um labirinto (uma árvore a partir da praça, mais atalhos). Quando ligadas, as telas se abrem nas linhas 4–6 (esquerda/direita) e nas colunas 8–11 (cima/baixo).
+**Cavernas:** paredes de pedras cinza-escuras (a faixa de rochas do pacote, variante escura) sobre chão de terra, com manchas de terra escura, pedrinhas e cascalho junto das paredes; nas lojas (três arranjos diferentes), o vendedor fica atrás do balcão, junto da parede do fundo, com prateleiras, caixotes e um armário ao lado (móveis da casa do pacote); nas cavernas de tesouro, os baús ficam entre dois rochedos. A saída é uma escada de pedra na parede de baixo.
+
+Regiões: uma faixa de montanhas rochosas atravessa quase todo o norte (cavernas na rocha, rochedos, restos de muros de tijolo, bosques de pinheiros, duas cachoeiras e o templo da masmorra *hall* no nordeste), mas para antes da borda oeste, onde há uma floresta; a oeste ficam o pântano (cripta da caveira, *lair*), a floresta vermelha e, no sudoeste, o cemitério (cripta da *crypt*); no centro, prados, um rio que desce da cachoeira e passa por dois lagos, com pontes onde os caminhos o cruzam, e a praça de pedra do início (duas estátuas, um poço entre flores e uma placa); a leste, florestas densas com pinheiros (o santuário da *tomb*), outro rio que termina num lago, e o litoral, com praia, píeres e ilhotas; ao sul, colinas com pedras, casas (só de enfeite: as janelas dão para um terreno livre), estátuas e placas.
+
+```
+FFMMMMMMMMMMMMMB    M montanhas   G prado    H colinas   F floresta
+WWMMMMMGMMMFFFFB    R floresta vermelha   L lago   W pântano
+WWRRGGGLGHMFFFFB    Y cemitério   B litoral   C praça de início
+WWRRGGGGGGFFLFBB
+WRRRGGGLCGGFFFBB
+YYRRGGGGGGHFFFFB
+YYWRGHGGHHHHFFBB
+YYWRHHHGGHHHHBBB
+```
+
+Nem toda tela vizinha se liga: as ligações formam um labirinto (uma árvore a partir da praça, mais atalhos). Quando ligadas, as telas se abrem nas linhas 4–6 (esquerda/direita) e nas colunas 8–11 (cima/baixo); entre salas de masmorra, nas colunas 9–10 (as portas da arte).
+
+### Como o mundo é gerado
+
+O mapa e o tileset saem do gerador em `tools/world-gen`. Ele é determinístico: com a mesma `SEED`, o resultado é sempre o mesmo, byte a byte. Ele roda em quatro passos:
+
+1. **Layout.** Cada tela vira uma grade de 20×11 letras (`.` chão, `T` árvore, `W` água, `#` parede de masmorra, `e` slime...; a lista completa está no começo de `src/generate.ts`).
+   - As telas de fora vêm de `src/overworld.ts`, as salas de masmorra de `src/build.ts`, e as cavernas e a arena de `src/world.ts`.
+   - Tudo usa o sorteio do layout. O mato alto e os potes vêm depois, com um sorteio separado.
+2. **Conferência.** O gerador confere:
+   - se as bordas entre telas batem;
+   - se tudo é alcançável a partir da praça, inclusive pelos portais;
+   - se nada nasce dentro de parede.
+3. **Visual (skin).** `src/skin/` lê o layout, sem poder mudá-lo, e escolhe para cada célula uma *chave* do catálogo em cada camada (`ground`, `ground2`, `walls`, `props`, `above`).
+   - `skin/overworld.ts` desenha margens de água, faixas de rocha, blocos de floresta, entradas e paletas por bioma, e a textura do chão de cada região: manchas de terra escura, cascalho e trilhas nas montanhas; clareiras de sol, sombra das árvores, folhas e flores na floresta; poças de lama de borda irregular, juncos na margem das poças, taboas e arbustos secos no pântano; terra batida nas trilhas e diante das covas, manchas escuras e folhas cinza no cemitério; dunas, conchas, pedras e rochas no mar na praia; caminhos de terra batida na areia, no pântano e no cemitério.
+   - `skin/interior.ts` e `skin/kit.ts` desenham as paredes de 2 tiles das salas, as portas, os tapetes, as rochas das cavernas e a arena.
+   - As variações só cosméticas (tufos, flores, qual árvore) usam um hash da célula, e as manchas (terra escura, clareiras, dunas, a lama do pântano) usam um ruído suave feito do mesmo hash (`blob` e `patch`, sem o aspecto de grade, em `skin/common.ts`), nunca o sorteio do layout: mudar o visual não muda o mundo. Nas telas sem caminhos de areia (montanhas e florestas), o caminho que o layout deixa livre aparece como uma trilha gasta.
+4. **Atlas.**
+   - `src/tiles.ts` é o catálogo: chave → tiles do pacote empilhados, com espelhamento, giro, recorte e animação.
+   - `src/atlas.ts` "assa" só as chaves usadas num único `content/tilesets/world.png` (32 colunas, extrudado com margem 1 e espaçamento 2, no máximo 2048 px) e grava as propriedades de cada tile: `collides`, `prop`, `broken`, `brokenTile` e a animação do Tiled.
+   - O gerador recusa um visual cuja colisão difira do layout em qualquer célula. Assim, o servidor e o cliente, que leem a colisão do mesmo `.tmj`, continuam iguais ao layout.
+
+No jogo, as camadas são desenhadas nesta ordem: `ground`, `ground2`, `walls`, `props`, os heróis e inimigos, e por fim `above` (as cabeças das estátuas, por exemplo, ficam por cima dos heróis). As folhas originais do pacote ficam em `content/src/notzelda/` e não vão para o jogo: o build só leva o `world.png`.
+
+**Ver o mundo sem abrir o jogo:**
+
+```bash
+pnpm --filter @tools/world-gen render -- --out /tmp/mundo --grid             # overworld.png, interior.png, area-*.png
+pnpm --filter @tools/world-gen render -- --out /tmp/mundo --screen 8,4 --scale 3   # uma tela ampliada
+```
+
+- `overworld.png` mostra as 16×8 telas de fora (com `--grid`, uma linha entre as telas).
+- `interior.png` mostra a faixa de masmorras, cavernas e arena.
+- `area-<id>.png` mostra cada masmorra, caverna e a arena.
+- `--no-above` esconde a camada `above`.
+- Sem `--out`, os PNGs vão para a pasta temporária do sistema (`40-swords-render`).
+- `DEBUG_SCREENS="8,4 7,2" pnpm --filter @tools/world-gen generate` imprime as letras dessas telas.
 
 ### Editar o mapa
 
 Há dois caminhos:
 
-- **Gerador (recomendado):** o mundo sai de `tools/world-gen`. Em `src/world.ts` ficam o mapa de biomas (uma letra por tela), a posição das masmorras e cavernas, a praça, as cavernas e a arena (`ARENA`) desenhadas à mão, e a `SEED`. Em `src/build.ts` ficam as regras de cada bioma e das salas de masmorra. O mato alto (1 a 3 moitas de 2 a 4 tufos em cada tela de grama, menos a praça) e os potes (2 a 4 por caverna e sala de masmorra, primeiro nos cantos) são colocados depois, com um sorteio separado: mexer neles não muda o resto do mundo. Nada disso fica nas bordas das telas, na frente das passagens, perto de portais, baús e ofertas. Rode `pnpm --filter @tools/world-gen generate`: o gerador confere as bordas entre telas e se tudo é alcançável a partir da praça (inclusive passando pelos portais), e regrava `content/maps/overworld.tmj` e `content/tilesets/overworld.png`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
+- **Gerador (recomendado):** veja "Como o mundo é gerado" acima.
+  - **`src/world.ts`:**
+    - o mapa de biomas (uma letra por tela) e os rios (`RIVERS`);
+    - a posição das masmorras e cavernas, com o tipo de entrada;
+    - a praça, as cavernas e a arena (`ARENA`), desenhadas à mão;
+    - a `SEED`. Trocar a `SEED` gera outro mundo com o mesmo layout de biomas.
+  - **`src/overworld.ts`:** as regras das telas de fora:
+    - a borda com as passagens;
+    - a entrada: caverna na rocha ou numa árvore oca, cripta, santuário ou templo;
+    - a água: rios de 2 tiles, lagos e o mar;
+    - os caminhos que ligam as passagens, com pontes;
+    - a decoração de cada bioma.
+
+    As paredes são retângulos de pelo menos 2×2 (rocha, floresta densa, pinheiros), porque a arte do pacote não tem cantos côncavos. Retângulos que se sobrepõem são desenhados do norte para o sul, cada um na frente do anterior.
+  - **`src/build.ts`:** as salas de masmorra: paredes de 2 tiles, portas, e os arranjos de estátuas `I` e blocos `J` em `ROOM_PATTERNS`, desenhados sobre o chão de 16×7.
+  - **Mato alto e potes:** são colocados depois, com um sorteio separado. Há de 1 a 3 moitas de 2 a 4 tufos em cada tela de grama, menos a praça, e de 2 a 4 potes por caverna e sala de masmorra, primeiro nos cantos (nas masmorras, longe de estátuas e blocos e fora dos tapetes entre as portas). Nada disso fica nas bordas das telas, na frente das passagens, nem perto de portais, baús e ofertas.
+  - **Para gerar:** rode `pnpm --filter @tools/world-gen generate`. Ele regrava `content/maps/overworld.tmj` e `content/tilesets/world.png`, e apaga de `content/tilesets/` os PNGs que o mapa não usa mais.
 - **Tiled:** abra `content/maps/game.tiled-project` e edite o `.tmj` direto. Classes de objeto do jogo:
   - `spawn`: onde os jogadores nascem;
   - `enemy`: ponto com as propriedades `kind` (tipo do inimigo), `tier` (nível de dificuldade) e `dungeon` (dentro de masmorra);
@@ -247,7 +327,15 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 
 ## Trocar a arte
 
-- **Tileset:** substitua `content/tilesets/overworld.png` mantendo a ordem dos 33 tiles (8 colunas, 16×16, margem 1, espaçamento 2), ou crie outro tileset e remapeie no Tiled. Os 4 últimos são o mato alto e o pote, inteiros e quebrados, com fundo transparente (ficam por cima do chão).
+- **Tileset (mundo):** a arte do mundo vem do pacote *Super Overhead Adventure 3* (#NotZelda Overhead Adventure Tiles, de Raphael Azcueta, CC BY-SA 4.0; créditos e mudanças em [`content/CREDITS.md`](../content/CREDITS.md)). As folhas ficam em `content/src/notzelda/`. Não edite o `content/tilesets/world.png` à mão: o gerador o refaz a cada execução.
+  - **Trocar ou acrescentar tiles:** mude o catálogo em `tools/world-gen/src/tiles.ts`. Tiles simples entram no catálogo na hora em que são usados (`plain(id)`). Células com várias peças empilhadas viram um tile só (`stacked([...])`).
+  - **Regras de cada célula:** ficam em `tools/world-gen/src/skin/`:
+    - `overworld.ts`, com `PALETTES`, as paletas de cada bioma (variantes de cor do pacote: árvores vermelhas, rochas cinzas, areia, chão cinza-azulado do cemitério...);
+    - `interior.ts` e `common.ts`;
+    - `kit.ts`, que monta o anel de paredes das salas a partir de uma única faixa de parede de cima do pacote (espelhada e transposta para os outros lados, com cantos, pilaretes e a peça da porta).
+  - **Cores das masmorras e tapetes:** `DUNGEON_THEMES` e `CARPETS`, em `tiles.ts`.
+  - **Arte de outro pacote:** coloque as folhas em `content/src/<pacote>/`, registre-as em `SHEETS` (`atlas.ts`) e atualize `content/CREDITS.md` com a licença.
+  - **Depois:** rode o gerador e o `render` para conferir.
 - **Heróis e inimigos:** exporte do Aseprite para `content/sprites/<nome>.png + .json` com as tags `idle` e `walk`, usando os nomes `knight`, `rogue`, `barbarian` e os dos inimigos (`slime`, `goblin`, `bat`, `skeleton`, `scorpion`, `wolf`, `lurker`, `brute`, `hexer`, `warden`, `witch`, `matriarch`, `colossus`). O jogo passa a usar o sprite no lugar da forma provisória automaticamente (`game/client/src/render/placeholderArt.ts`).
 - **Baús, vendedor, pedestais, projéteis (dos heróis e dos inimigos), o brilho dos elites e as folhas e cacos que voam do mato e dos potes:** desenhados em `game/client/src/render/placeholderArt.ts`.
 - **Ícones de relíquias e itens:** emojis em `game/client/src/ui/relicText.ts`.
@@ -272,7 +360,9 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 | Carreira salva no navegador, painel de resumo, cores na escolha de herói | `game/client/src/career.ts`, `game/client/src/ui/summary.ts`, `game/client/src/ui/heroSelect.ts` |
 | Bots: decisões, combate e nomes | `game/server/src/bots/BotBrain.ts`, `game/server/src/bots/names.ts` |
 | Bots: caminhos (partes das telas, bordas, portais, mapas de distância) | `game/server/src/bots/navigation.ts` |
-| Gerador do mundo (biomas, masmorras, cavernas) | `tools/world-gen/src/` |
+| Gerador do mundo: biomas, posições e salas à mão; telas de fora; salas de masmorra | `tools/world-gen/src/world.ts`, `overworld.ts`, `build.ts` |
+| Visual do mundo: o que vai em cada célula (skin), catálogo de tiles, atlas, render em PNG | `tools/world-gen/src/skin/`, `tiles.ts`, `atlas.ts`, `render.ts` |
+| Créditos e licença da arte do mundo | `content/CREDITS.md` |
 | Efeitos sonoros provisórios | `tools/sfx/src/generate.ts` |
 | Minimapa, barra de chefe | `game/client/src/ui/minimap.ts`, `game/client/src/ui/bossBar.ts` |
 | Cena, câmera por telas (e a que acompanha o herói na arena), tempestade, espectador, predição, projéteis, mato e potes quebrando | `game/client/src/scenes/GameScene.ts` |
@@ -290,3 +380,4 @@ Depois de qualquer mudança: `pnpm content:validate` e `pnpm test` (há testes q
 4. ✅ **Partida:** sala de espera com Pronto, uma vida só, PvP liberado após 5 minutos, saque de relíquia e rupees no PvP, último de pé vence, arena battle royale aos 30 minutos com tempestade, espectadores.
 5. ✅ **Bots, equilíbrio e progressão:** bots com IA que completam a partida até 40 heróis; combate e equilíbrio (corações, regeneração fora de combate, golpe sem travar, sons, PvP com metade do dano, curva de XP; medidos com os bots); progressão entre partidas (resumo, placar da sala, carreira no navegador e cores desbloqueáveis).
 6. ✅ **Ajustes:** mato alto e potes com rupees e corações; monstros do centro mais fracos; bots que não ficam parados (se recuperam cortando mato ou passeando); contagem do PvP em destaque no começo da partida; um mapa só até o lançamento (sem passo de escolha de mapa).
+7. ✅ **Mundo em pixel art:** o mundo inteiro desenhado com os tiles do pacote *#NotZelda Overhead Adventure Tiles* (CC BY-SA 4.0). O overworld foi refeito com regiões novas (montanhas e cachoeiras, cemitério, floresta vermelha, pântano, lagos e rios com pontes, florestas de pinheiros, litoral com píeres e ilhotas). Masmorras com paredes em perspectiva, portas, estátuas, tapetes e estandartes; cavernas de rocha; arena de areia com faixa pintada e círculos de runas nos pontos de entrada. O gerador monta o tileset com colisão, animações e a camada `above`, e há uma ferramenta para ver o mundo em PNG.

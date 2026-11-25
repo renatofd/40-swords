@@ -34,7 +34,6 @@ import {
   PROPS_LAYER,
   type ProjectileEndMessage,
   type Prop,
-  type PropKind,
   parseProps,
   parseWorldInfo,
   parseWorldObjects,
@@ -112,6 +111,9 @@ export const ACTION_READY = "ready";
 const AXIS_THRESHOLD = 0.38;
 /** Camera slide between neighbouring screens, in ms. */
 const SCREEN_PAN_MS = 320;
+/** Tile layer drawn over the heroes (tools/world-gen/src/skin/common.ts), and its depth. */
+const ABOVE_LAYER = "above";
+const DEPTH_ABOVE = 20;
 /** A position jump larger than this between two snapshots is a teleport (cave, respawn): cut, don't slide. */
 const TELEPORT_PX = 48;
 /** Within this distance of an offer, its card shows the details. */
@@ -167,9 +169,9 @@ export class GameScene extends Phaser.Scene {
   private enemies = new Map<string, EnemyView>();
   private pickups = new Map<string, Phaser.GameObjects.Image>();
   private chests = new Map<string, Phaser.GameObjects.Image>();
-  /** Tall grass and pots: their tile layer, tiles, and each one by id (tile index). */
+  /** Tall grass and pots: their tile layer, the broken look of each whole look, and each one by id (tile index). */
   private propsLayer?: Phaser.Tilemaps.TilemapLayer;
-  private propTiles: Partial<Record<PropKind, { whole: number; broken: number }>> = {};
+  private propBroken: Record<number, number> = {};
   private props = new Map<number, Prop>();
   /** Until then, props reported broken are drawn so without bits flying (the state as we joined). */
   private quietPropsUntil = 0;
@@ -368,7 +370,10 @@ export class GameScene extends Phaser.Scene {
       .filter((t): t is Phaser.Tilemaps.Tileset => t !== null);
     for (const layer of map.layers) {
       const created = map.createLayer(layer.name, tilesets);
-      if (layer.name === PROPS_LAYER && created instanceof Phaser.Tilemaps.TilemapLayer) this.propsLayer = created;
+      if (!(created instanceof Phaser.Tilemaps.TilemapLayer)) continue;
+      if (layer.name === PROPS_LAYER) this.propsLayer = created;
+      // Tree tops, arch tops, statue heads: over heroes (10-11), enemies, shots (12) and prop bits.
+      if (layer.name === ABOVE_LAYER) created.setDepth(DEPTH_ABOVE);
     }
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -376,7 +381,7 @@ export class GameScene extends Phaser.Scene {
     this.gameMap = parseTiledMap(raw, { tileSize: TILE_SIZE });
     const objects = parseWorldObjects(raw);
     const props = parseProps(raw);
-    this.propTiles = props.tiles;
+    this.propBroken = props.broken;
     this.props = new Map(props.props.map((p) => [p.id, p]));
     this.world = { grid: this.gameMap.collision, portals: objects.portals };
     this.vendors = objects.vendors;
@@ -467,11 +472,12 @@ export class GameScene extends Phaser.Scene {
   /** Shows a prop broken (bits fly off it if the hero can see it) or whole again. */
   private setPropBroken(id: number, broken: boolean) {
     const prop = this.props.get(id);
-    const tiles = prop && this.propTiles[prop.kind];
-    if (!prop || !tiles || !this.propsLayer) return;
+    const brokenGid = prop && this.propBroken[prop.gid];
+    if (!prop || !brokenGid || !this.propsLayer) return;
     const tx = Math.floor(prop.x / TILE_SIZE);
     const ty = Math.floor(prop.y / TILE_SIZE);
-    this.propsLayer.putTileAt(broken ? tiles.broken : tiles.whole, tx, ty);
+    // Back with the same look it had.
+    this.propsLayer.putTileAt(broken ? brokenGid : prop.gid, tx, ty);
     if (!broken || this.time.now < this.quietPropsUntil || !this.cameras.main.worldView.contains(prop.x, prop.y))
       return;
     const pot = prop.kind === "pot";

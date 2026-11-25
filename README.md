@@ -1,6 +1,8 @@
 # 40 Swords
 
 > **40 Swords** é um RPG de ação top-down multiplayer (estilo aventura clássica, com roguelite e PvP). Regras, controles, classes, mapa e roteiro do jogo: [`docs/JOGO.md`](docs/JOGO.md). O restante deste README descreve o template em que o jogo se baseia.
+>
+> **Arte do mundo:** [#NotZelda Overhead Adventure Tiles](content/src/notzelda/ReadMe.txt), de Raphael Azcueta, sob a licença [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). O tileset do jogo (`content/tilesets/world.png`) é uma obra derivada sob a mesma licença. Créditos e mudanças: [`content/CREDITS.md`](content/CREDITS.md).
 
 Base para jogos online web: começa como um jogo estilo `.io` e foi organizada para poder crescer até um multiplayer massivo.
 

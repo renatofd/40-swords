@@ -90,9 +90,11 @@ describe("overworld objects", () => {
   });
 
   it("has tall grass on grassy screens outside and pots in caves and dungeons, on open floor clear of the rest", () => {
-    const { props, tiles } = loadProps("overworld");
-    expect(tiles.bush?.whole).toBeGreaterThan(0);
-    expect(tiles.pot?.broken).toBeGreaterThan(0);
+    const { props, broken } = loadProps("overworld");
+    // Every look has its broken look, and there are several looks of each kind.
+    for (const p of props) expect(broken[p.gid]).toBeGreaterThan(0);
+    for (const kind of ["bush", "pot"])
+      expect(new Set(props.filter((p) => p.kind === kind).map((p) => p.gid)).size).toBeGreaterThan(1);
     const bushes = props.filter((p) => p.kind === "bush");
     const pots = props.filter((p) => p.kind === "pot");
     expect(bushes.length).toBeGreaterThan(300);

@@ -3,9 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "GAME (40 Swords): generates the placeholder tileset and the overworld map from ASCII screens.",
+  "description": "GAME (40 Swords): generates the world map from ASCII screens and bakes its tileset from the pack art (content/src/notzelda).",
   "scripts": {
     "generate": "tsx src/generate.ts",
+    "render": "tsx src/render.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -341,6 +341,8 @@ export class BotBrain {
       this.flee(view, me, x, y, comfort);
       return;
     }
+    // Just ran from something: keep going for a moment (until across), not back as soon as it is out of range.
+    if (this.mode === "travel" && this.via !== undefined && tick < this.fleeUntil && screen !== this.goal) return;
 
     // Hurt: a heart lying on this screen, else heal up away from fights, else a potion
     // (here or at the nearest vendor).
@@ -369,7 +371,7 @@ export class BotBrain {
     }
     if (hurt && me.rupees >= POTION_PRICE) {
       if (this.shop(view, me, screen, reachable, true)) return;
-      const vendor = this.nearestVendor(view, me, screen);
+      const vendor = this.nearestVendor(view, me, screen, comfort + 1);
       if (vendor !== undefined) {
         this.travel(view, vendor, 90, comfort + 1);
         return;
@@ -410,7 +412,7 @@ export class BotBrain {
 
     // Now and then, go spend the rupees.
     if (me.rupees >= 40 && tick - this.lastShop > 150 * SECOND) {
-      const vendor = this.nearestVendor(view, me, screen);
+      const vendor = this.nearestVendor(view, me, screen, comfort + 1);
       if (vendor !== undefined) {
         this.lastShop = tick;
         this.travel(view, vendor, 120, comfort + 1);
@@ -672,9 +674,13 @@ export class BotBrain {
     return true;
   }
 
-  /** The closest vendor screen (in screens to cross) other than this one. */
-  private nearestVendor(view: BotView, me: Player, screen: number): number | undefined {
-    const hops = view.nav.hops(view.nav.nodeAt(me.x, me.y));
+  /**
+   * The closest vendor screen (in screens to cross) other than this one, through screens no
+   * harder than `limit`: the same limit `travel` gets, or it could pick a vendor it has no way
+   * to and stand there deciding to go again every tick.
+   */
+  private nearestVendor(view: BotView, me: Player, screen: number, limit: number): number | undefined {
+    const hops = view.nav.hops(view.nav.nodeAt(me.x, me.y), limit);
     let best: number | undefined;
     let bestHops = Number.POSITIVE_INFINITY;
     for (const vendor of view.vendorScreens) {
