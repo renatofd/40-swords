@@ -112,7 +112,7 @@
   .sw-level,
   .sw-stats dt,
   .sw-details h3,
-  .sw-gain-name,
+  .sw-found-title,
   .sw-rarity,
   .sw-offer-details strong,
   .sw-offer-price,
@@ -164,7 +164,7 @@
   .sw-level,
   .sw-stats dt,
   .sw-details h3,
-  .sw-gain-name,
+  .sw-found-title,
   .sw-rarity,
   .sw-offer-details strong,
   .sw-offer-price,
@@ -290,8 +290,8 @@
   border-image-source: url("@content/ui/frame-button-primary-hot.png");
 }
 
-/* Rarity frames: gain cards and shop details (r4, rarity stroke). */
-.sw-gain,
+/* Rarity frames: the found box and shop details (r4, rarity stroke). */
+.sw-found,
 .sw-offer-details {
   --sw-b: 5;
   box-sizing: border-box;
@@ -301,16 +301,16 @@
   box-shadow: none;
   border-image: url("@content/ui/frame-rarity-0.png") 5 fill / calc(var(--sw-b) * var(--sw-u)) stretch;
 }
-:is(.sw-gain[data-rarity="1"], .sw-offer[data-rarity="1"] .sw-offer-details) {
+:is(.sw-found[data-rarity="1"], .sw-offer[data-rarity="1"] .sw-offer-details) {
   border-image-source: url("@content/ui/frame-rarity-1.png");
 }
-:is(.sw-gain[data-rarity="2"], .sw-offer[data-rarity="2"] .sw-offer-details) {
+:is(.sw-found[data-rarity="2"], .sw-offer[data-rarity="2"] .sw-offer-details) {
   border-image-source: url("@content/ui/frame-rarity-2.png");
 }
-:is(.sw-gain[data-rarity="3"], .sw-offer[data-rarity="3"] .sw-offer-details) {
+:is(.sw-found[data-rarity="3"], .sw-offer[data-rarity="3"] .sw-offer-details) {
   border-image-source: url("@content/ui/frame-rarity-3.png");
 }
-:is(.sw-gain[data-rarity="4"], .sw-offer[data-rarity="4"] .sw-offer-details) {
+:is(.sw-found[data-rarity="4"], .sw-offer[data-rarity="4"] .sw-offer-details) {
   border-image-source: url("@content/ui/frame-rarity-4.png");
 }
 
@@ -877,23 +877,31 @@
   background: var(--sw-navy);
 }
 
-/* Gain card: source (muted), name and rarity in the rarity colour, effect. */
-.sw-gain {
+/* Found box: the sentence with the item's name in its rarity colour, then rarity, description, effect. */
+.sw-found {
   animation: sw-pop 0.25s steps(4);
   transition: opacity 0.4s steps(4);
+  /* Opaque like a Zelda text box: the rarity frame's see-through fill gets black under it (corners stay clear). */
+  background: #000 padding-box;
 }
 
-.sw-gain-out {
+.sw-found-out {
   opacity: 0;
 }
 
-.sw-gain > div {
+.sw-found-text {
+  display: grid;
+  gap: var(--sw-u);
   text-wrap: pretty;
 }
 
-.sw-gain-name {
-  display: block;
+.sw-found-name {
+  font-weight: normal;
   color: var(--sw-rarity, var(--ui-fg));
+}
+
+.sw-found-effect {
+  color: var(--sw-gold);
 }
 
 @keyframes sw-pop {
@@ -1130,7 +1138,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sw-low .sw-icon[data-icon="hp-1"],
-  .sw-gain,
+  .sw-found,
   .sw-dmg {
     animation: none;
   }

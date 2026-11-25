@@ -265,42 +265,69 @@
   margin: 0;
 }
 
-/* ─── "Found" cards (beside the play area, under the scoreboard) ───────── */
+/* ─── Top centre: the boss bar, then the "You found…" box ─────────────── */
 
-.sw-gains {
+/* One column, so the found box sits under the boss bar when both show. GameScene measures its
+   bottom into --sw-top-bottom, and the banner keeps clear of it. */
+.sw-top {
   position: absolute;
-  inset-block-start: calc(var(--sw-hud-top) + 144 * var(--sw-u));
-  inset-inline-end: max(8px, var(--ui-safe-inline-end));
-  display: grid;
-  justify-items: end;
+  z-index: 3;
+  inset-block-start: var(--sw-hud-top);
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: calc(2 * var(--sw-u));
   pointer-events: none;
 }
 
-.sw-gain {
+.sw-top > .sw-bossbar {
+  position: static;
+  margin: 0;
+}
+
+/* Between the status panel and the scoreboard (90 font px wide), whatever the screen. */
+.sw-found {
   display: flex;
   gap: calc(4 * var(--sw-u));
   align-items: center;
-  inline-size: calc(100 * var(--sw-fp));
-  padding: var(--sw-u) calc(2 * var(--sw-u));
+  inline-size: min(calc(200 * var(--sw-fp)), 100vw - 2 * (90 * var(--sw-fp) + 24px));
+  padding: calc(2 * var(--sw-u)) calc(4 * var(--sw-u));
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-.sw-gain > :last-child:not(.sw-icon) {
+.sw-found[hidden] {
+  display: none;
+}
+
+.sw-found-text {
   min-inline-size: 0;
+  flex: 1;
+}
+
+.sw-found-text p {
+  margin: 0;
+}
+
+/* The letters not typed yet keep their place (the box never changes size while typing). */
+.sw-found-rest {
+  visibility: hidden;
+}
+
+.sw-sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 @media (max-height: 420px) {
-  /* Phones: between the (shorter) scoreboard and the touch buttons there is room for the newest card only. */
-  .sw-gains {
-    inset-block-start: calc(var(--sw-hud-top) + 106 * var(--sw-u));
-  }
-  .sw-gain {
-    inline-size: calc(90 * var(--sw-fp));
-  }
-  .sw-gain:nth-child(n + 2),
-  .sw-gain-source {
-    display: none;
-  }
   /* Top 3 and the own row. */
   .ui-scoreboard .ui-score-row:nth-child(n + 4):not(.self) {
     display: none;
@@ -476,7 +503,8 @@
 /* Above the middle of the screen, where the camera keeps the hero (or the hero being watched). */
 .sw-banner {
   position: absolute;
-  inset-block-start: 17%;
+  /* Under the top column (boss bar, found box) when that reaches lower: --sw-top-bottom (GameScene). */
+  inset-block-start: max(17%, calc(var(--sw-top-bottom, 0px) + 4 * var(--sw-u)));
   inset-inline: 0;
   margin-inline: auto;
   inline-size: max-content;
