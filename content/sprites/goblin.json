@@ -113,7 +113,7 @@
     {
       "filename": "5",
       "frame": {
-        "x": 51,
+        "x": 34,
         "y": 0,
         "w": 16,
         "h": 16
@@ -135,6 +135,28 @@
     {
       "filename": "6",
       "frame": {
+        "x": 51,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 150
+    },
+    {
+      "filename": "7",
+      "frame": {
         "x": 0,
         "y": 17,
         "w": 16,
@@ -155,7 +177,7 @@
       "duration": 150
     },
     {
-      "filename": "7",
+      "filename": "8",
       "frame": {
         "x": 51,
         "y": 0,
@@ -177,7 +199,7 @@
       "duration": 150
     },
     {
-      "filename": "8",
+      "filename": "9",
       "frame": {
         "x": 17,
         "y": 17,
@@ -199,7 +221,7 @@
       "duration": 150
     },
     {
-      "filename": "9",
+      "filename": "10",
       "frame": {
         "x": 51,
         "y": 0,
@@ -221,31 +243,9 @@
       "duration": 200
     },
     {
-      "filename": "10",
-      "frame": {
-        "x": 34,
-        "y": 17,
-        "w": 16,
-        "h": 16
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 16,
-        "h": 16
-      },
-      "sourceSize": {
-        "w": 16,
-        "h": 16
-      },
-      "duration": 150
-    },
-    {
       "filename": "11",
       "frame": {
-        "x": 51,
+        "x": 17,
         "y": 17,
         "w": 16,
         "h": 16
@@ -289,8 +289,8 @@
     {
       "filename": "13",
       "frame": {
-        "x": 0,
-        "y": 34,
+        "x": 51,
+        "y": 17,
         "w": 16,
         "h": 16
       },
@@ -328,12 +328,12 @@
         "w": 16,
         "h": 16
       },
-      "duration": 200
+      "duration": 150
     },
     {
       "filename": "15",
       "frame": {
-        "x": 17,
+        "x": 0,
         "y": 34,
         "w": 16,
         "h": 16
@@ -356,7 +356,7 @@
       "filename": "16",
       "frame": {
         "x": 34,
-        "y": 34,
+        "y": 17,
         "w": 16,
         "h": 16
       },
@@ -372,12 +372,12 @@
         "w": 16,
         "h": 16
       },
-      "duration": 150
+      "duration": 200
     },
     {
       "filename": "17",
       "frame": {
-        "x": 51,
+        "x": 0,
         "y": 34,
         "w": 16,
         "h": 16
@@ -399,8 +399,8 @@
     {
       "filename": "18",
       "frame": {
-        "x": 0,
-        "y": 51,
+        "x": 17,
+        "y": 34,
         "w": 16,
         "h": 16
       },
@@ -421,6 +421,72 @@
     {
       "filename": "19",
       "frame": {
+        "x": 34,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 150
+    },
+    {
+      "filename": "20",
+      "frame": {
+        "x": 51,
+        "y": 34,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 150
+    },
+    {
+      "filename": "21",
+      "frame": {
+        "x": 0,
+        "y": 51,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 150
+    },
+    {
+      "filename": "22",
+      "frame": {
         "x": 17,
         "y": 34,
         "w": 16,
@@ -439,6 +505,28 @@
         "h": 16
       },
       "duration": 200
+    },
+    {
+      "filename": "23",
+      "frame": {
+        "x": 0,
+        "y": 51,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 150
     }
   ],
   "meta": {
@@ -465,45 +553,73 @@
         "direction": "forward"
       },
       {
-        "name": "walk-right",
+        "name": "strike-up",
         "from": 5,
-        "to": 8,
-        "direction": "forward"
+        "to": 5,
+        "direction": "forward",
+        "repeat": "1"
       },
       {
-        "name": "idle-right",
-        "from": 9,
+        "name": "walk-right",
+        "from": 6,
         "to": 9,
         "direction": "forward"
       },
       {
-        "name": "walk-down",
+        "name": "idle-right",
         "from": 10,
-        "to": 13,
+        "to": 10,
+        "direction": "forward"
+      },
+      {
+        "name": "strike-right",
+        "from": 11,
+        "to": 11,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
+        "name": "walk-down",
+        "from": 12,
+        "to": 15,
         "direction": "forward"
       },
       {
         "name": "idle-down",
-        "from": 14,
-        "to": 14,
+        "from": 16,
+        "to": 16,
         "direction": "forward"
       },
       {
+        "name": "strike-down",
+        "from": 17,
+        "to": 17,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
         "name": "walk-left",
-        "from": 15,
-        "to": 18,
+        "from": 18,
+        "to": 21,
         "direction": "forward"
       },
       {
         "name": "idle-left",
-        "from": 19,
-        "to": 19,
+        "from": 22,
+        "to": 22,
         "direction": "forward"
       },
       {
+        "name": "strike-left",
+        "from": 23,
+        "to": 23,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
         "name": "idle",
-        "from": 10,
-        "to": 13,
+        "from": 12,
+        "to": 15,
         "direction": "forward"
       }
     ]

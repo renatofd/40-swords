@@ -36,6 +36,8 @@ export const Player = schema({
   knockX: t.number().default(0),
   knockY: t.number().default(0),
   knockTicks: t.uint8().default(0),
+  /** Ticks left of a web slow (a simulation field, predicted like knockTicks). */
+  slow: t.uint8().default(0),
   dead: t.boolean().default(false),
   hp: t.float32().default(0),
   maxHp: t.uint16().default(0),
@@ -86,6 +88,8 @@ export const Enemy = schema({
   hurt: t.uint8().default(0),
   /** Stronger variant: more HP, damage and loot, and a chance to drop a chest. */
   elite: t.boolean().default(false),
+  /** What it is doing: attack slot, phase and stunned bit (see encodeAct); 0 = nothing. Drives its poses. */
+  act: t.uint8().default(0),
 });
 export type Enemy = SchemaType<typeof Enemy>;
 

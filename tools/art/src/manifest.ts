@@ -32,6 +32,11 @@ function humanoid(key: string, src: string, opts: { attack?: boolean; dirs?: (ke
     if (opts.attack === false) continue;
     tags.push({ name: `walk-${dir}`, frames: range(row + 4, row + 7), duration: 110 });
     tags.push({ name: `attack-${dir}`, frames: range(row + 8, row + 11), duration: ATTACK_DURATIONS, repeat: 1 });
+    // Enemy acts (stage 8B): the wind-up (startup, weapon raised; played fitted to windupTicks), the release at
+    // col 10 (overlay frame 2, as the pack template syncs it) and the charge pose (col 9 held).
+    tags.push({ name: `aim-${dir}`, frames: [row + 8, row + 9], duration: 60, repeat: 1 });
+    tags.push({ name: `strike-${dir}`, frames: [row + 10, row + 11], duration: [60, 80], repeat: 1 });
+    tags.push({ name: `charge-${dir}`, frames: [row + 9], duration: 100, repeat: 1 });
     tags.push({ name: `stun-${dir}`, frames: [row + 12], duration: 100, repeat: 1 });
     tags.push({ name: `burn-${dir}`, frames: [row + 13], duration: 100, repeat: 1 });
     tags.push({ name: `hurt-${dir}`, frames: [row + 14], duration: 100, repeat: 1 });
@@ -42,13 +47,17 @@ function humanoid(key: string, src: string, opts: { attack?: boolean; dirs?: (ke
   return { key, src, frame: [32, 32], tags, aliases, anchor: [16, 24] } satisfies SpriteDef;
 }
 
-/** 16x16 walkers (4x4: rows up, right, down, left; cols stand, step, stand, other step). */
+/**
+ * 16x16 walkers (4x4: rows up, right, down, left; cols stand, step, stand, other step).
+ * Col 3 has the arm or weapon forward on some sheets (Bones, Kultist): `strike-<dir>` holds it.
+ */
 function walker(key: string, src: string, left: boolean): SpriteDef {
   const dirs = { up: 0, right: 1, down: 2, ...(left ? { left: 3 } : {}) };
   const tags: TagDef[] = [];
   for (const [dir, row] of Object.entries(dirs)) {
     tags.push({ name: `walk-${dir}`, frames: range(row * 4, row * 4 + 3), duration: 150 });
     tags.push({ name: `idle-${dir}`, frames: [row * 4], duration: 200 });
+    tags.push({ name: `strike-${dir}`, frames: [row * 4 + 3], duration: 150, repeat: 1 });
   }
   return { key, src, frame: [16, 16], tags, aliases: [["idle", "walk-down"]], anchor: [8, 16] };
 }
@@ -62,6 +71,19 @@ const slash = (key: string, src: string, extra: Partial<SpriteDef> = {}): Sprite
   aliases: [["idle", "slash-right"]],
   anchor: [24, 24],
   ...extra,
+});
+
+/**
+ * Humanoid weapon overlay (64x48 frames despite some file names; FX pixel (24,24) = body frame (16,16)), drawn
+ * facing right. Frames 0-1 go with the wind-up (body cols 8-9), 2-3 with the release (cols 10-11).
+ */
+const overlay = (key: string, src: string): SpriteDef => ({
+  key,
+  src,
+  frame: [64, 48],
+  tags: [{ name: "cast-right", frames: range(0, 3), duration: ATTACK_DURATIONS, repeat: 1 }],
+  aliases: [["idle", "cast-right"]],
+  anchor: [24, 24],
 });
 
 /** A one-row effect. `once`: plays once (`play`), else loops (`loop`). */
@@ -117,27 +139,27 @@ export const SPRITES: readonly SpriteDef[] = [
   humanoid("merchant", `${H}/Character The Fool Sample/TheFool.png`, { attack: false, dirs: ["right", "down"] }),
 
   // ─── Enemies, phase 1 (characters.md §3.2: same kinds, new art) ──────────
-  {
-    key: "slime",
-    src: `${S}/Goo/Goo.png`,
-    frame: [32, 32],
-    tags: [{ name: "hop", frames: range(0, 5), duration: [200, 90, 90, 120, 120, 150] }],
-    aliases: [["idle", "hop"]],
-  },
-  {
-    key: "slime-blue",
-    src: `${S}/Goo/Blue Goo.png`,
-    frame: [32, 32],
-    tags: [{ name: "hop", frames: range(0, 5), duration: [200, 90, 90, 120, 120, 150] }],
-    aliases: [["idle", "hop"]],
-  },
-  {
-    key: "slime-gold",
-    src: `${S}/Goo/Gold Goo.png`,
-    frame: [32, 32],
-    tags: [{ name: "hop", frames: range(0, 5), duration: [200, 90, 90, 120, 120, 150] }],
-    aliases: [["idle", "hop"]],
-  },
+  // Goo: 0-2 grounded, 3-4 airborne, 5 landing. `hop` stays for the walk loop; the hop act plays crouch → jump → land.
+  ...(
+    [
+      ["slime", "Goo/Goo.png"],
+      ["slime-blue", "Goo/Blue Goo.png"],
+      ["slime-gold", "Goo/Gold Goo.png"],
+    ] as const
+  ).map(
+    ([key, file]): SpriteDef => ({
+      key,
+      src: `${S}/${file}`,
+      frame: [32, 32],
+      tags: [
+        { name: "hop", frames: range(0, 5), duration: [200, 90, 90, 120, 120, 150] },
+        { name: "idle", frames: [0, 1], duration: 250 },
+        { name: "crouch", frames: [0], duration: 100, repeat: 1 },
+        { name: "jump", frames: [1, 2, 3, 4], duration: [60, 60, 80, 80], repeat: 1 },
+        { name: "land", frames: [5], duration: 100, repeat: 1 },
+      ],
+    }),
+  ),
   // Beast's left row differs a little from the mirrored right one: keep it.
   walker("goblin", `${S}/Beasts/Beast.png`, true),
   walker("skeleton", `${S}/Bones/Bones.png`, false),
@@ -159,11 +181,12 @@ export const SPRITES: readonly SpriteDef[] = [
       aliases: [["idle", "fly"]],
     }),
   ),
-  // Snakes: three sheets (side faces right; up; down).
+  // Snakes: three sheets (side faces right; up; down). Frame 0: head high, tongue out (the `ready` pose);
+  // HoodFang frame 2: head lunged low (its spit).
   ...(
     [
       ["scorpion", "Fang/fang"],
-      ["scorpion-hood", "HoodFang/hoodfang"],
+      ["cobra", "HoodFang/hoodfang"],
     ] as const
   ).map(
     ([key, base]): SpriteDef => ({
@@ -174,11 +197,17 @@ export const SPRITES: readonly SpriteDef[] = [
         up: `${S}/Snakes/${base} up.png`,
       },
       frame: [16, 16],
-      tags: [
-        { name: "walk-up", src: "up", frames: range(0, 3), duration: 130 },
-        { name: "walk-right", src: "side", frames: range(0, 3), duration: 130 },
-        { name: "walk-down", src: "down", frames: range(0, 3), duration: 130 },
-      ],
+      tags: (
+        [
+          ["up", "up"],
+          ["right", "side"],
+          ["down", "down"],
+        ] as const
+      ).flatMap(([dir, src]): TagDef[] => [
+        { name: `walk-${dir}`, src, frames: range(0, 3), duration: 130 },
+        { name: `ready-${dir}`, src, frames: [0], duration: 100, repeat: 1 },
+        ...(key === "cobra" ? [{ name: `spit-${dir}`, src, frames: [2], duration: 150, repeat: 1 }] : []),
+      ]),
       aliases: [["idle", "walk-down"]],
       anchor: [8, 16],
     }),
@@ -206,10 +235,75 @@ export const SPRITES: readonly SpriteDef[] = [
         { name: "sit", frames: range(0, 3), duration: 200 },
         { name: "jump", frames: [4, 5, 6], duration: [90, 110, 110], repeat: 1 },
         { name: "fall", frames: [7, 8], duration: 150, repeat: 1 },
+        { name: "crouch", frames: [4], duration: 100, repeat: 1 },
+        { name: "air", frames: [5, 6], duration: 110, repeat: 1 },
       ],
       aliases: [["idle", "sit"]],
     }),
   ),
+
+  // ─── Enemies, stage 8B (new kinds; skins: wisp-cyan, wisp-magenta, archer-skeleton) ─
+  {
+    // Smushroom: a cap bobbing on little feet (it only waddles; the puff is the walk sped up).
+    key: "shroom",
+    src: `${S}/Smushroom/smushroom.png`,
+    frame: [16, 16],
+    tags: [{ name: "walk", frames: range(0, 5), duration: 110 }],
+    aliases: [["idle", "walk"]],
+    anchor: [8, 16],
+  },
+  {
+    // Spider (32x16, 6 cols): idle 0-5, walk 6-9, jump 12-15 (12 ≈ idle, 13-14 crouched, 15 airborne).
+    key: "spider",
+    src: `${S}/Spider/Spider.png`,
+    frame: [32, 16],
+    tags: [
+      { name: "idle", frames: range(0, 5), duration: 150 },
+      { name: "walk", frames: range(6, 9), duration: 100 },
+      { name: "crouch", frames: [13, 14], duration: 100, repeat: 1 },
+      { name: "air", frames: [15], duration: 100, repeat: 1 },
+      { name: "land", frames: [13], duration: 100, repeat: 1 },
+      // Raised on its legs, the jump's first frame: the web spit pose.
+      { name: "rear", frames: [12], duration: 100, repeat: 1 },
+    ],
+    anchor: [16, 16],
+  },
+  // FloatSkull (3x3): rows yellow, cyan, magenta aura; cols 0-1 flicker, col 2 white flash.
+  ...(
+    [
+      ["wisp", 0],
+      ["wisp-cyan", 3],
+      ["wisp-magenta", 6],
+    ] as const
+  ).map(
+    ([key, at]): SpriteDef => ({
+      key,
+      src: `${S}/FloatSkull/floatskull.png`,
+      frame: [16, 16],
+      tags: [
+        { name: "float", frames: [at, at + 1], duration: 90 },
+        { name: "hurt", frames: [at + 2], duration: 100, repeat: 1 },
+      ],
+      aliases: [["idle", "float"]],
+    }),
+  ),
+  {
+    key: "eye",
+    src: `${S}/FloatEye/FloatEye.png`,
+    frame: [16, 16],
+    tags: [{ name: "float", frames: range(0, 3), duration: 140 }],
+    aliases: [["idle", "float"]],
+  },
+  // Humanoid archers, raiders and the warlord (32x32 humanoid sheets) with 64x48 weapon overlays.
+  humanoid("archer", `${H}/Reptiles & Kobold/kobold.png`),
+  humanoid("archer-skeleton", `${H}/Skeleton/Skeleton.png`),
+  humanoid("raider", `${H}/Reptiles & Kobold/reptile.png`),
+  overlay("fx-bow", `${H}/Reptiles & Kobold/Shortbow 48x48.png`),
+  overlay("fx-sword-long", `${H}/Reptiles & Kobold/Long Slash Sword 64x48.png`),
+  // ArmorLancer: the lance is level in every frame, and its left row is redrawn.
+  walker("lancer", `${S}/ArmorLancer/ArmorLancer.png`, true),
+  walker("axeman", `${S}/Beasts/AxeBeast/AxeBeast.png`, false),
+  walker("kultist", `${S}/Kultist/Kultist.png`, false),
 
   // ─── Mini-bosses ─────────────────────────────────────────────────────────
   {
@@ -221,21 +315,31 @@ export const SPRITES: readonly SpriteDef[] = [
       { name: "stand", frames: range(0, 5), duration: 150 },
       { name: "walk", frames: range(8, 15), duration: 100 },
       { name: "throw", frames: range(16, 23), duration: 80, repeat: 1 },
+      { name: "throw-windup", frames: range(16, 19), duration: 80, repeat: 1 },
+      { name: "throw-release", frames: range(20, 23), duration: 80, repeat: 1 },
       { name: "roll-start", frames: range(24, 26), duration: 80, repeat: 1 },
       { name: "roll", frames: range(27, 31), duration: 70 },
+      { name: "roll-end", frames: [26, 25, 24], duration: 80, repeat: 1 },
     ],
     aliases: [["idle", "stand"]],
   },
   humanoid("hexer", `${H}/SkeletonMage/SkeletonMage.png`),
+  // Staff overlay for the hexer's casts.
+  overlay("fx-staff-green", `${H}/Attack FX/Bowshot and Spells/Green Staff 48x48.png`),
   {
-    // Staff overlay for the hexer's casts (64x48, synced with attack cols 8-11; FX pixel (24,24) = body frame (16,16)).
-    key: "fx-staff-green",
-    src: `${H}/Attack FX/Bowshot and Spells/Green Staff 48x48.png`,
-    frame: [64, 48],
-    tags: [{ name: "cast-right", frames: range(0, 3), duration: ATTACK_DURATIONS, repeat: 1 }],
-    aliases: [["idle", "cast-right"]],
-    anchor: [24, 24],
+    // Wyvern (4x2, faces down-right): flap 0-3; 4 = flap 1 with the wings raised (the inhale); 5-7 head down breathing.
+    key: "drake",
+    src: `${L}/Wyvern/Wyvern Green.png`,
+    frame: [32, 32],
+    tags: [
+      { name: "flap", frames: range(0, 3), duration: 100 },
+      { name: "inhale", frames: [4], duration: 100, repeat: 1 },
+      { name: "breath", frames: [5, 6, 7], duration: 90, repeat: 1 },
+    ],
+    aliases: [["idle", "flap"]],
   },
+  humanoid("warlord", `${H}/Reptiles & Kobold/scaleless.png`),
+  overlay("fx-hammer", `${H}/Reptiles & Kobold/Long Swing Hammer 64x48.png`),
 
   // ─── Bosses ──────────────────────────────────────────────────────────────
   {
@@ -248,6 +352,11 @@ export const SPRITES: readonly SpriteDef[] = [
       { name: "walk", frames: range(8, 11), duration: 100 },
       { name: "swing", frames: range(16, 23), duration: 70, repeat: 1 },
       { name: "throw", frames: range(24, 31), duration: 80, repeat: 1 },
+      { name: "rear", frames: range(16, 19), duration: 70, repeat: 1 },
+      { name: "swing-windup", frames: range(16, 20), duration: 70, repeat: 1 },
+      { name: "swing-release", frames: [21, 22, 23], duration: 70, repeat: 1 },
+      { name: "throw-windup", frames: range(24, 28), duration: 80, repeat: 1 },
+      { name: "throw-release", frames: [29, 30, 31], duration: 80, repeat: 1 },
     ],
     aliases: [["idle", "stand"]],
   },
@@ -261,6 +370,12 @@ export const SPRITES: readonly SpriteDef[] = [
       { name: "cast", frames: range(18, 35), duration: 60, repeat: 1 },
       { name: "split", frames: range(36, 48), duration: 70, repeat: 1 },
       { name: "stone", frames: [54], duration: 200, repeat: 1 },
+      { name: "cast-windup", frames: range(18, 31), duration: 60, repeat: 1 },
+      { name: "cast-windup-short", frames: range(25, 31), duration: 60, repeat: 1 },
+      { name: "cast-release", frames: range(32, 35), duration: 60, repeat: 1 },
+      { name: "split-windup", frames: range(36, 40), duration: 70, repeat: 1 },
+      { name: "split-release", frames: range(41, 48), duration: 70, repeat: 1 },
+      { name: "flash", frames: [41], duration: 100, repeat: 1 },
     ],
     aliases: [["idle", "stand"]],
   },
@@ -287,6 +402,8 @@ export const SPRITES: readonly SpriteDef[] = [
       { name: "stand", frames: range(0, 3), duration: 150 },
       { name: "walk", frames: range(8, 15), duration: 100 },
       { name: "breath", frames: range(16, 19), duration: 100, repeat: 1 },
+      { name: "breath-windup", frames: [16, 17, 18], duration: 100, repeat: 1 },
+      { name: "breath-release", frames: [19], duration: 300, repeat: 1 },
       { name: "crouch", frames: range(24, 27), duration: 80, repeat: 1 },
       { name: "flap", frames: range(32, 34), duration: 90 },
       { name: "stomp", frames: [40, 41], duration: 120, repeat: 1 },
@@ -318,7 +435,7 @@ export const SPRITES: readonly SpriteDef[] = [
     tags: [{ name: "idle", frames: [{ i: 59, t: "rot90" }], duration: 1000 }],
   },
 
-  // ─── Enemy shots (SHOT_STYLES: bone, rock, orb, sting) ───────────────────
+  // ─── Enemy shots (SHOT_STYLES: bone, rock, orb, sting, axe, web, arrow, bolt, curse, spore, spear) ─
   {
     // 1-bit femur in bone white with a dark outline, spinning in quarter turns.
     key: "hostile-bone",
@@ -356,12 +473,81 @@ export const SPRITES: readonly SpriteDef[] = [
     ],
   },
 
+  {
+    // The AxeBeast's thrown axe (16x15: no quarter turns on a non-square frame), tumbling through flips.
+    key: "hostile-axe",
+    src: `${S}/Beasts/AxeBeast/AxeBeastAxe.png`,
+    frame: [16, 15],
+    tags: [
+      {
+        name: "spin",
+        frames: [
+          { i: 0, t: "none" },
+          { i: 0, t: "flipV" },
+          { i: 0, t: "rot180" },
+          { i: 0, t: "flipH" },
+        ],
+        duration: 70,
+      },
+    ],
+    aliases: [["idle", "spin"]],
+  },
+  {
+    // A web glob; also drawn at a webbed hero's feet.
+    key: "hostile-web",
+    src: `${S}/Spider/SpiderWeb.png`,
+    frame: [16, 16],
+    tags: [{ name: "idle", frames: [0], duration: 1000 }],
+  },
+  {
+    // Green arrow (drawn pointing up), turned to point right (the hero's arrow is the red one, 22).
+    key: "hostile-arrow",
+    src: "Items/Tools.png",
+    frame: [16, 16],
+    tags: [{ name: "idle", frames: [{ i: 26, t: "rot90" }], duration: 1000 }],
+  },
+  {
+    // The bolt comet pointing right; only frames 0-1 (2-4 grow to a 32 px ball, too big for the shot).
+    key: "hostile-bolt",
+    src: `${VFX}/Bolt 40x40.png`,
+    frame: [40, 40],
+    tags: [{ name: "loop", frames: [0, 1], duration: 60 }],
+    aliases: [["idle", "loop"]],
+  },
+  {
+    // Black fire in purples (black is invisible on crypt floors).
+    ...fx("hostile-curse", `${VFX}/Looping Fire/Black Fire 16x16.png`, 16, 8, 60, false),
+    recolor: [
+      [0x000000, 0x5a1991],
+      [0x211640, 0xa675fe],
+      [0x5a1991, 0xe2c9ff],
+    ],
+  },
+  {
+    // A spore puff: the small smoke in the mushroom's pink with a dark outline (green vanished on light grass).
+    ...fx("hostile-spore", `${VFX}/Smoke/Smoke Small 16x16.png`, 16, 4, 80, false),
+    recolor: [[0x7b7b7b, 0xc080d0]],
+    outline: 0x211640,
+  },
+  {
+    // A spear drawn diagonally (tip up-right, like the dagger): rotation = angle + π/4.
+    key: "hostile-spear",
+    src: "Items/Weapons.png",
+    frame: [16, 16],
+    tags: [{ name: "idle", frames: [12], duration: 1000 }],
+  },
+
   // ─── Visual effects ──────────────────────────────────────────────────────
   fx("fx-smoke-16", `${VFX}/Smoke/Smoke 16x16.png`, 16, 16, 40),
   fx("fx-smoke-32", `${VFX}/Smoke/Smoke 32x32.png`, 32, 16, 45),
   fx("fx-smoke-small", `${VFX}/Smoke/Smoke Small 16x16.png`, 16, 8, 50),
   fx("fx-hit", `${VFX}/Hit Effect 16x16.png`, 16, 5, 40),
-  fx("fx-spark", `${VFX}/Spark 16x16.png`, 16, 5, 50),
+  // `twinkle` (frames 1-4, no big white cross): stuns and guarded blows, so they never look like
+  // the fx-shine tell ("attack coming"), whose first frame is that same cross.
+  (() => {
+    const def = fx("fx-spark", `${VFX}/Spark 16x16.png`, 16, 5, 50);
+    return { ...def, tags: [...def.tags, { name: "twinkle", frames: range(1, 4), duration: 100, repeat: 1 }] };
+  })(),
   fx("fx-shine", `${VFX}/Shine 16x16.png`, 16, 4, 80),
   fx("fx-grass", `${H}/Attack FX/Unsynced Attacks/Grass.png`, 16, 4, 60),
   fx("fx-explosion-small", `${VFX}/Explosions/Small Explosion 16x16.png`, 16, 12, 40),

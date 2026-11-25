@@ -109,19 +109,75 @@ interface BiomeSpec {
   filler: "T" | "R" | "B";
   /** Paths are drawn as sand (":"); otherwise they are kept clear but look like the ground. */
   paths: boolean;
-  enemies: string;
+  /**
+   * Enemy glyphs by distance from the start (repeated letters are weights): `near` up to ring 2,
+   * `mid` at rings 3-4, `far` from ring 5. Near pools hold only the easy kinds, mid adds the first
+   * telegraphed attacks (skeleton, scorpion, axeman), far everything (spec 8B §3.2).
+   */
+  enemies: EnemyPools;
 }
 
+export interface EnemyPools {
+  near: string;
+  mid: string;
+  far: string;
+}
+
+/** The enemy pool of a biome at a ring (screens from the start). */
+export const poolFor = (spec: { enemies: EnemyPools }, ring: number): string =>
+  ring <= 2 ? spec.enemies.near : ring <= 4 ? spec.enemies.mid : spec.enemies.far;
+
+/** One pool for every band (biomes that only lie far from the start). */
+const all = (pool: string): EnemyPools => ({ near: pool, mid: pool, far: pool });
+
+/**
+ * Biomes. Enemy pools (letters: see generate.ts; repeats are weights) follow the stage 8B
+ * ladder, tuned with bot balance runs (docs/JOGO.md): the mid band (rings 3-4) teaches the
+ * first tells with skeletons and scorpions only (axemen start at ring 5), and every far pool
+ * keeps easy fodder (slime, bat, goblin) between its ranged and tricky kinds, so heroes can
+ * still level out there.
+ */
 export const BIOME_SPECS: Record<Exclude<Biome, "C">, BiomeSpec> = {
-  M: { borders: ["rock"], depth: [2, 2], depthN: [2, 3], filler: "R", paths: false, enemies: "gbk" },
-  G: { borders: ["forest", "forest", "trees"], depth: [2, 2], filler: "T", paths: true, enemies: "eegw" },
-  H: { borders: ["rock", "rock", "trees"], depth: [2, 2], filler: "R", paths: true, enemies: "gzwe" },
-  F: { borders: ["forest", "forest", "pines"], depth: [2, 3], filler: "T", paths: false, enemies: "wbge" },
-  R: { borders: ["forest"], depth: [2, 3], filler: "T", paths: false, enemies: "wbfe" },
-  L: { borders: ["forest", "trees"], depth: [2, 2], filler: "T", paths: true, enemies: "eff" },
-  W: { borders: ["forest", "trees"], depth: [2, 2], filler: "T", paths: false, enemies: "ffeb" },
-  Y: { borders: ["trees", "forest"], depth: [2, 2], filler: "T", paths: true, enemies: "kkb" },
-  B: { borders: ["rock", "bushes"], depth: [2, 2], filler: "B", paths: true, enemies: "efz" },
+  M: {
+    borders: ["rock"],
+    depth: [2, 2],
+    depthN: [2, 3],
+    filler: "R",
+    paths: false,
+    enemies: { near: "gbe", mid: "gbkke", far: "bbgekhjjav" },
+  },
+  G: {
+    borders: ["forest", "forest", "trees"],
+    depth: [2, 2],
+    filler: "T",
+    paths: true,
+    enemies: { near: "eeegwt", mid: "egwtzb", far: "egwtzb" },
+  },
+  H: {
+    borders: ["rock", "rock", "trees"],
+    depth: [2, 2],
+    filler: "R",
+    paths: true,
+    enemies: { near: "eegw", mid: "gzwke", far: "gzwke" },
+  },
+  F: {
+    borders: ["forest", "forest", "pines"],
+    depth: [2, 3],
+    filler: "T",
+    paths: false,
+    enemies: { near: "gbte", mid: "wbgtf", far: "wpbbgetar" },
+  },
+  R: { borders: ["forest"], depth: [2, 3], filler: "T", paths: false, enemies: all("wwpfrbbte") },
+  L: {
+    borders: ["forest", "trees"],
+    depth: [2, 2],
+    filler: "T",
+    paths: true,
+    enemies: { near: "eeff", mid: "efft", far: "efft" },
+  },
+  W: { borders: ["forest", "trees"], depth: [2, 2], filler: "T", paths: false, enemies: all("fffecpibb") },
+  Y: { borders: ["trees", "forest"], depth: [2, 2], filler: "T", paths: true, enemies: all("kkayyibbe") },
+  B: { borders: ["rock", "bushes"], depth: [2, 2], filler: "B", paths: true, enemies: all("eezzcrab") },
 };
 
 export interface OverworldOptions {
@@ -726,7 +782,7 @@ function tryScreen(rng: Rng, o: OverworldOptions, attempt: number): OverworldScr
   const count = Math.min(5, 1 + Math.floor(o.ring / 2) + (rng() < 0.6 ? 1 : 0));
   for (let i = 0; i < count; i++) {
     const cell = takeRandom(rng, cells);
-    if (cell) sg.set(cell[0], cell[1], pick(rng, [...spec.enemies]));
+    if (cell) sg.set(cell[0], cell[1], pick(rng, [...poolFor(spec, o.ring)]));
   }
   if (o.chest) {
     const tucked = cells.filter(

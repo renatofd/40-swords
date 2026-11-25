@@ -1,5 +1,6 @@
 import { type CollisionGrid, moveAxis, signAxis } from "@core/shared";
 import { PLAYER_HALF, SWING_LOCK_TICKS, SWING_MOVE_FACTOR } from "../constants";
+import { SLOW_FACTOR } from "../enemies";
 import { scaledCooldown, WEAPON_IDS, WEAPONS, type WeaponId } from "../weapons";
 import { type Portal, portalAt } from "../worldObjects";
 import { facingFromDir } from "./facing";
@@ -32,6 +33,8 @@ export interface PlayerSimState extends Record<WeaponCountKey | WeaponCooldownKe
   knockX: number;
   knockY: number;
   knockTicks: number;
+  /** Ticks left of a web slow (walking at SLOW_FACTOR), set by the server when a web hits. */
+  slow: number;
   dead: boolean;
   /** Walking speed (px/s) and sword cooldown (ticks), from the hero's attributes. Set by the server. */
   speed: number;
@@ -63,7 +66,8 @@ export interface SimWorld {
  *
  * 8-way movement; the attack button swings the sword (the hero keeps facing
  * the same way and moves at half speed while it lasts) and fires every weapon
- * whose cooldown is over; knockback when hit; portals (cave entrances) move the player.
+ * whose cooldown is over; knockback when hit; a web slows walking down for `slow`
+ * ticks; portals (cave entrances) move the player.
  *
  * Contract: pure function of (state, input, dt, world). No clocks, no
  * randomness, no reads outside its arguments. Breaking this makes prediction drift.
@@ -74,6 +78,9 @@ export function stepPlayer(state: PlayerSimState, input: PlayerInputLike, dt: nu
     const cd = weaponCooldownKey(id);
     if (state[cd] > 0) state[cd]--;
   }
+  // Read before counting down: `slow = n` slows exactly the next n steps.
+  const slowed = state.slow > 0;
+  if (slowed) state.slow--;
   if (state.dead) {
     state.vx = 0;
     state.vy = 0;
@@ -91,11 +98,11 @@ export function stepPlayer(state: PlayerSimState, input: PlayerInputLike, dt: nu
   } else {
     let dirX: number = signAxis(input.moveX);
     let dirY: number = signAxis(input.moveY);
-    let pace = 1;
+    let pace = slowed ? SLOW_FACTOR : 1;
     if (state.lock > 0) {
       // Mid-swing: still facing the swing, at reduced speed.
       state.lock--;
-      pace = SWING_MOVE_FACTOR;
+      pace *= SWING_MOVE_FACTOR;
     } else {
       const facing = facingFromDir(dirX, dirY);
       if (facing >= 0) state.facing = facing;
@@ -103,7 +110,7 @@ export function stepPlayer(state: PlayerSimState, input: PlayerInputLike, dt: nu
         state.cooldown = state.swingCd;
         state.lock = SWING_LOCK_TICKS;
         state.swing = (state.swing + 1) & 255;
-        pace = SWING_MOVE_FACTOR;
+        pace *= SWING_MOVE_FACTOR;
       }
     }
     // Diagonal movement must not be faster than straight movement.

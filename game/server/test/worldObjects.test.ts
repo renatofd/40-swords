@@ -1,9 +1,14 @@
-import { loadMap } from "@core/server";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { env, loadMap } from "@core/server";
 import {
   ARENA_SPAWN_MIN,
   areaAt,
   arenaRect,
   ENEMIES,
+  ENEMY_KINDS,
+  type EnemyKind,
   inRect,
   OFFER_SLOTS,
   offerPosition,
@@ -18,6 +23,13 @@ const map = loadMap("overworld", { tileSize: TILE_SIZE });
 const objects = loadWorldObjects("overworld");
 const info = loadWorldInfo("overworld");
 const solidAt = (x: number, y: number) => map.collision.isSolid(Math.floor(x / TILE_SIZE), Math.floor(y / TILE_SIZE));
+
+/**
+ * sha256 of the tile layers (name + data) of content/maps/overworld.tmj, recorded before stage 8B
+ * changed the enemy pools: placing other kinds must not move a single tile. Regenerating the world
+ * on purpose (new layout, new art) changes it; record the new value then.
+ */
+const TILE_LAYERS_SHA256 = "756b545cc659375b627bbcbb8d48564396489111431845fde6e8fe5bf9723c03";
 
 describe("overworld objects", () => {
   it("is a big world of screens with dungeons and caves", () => {
@@ -132,5 +144,70 @@ describe("overworld objects", () => {
       expect(Math.hypot(spot.x - arena.centerX, spot.y - arena.centerY)).toBeGreaterThan(64);
     }
     for (const p of objects.portals) expect(inRect(arena, p.toX, p.toY)).toBe(false);
+  });
+
+  it("keeps the tile layers of the map (enemy pools change only enemy kinds)", () => {
+    const raw = JSON.parse(readFileSync(join(env.mapsDir, "overworld.tmj"), "utf8")) as {
+      layers: { type: string; name: string; data?: number[] }[];
+    };
+    const layers = raw.layers.filter((l) => l.type === "tilelayer").map((l) => ({ name: l.name, data: l.data }));
+    expect(layers.length).toBeGreaterThan(0);
+    expect(createHash("sha256").update(JSON.stringify(layers)).digest("hex")).toBe(TILE_LAYERS_SHA256);
+  });
+
+  it("places enemies on a difficulty ladder: easy kinds near the start, telegraphed attacks farther out", () => {
+    const NEAR = new Set<EnemyKind>(["slime", "goblin", "bat", "shroom", "lurker", "wolf"]);
+    // Rings 3-4 add the first telegraphs: the skeleton (a thrown bone) and the scorpion (a charge).
+    // (The axeman was planned here too; balance runs moved it out to ring 5, see overworld.ts.)
+    const MID = new Set<EnemyKind>([...NEAR, "skeleton", "scorpion"]);
+    const start = screenOf(map.spawns[0]?.x ?? 0, map.spawns[0]?.y ?? 0);
+    const outside = objects.enemies.filter((e) => !e.dungeon);
+    const bands = { near: 0, mid: 0, far: 0 };
+    for (const e of outside) {
+      const { col, row } = screenOf(e.x, e.y);
+      const ring = Math.max(Math.abs(col - start.col), Math.abs(row - start.row));
+      expect(ENEMIES[e.kind].rank).toBe("normal");
+      if (ring <= 2) {
+        bands.near++;
+        expect(NEAR.has(e.kind), `${e.kind} at ring ${ring}`).toBe(true);
+      } else if (ring <= 4) {
+        bands.mid++;
+        expect(MID.has(e.kind), `${e.kind} at ring ${ring}`).toBe(true);
+      } else bands.far++;
+      // Every dangerous kind stays at ring 5 or beyond (or in a dungeon).
+      if ((ENEMIES[e.kind].danger ?? 0) > 0) expect(ring, e.kind).toBeGreaterThanOrEqual(5);
+    }
+    for (const band of Object.values(bands)) expect(band).toBeGreaterThan(30);
+  });
+
+  it("gives every normal kind enough spawners, and the whole roster a place", () => {
+    const count = new Map<EnemyKind, number>();
+    for (const e of objects.enemies) count.set(e.kind, (count.get(e.kind) ?? 0) + 1);
+    for (const kind of ENEMY_KINDS) {
+      if (ENEMIES[kind].rank === "normal") expect(count.get(kind) ?? 0, kind).toBeGreaterThanOrEqual(6);
+      else expect(count.get(kind) ?? 0, kind).toBe(1);
+    }
+  });
+
+  it("gives each dungeon its own mini-boss and boss", () => {
+    const expected: Record<string, [EnemyKind, EnemyKind]> = {
+      crypt: ["hexer", "warden"],
+      lair: ["drake", "witch"],
+      tomb: ["brute", "matriarch"],
+      hall: ["warlord", "colossus"],
+    };
+    const dungeons = info.areas.filter((a) => a.kind === "dungeon");
+    expect(dungeons.map((a) => a.id).sort()).toEqual(Object.keys(expected).sort());
+    for (const area of dungeons) {
+      const inside = objects.enemies.filter((e) => {
+        const { col, row } = screenOf(e.x, e.y);
+        return areaAt(info.areas, col, row) === area;
+      });
+      for (const e of inside) expect(e.dungeon).toBe(true);
+      const [miniboss, boss] = expected[area.id] as [EnemyKind, EnemyKind];
+      expect(inside.filter((e) => ENEMIES[e.kind].rank === "miniboss").map((e) => e.kind)).toEqual([miniboss]);
+      expect(inside.filter((e) => ENEMIES[e.kind].rank === "boss").map((e) => e.kind)).toEqual([boss]);
+      expect(inside.filter((e) => ENEMIES[e.kind].rank === "normal").length).toBeGreaterThan(10);
+    }
   });
 });

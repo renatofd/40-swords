@@ -1,10 +1,9 @@
 import type { Client, CloseCode, StepContext } from "@colyseus/core";
 import type { GameMap } from "@core/maps";
 import { GameRoom, InputBudget, InterestManager, loadMap, type PositionedEntity } from "@core/server";
-import { moveAxis } from "@core/shared";
+import { boxHitsSolid } from "@core/shared";
 import {
   ARENA_PREP_SECONDS,
-  type AttackDef,
   areaAt,
   arenaRect,
   BOSS_CHEST_RARITY,
@@ -23,15 +22,10 @@ import {
   ELITE_CHEST_CHANCE,
   ENEMIES,
   ENEMY_KNOCK_SPEED,
-  ENEMY_KNOCK_TICKS,
   Enemy,
-  type EnemyDef,
   type EnemyKind,
   type EnemyShotMessage,
-  type EnemySpawn,
-  type EnemyStats,
   enemyStats,
-  facingFromDir,
   type GainMessage,
   HEART_DROP_CHANCE,
   HEART_DROP_CHANCE_ELITE,
@@ -98,11 +92,12 @@ import {
   SCREEN_HEIGHT,
   SCREEN_WIDTH,
   SHOP_RESTOCK_SECONDS,
+  SHOT_DEFS,
   type ShopFailMessage,
   type ShopMessage,
   type ShotMessage,
-  type ShotStyle,
   type SimWorld,
+  SLOW_IMMUNE_TICKS,
   type Spot,
   START_COUNTDOWN_SECONDS,
   type Stats,
@@ -135,6 +130,7 @@ import {
 import {
   BotBrain,
   type BotEnemy,
+  type BotHostile,
   type BotSpot,
   type BotView,
   enemyDanger,
@@ -143,6 +139,20 @@ import {
 } from "../bots/BotBrain";
 import { botName } from "../bots/names";
 import { type Navigation, navigationFor } from "../bots/navigation";
+import {
+  contactActive,
+  createBrain,
+  type EnemyBrain,
+  type EnemyEvent,
+  type EnemyHost,
+  type HeroRef,
+  hitEnemy,
+  type Rect,
+  type SpawnerState,
+  stepEnemyAi,
+  untargetable,
+} from "../enemies";
+import { botEnemyOf } from "../enemies/botView";
 import { loadProps, loadWorldInfo, loadWorldObjects } from "../world/mapObjects";
 
 /** Bots see props as spots with this id (no clash with monsters, chests and pickups). */
@@ -154,40 +164,6 @@ export interface WorldCreateOptions {
   mapId?: string;
   /** Match timings, also set by the server (from the environment, see config.ts). */
   match?: Partial<MatchTimes>;
-}
-
-/** Server-only enemy data (AI, attacks, knockback); the synced part lives in `Enemy`. */
-interface EnemyBrain {
-  kind: EnemyKind;
-  def: EnemyDef;
-  stats: EnemyStats;
-  /** Difficulty tier it was made with (see enemyStats). */
-  tier: number;
-  spawner?: SpawnerState;
-  /** Minions this enemy summoned (they vanish with it). */
-  minions: Set<string>;
-  dirX: number;
-  dirY: number;
-  /** Ticks until the AI picks a new direction (or ends a rest). */
-  turnIn: number;
-  /** Ticks left of a hop (hopping enemies). */
-  hopTicks: number;
-  knockX: number;
-  knockY: number;
-  knockTicks: number;
-  chargeX: number;
-  chargeY: number;
-  chargeTicks: number;
-  /** Ticks until each attack of `def.attacks` is ready. */
-  attackCd: number[];
-  /** Enemies stay on the screen they spawned on. */
-  home: { x: number; y: number; width: number; height: number };
-}
-
-interface SpawnerState extends EnemySpawn {
-  enemyId?: string;
-  /** Tick at which a new enemy appears (when `enemyId` is empty). */
-  respawnAt: number;
 }
 
 /** A weapon projectile in flight. Clients draw it from the "shot" message; only the server checks hits. */
@@ -218,6 +194,10 @@ interface Hostile {
   speed: number;
   radius: number;
   damage: number;
+  /** Kind of the enemy that fired it (it may be gone when the shot lands). */
+  kind: EnemyKind;
+  /** Webs: ticks of slow on the hero it hits (SHOT_DEFS). */
+  slowTicks: number;
 }
 
 /** A vendor's offers for one player, rolled with that player's luck. */
@@ -243,8 +223,6 @@ interface HeroStats {
   /** The summary went out already (it is sent once: when the hero falls or the match ends). */
   sent: boolean;
 }
-
-const SHOT_RADIUS: Record<ShotStyle, number> = { bone: 3, rock: 4, orb: 4, sting: 3 };
 
 const pick = <T>(items: readonly T[], rng: Rng): T => items[Math.floor(rng() * items.length)] as T;
 
@@ -286,6 +264,9 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private nextId = 1;
   private spawners: SpawnerState[] = [];
   private brains = new Map<string, EnemyBrain>();
+  private enemyHost!: EnemyHost;
+  /** Events of the enemy being stepped (reused every tick). */
+  private enemyEvents: EnemyEvent[] = [];
   /** Screens with a hero on or next to them; enemies elsewhere wait (they can't leave their screen). */
   private active = new Set<number>();
   /** Enemy ids per active screen, rebuilt every tick (hit tests only look at nearby enemies). */
@@ -293,6 +274,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private pickupExpiry = new Map<string, number>();
   /** Tick each hero last took damage (out of combat, heroes slowly heal). */
   private lastHurt = new Map<string, number>();
+  /** Per hero: tick before which no new web slows it (SLOW_IMMUNE_TICKS after the last one ends). */
+  private slowImmuneUntil = new Map<string, number>();
   /** Heroes in the current match and what they did in it. */
   private heroStats = new Map<string, HeroStats>();
   private projectiles: Projectile[] = [];
@@ -332,6 +315,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
   private botSerial = 0;
   private nav!: Navigation;
   private botView!: BotView;
+  /** What bots see of each enemy and screen, worked out once per tick (every bot shares it). */
+  private botMemoTick = -1;
+  private botEnemies = new Map<string, BotEnemy | undefined>();
+  private botScreens = new Map<number, BotEnemy[]>();
+  /** Server only: the kind of monster that last hurt each hero (balance runs read it when a hero falls). */
+  private lastMonsterHit = new Map<string, EnemyKind>();
 
   override onCreate(options: WorldCreateOptions = {}) {
     const mapId = typeof options.mapId === "string" ? options.mapId : "overworld";
@@ -347,6 +336,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       this.zoneStart = Math.ceil(Math.hypot(arena.width, arena.height) / 2);
     }
     this.world = { grid: this.map.collision, portals: this.objects.portals };
+    this.enemyHost = this.createEnemyHost();
     this.screenColumns = Math.max(1, Math.ceil(this.map.pixelWidth / SCREEN_WIDTH));
     this.state.mapId = mapId;
     this.spawners = this.objects.enemies.map((s) => ({ ...s, respawnAt: 0 }));
@@ -369,7 +359,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const danger = new Map<number, number>();
     for (const s of this.spawners) {
       const screen = this.screenIndexAt(s.x, s.y);
-      danger.set(screen, Math.max(danger.get(screen) ?? 0, enemyDanger(ENEMIES[s.kind].rank, s.tier, false)));
+      const def = ENEMIES[s.kind];
+      danger.set(screen, Math.max(danger.get(screen) ?? 0, enemyDanger(def.rank, s.tier, false, def.danger ?? 0)));
     }
     this.nav = navigationFor(mapId, this.map.collision, this.objects.portals, danger);
     this.botView = this.createBotView();
@@ -423,6 +414,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.inputBudget.delete(id);
     this.bots.delete(id);
     this.lastHurt.delete(id);
+    this.slowImmuneUntil.delete(id);
+    this.lastMonsterHit.delete(id);
     this.heroStats.delete(id);
   }
 
@@ -496,7 +489,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.stepProjectiles(ctx.dt);
     this.stepHostiles(ctx.dt);
     if (playing) {
-      for (const [id, enemy] of this.state.enemies) this.stepEnemy(id, enemy, ctx.dt);
+      for (const [id, enemy] of this.state.enemies) this.stepEnemy(id, enemy);
       this.stepPickups();
       this.stepRegen();
       this.stepChests();
@@ -579,7 +572,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     for (const enemyId of this.enemiesNear([player.x, player.y], [box.x, box.y])) {
       const enemy = this.state.enemies.get(enemyId);
       const brain = this.brains.get(enemyId);
-      if (!enemy || !brain || !hitboxTouches(box, enemy.x, enemy.y, brain.stats.half)) continue;
+      // A leaping enemy is in the air: the blade passes under it.
+      if (!enemy || !brain || untargetable(brain) || !hitboxTouches(box, enemy.x, enemy.y, brain.stats.half)) continue;
       const hit = rollHit(stats, brain.stats.defense, this.rng);
       this.damageEnemy(enemyId, enemy, brain, id, player, hit, player.x, player.y, ENEMY_KNOCK_SPEED);
     }
@@ -649,7 +643,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       for (const enemyId of this.enemiesNear([ax, ay], [bx, by])) {
         const enemy = this.state.enemies.get(enemyId);
         const brain = this.brains.get(enemyId);
-        if (!enemy || !brain || p.hits.has(enemyId)) continue;
+        if (!enemy || !brain || p.hits.has(enemyId) || untargetable(brain)) continue;
         if (!sweptHit(ax, ay, bx, by, def.radius, enemy.x, enemy.y, brain.stats.half)) continue;
         p.hits.add(enemyId);
         const hit = rollProjectileHit(p.weapon, p.rarity, this.statsOf(p.owner), brain.stats.defense, this.rng);
@@ -703,21 +697,14 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     fromY: number,
     knockSpeed: number,
   ) {
-    enemy.hp -= hit.amount;
-    enemy.hurt = 6;
-    // Bosses and mini-bosses shrug off knockback.
-    if (knockSpeed > 0 && brain.def.rank === "normal")
-      this.knockEnemy(brain, enemy.x - fromX, enemy.y - fromY, knockSpeed);
-    if (hit.heal > 0 && !attacker.dead) attacker.hp = Math.min(attacker.maxHp, attacker.hp + hit.heal);
-    this.sendDamage({ x: enemy.x, y: enemy.y, amount: hit.amount, crit: hit.crit, player: false });
+    // The AI decides what the blow does: stone, front block, stone marks, interrupt, knockback.
+    const outcome = hitEnemy(enemy, brain, hit.amount, fromX, fromY, knockSpeed);
+    if (outcome.amount > 0 && hit.heal > 0 && !attacker.dead)
+      attacker.hp = Math.min(attacker.maxHp, attacker.hp + hit.heal);
+    const message: DamageMessage = { x: enemy.x, y: enemy.y, amount: outcome.amount, crit: hit.crit, player: false };
+    if (outcome.blocked) message.blocked = true;
+    this.sendDamage(message);
     if (enemy.hp <= 0) this.killEnemy(enemyId, enemy, brain, attackerId, attacker);
-  }
-
-  private knockEnemy(brain: EnemyBrain, dx: number, dy: number, speed: number) {
-    const len = Math.hypot(dx, dy) || 1;
-    brain.knockX = (dx / len) * speed;
-    brain.knockY = (dy / len) * speed;
-    brain.knockTicks = ENEMY_KNOCK_TICKS;
   }
 
   private killEnemy(enemyId: string, enemy: Enemy, brain: EnemyBrain, killerId: string, killer: Player) {
@@ -777,9 +764,10 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     return !player.dead && player.invuln === 0;
   }
 
-  /** Monster damage (contact or shots), through the hero's defense. */
-  private hurtPlayer(id: string, player: Player, raw: number, fromX: number, fromY: number) {
+  /** Monster damage (contact, strikes, landings or shots) from a monster of kind `source`, through the hero's defense. */
+  private hurtPlayer(id: string, player: Player, raw: number, fromX: number, fromY: number, source: EnemyKind) {
     if (!this.canBeHurt(player)) return;
+    this.lastMonsterHit.set(id, source);
     this.damagePlayer(id, player, mitigate(raw, this.statsOf(id).defense), false, fromX, fromY, "monster");
   }
 
@@ -876,6 +864,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     player.vx = 0;
     player.vy = 0;
     player.knockTicks = 0;
+    player.slow = 0;
     const entry = this.state.roster.get(id);
     if (entry) entry.out = true;
     player.watch = "";
@@ -916,6 +905,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     player.vx = 0;
     player.vy = 0;
     player.knockTicks = 0;
+    player.slow = 0;
     player.lock = 0;
   }
 
@@ -1010,7 +1000,16 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       },
       heroes: () => this.standing(),
       enemy: (id) => this.botEnemy(id),
-      enemiesOn: (screen) => (this.buckets.get(screen) ?? []).flatMap((id) => this.botEnemy(id) ?? []),
+      enemiesOn: (screen) => {
+        this.botMemo();
+        let list = this.botScreens.get(screen);
+        if (!list) {
+          list = (this.buckets.get(screen) ?? []).flatMap((id) => this.botEnemy(id) ?? []);
+          this.botScreens.set(screen, list);
+        }
+        return list;
+      },
+      hostilesNear: (x, y, r) => this.hostilesNear(x, y, r),
       chestsOn: (screen) => {
         const found: BotSpot[] = [];
         for (const [id, c] of state.chests)
@@ -1042,15 +1041,43 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     for (const entry of this.state.players) if (!entry[1].out) yield entry;
   }
 
+  /** Starts a new tick's worth of bot views (enemies move between ticks). */
+  private botMemo() {
+    if (this.botMemoTick === this.tick) return;
+    this.botMemoTick = this.tick;
+    this.botEnemies.clear();
+    this.botScreens.clear();
+  }
+
   private botEnemy(id: string): BotEnemy | undefined {
+    this.botMemo();
+    if (this.botEnemies.has(id)) return this.botEnemies.get(id);
     const enemy = this.state.enemies.get(id);
     const brain = this.brains.get(id);
-    if (!enemy || !brain) return undefined;
-    const { half, defense, damage } = brain.stats;
-    const { def } = brain;
-    const danger = enemyDanger(def.rank, brain.tier, enemy.elite);
-    const aggressive = def.aggroRange > 0 || def.behaviour === "hop" || def.attacks.length > 0;
-    return { id, x: enemy.x, y: enemy.y, hp: enemy.hp, half, defense, damage, danger, aggressive };
+    const seen = enemy && brain ? botEnemyOf(id, enemy, brain, this.map.collision) : undefined;
+    this.botEnemies.set(id, seen);
+    return seen;
+  }
+
+  /** Enemy shots in flight within `r` px of (x, y), where they are now. */
+  private hostilesNear(x: number, y: number, r: number): BotHostile[] {
+    const found: BotHostile[] = [];
+    for (const h of this.hostiles) {
+      const hx = h.x0 + h.dirX * h.dist;
+      const hy = h.y0 + h.dirY * h.dist;
+      if ((hx - x) ** 2 + (hy - y) ** 2 > r * r) continue;
+      found.push({
+        key: h.key,
+        x: hx,
+        y: hy,
+        dirX: h.dirX,
+        dirY: h.dirY,
+        speed: h.speed / TICK_RATE,
+        radius: h.radius,
+        left: h.maxDist - h.dist,
+      });
+    }
+    return found;
   }
 
   /** Everyone was ready: the room closes and the match starts, everyone at the centre. */
@@ -1077,6 +1104,7 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     if (this.state.bots) for (let n = playing; n < MAX_PLAYERS_PER_ROOM; n++) this.addBot();
     this.startedWith = playing + this.bots.size;
     this.heroStats.clear();
+    this.slowImmuneUntil.clear();
     for (const [id, player] of this.standing())
       if (!player.out) this.heroStats.set(id, { kills: 0, monsters: 0, bosses: 0, chests: 0, sent: false });
     this.matchStart = this.tick;
@@ -1219,6 +1247,8 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     }
     this.projectiles = [];
     this.hostiles = [];
+    this.slowImmuneUntil.clear();
+    this.lastMonsterHit.clear();
     this.shops.clear();
     this.touching.clear();
     this.screenOfPlayer.clear();
@@ -1392,255 +1422,117 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     const id = `e${this.nextId++}`;
     const { col, row } = screenOf(x, y);
     this.state.enemies.set(id, new Enemy({ kind, x, y, hp: stats.maxHp, maxHp: stats.maxHp, elite }));
-    this.brains.set(id, {
-      kind,
-      def,
-      stats,
-      tier,
-      spawner,
-      minions: new Set(),
-      dirX: 0,
-      dirY: 0,
-      turnIn: 0,
-      hopTicks: 0,
-      knockX: 0,
-      knockY: 0,
-      knockTicks: 0,
-      chargeX: 0,
-      chargeY: 0,
-      chargeTicks: 0,
-      // A short grace before the first attacks.
-      attackCd: def.attacks.map((a) => Math.floor(a.cooldownTicks / 2)),
-      home: screenRect(col, row),
-    });
+    this.brains.set(id, createBrain(kind, def, stats, tier, screenRect(col, row), spawner, this.enemyHost.rng));
     if (spawner) spawner.enemyId = id;
     return id;
   }
 
-  private stepEnemy(id: string, enemy: Enemy, dt: number) {
+  private stepEnemy(id: string, enemy: Enemy) {
     const brain = this.brains.get(id);
     if (!brain || !this.active.has(this.screenIndexAt(enemy.x, enemy.y))) return;
-    const { def, stats } = brain;
-    if (enemy.hurt > 0) enemy.hurt--;
-    const target = this.nearestPlayer(enemy, brain, def.aggroRange);
+    const events = this.enemyEvents;
+    events.length = 0;
+    stepEnemyAi(enemy, brain, this.enemyHost, events);
+    for (const ev of events) this.applyEnemyEvent(id, enemy, brain, ev);
+    if (contactActive(brain)) this.contactDamage(enemy, brain);
+  }
 
-    let vx = 0;
-    let vy = 0;
-    if (brain.knockTicks > 0) {
-      brain.knockTicks--;
-      vx = brain.knockX;
-      vy = brain.knockY;
-    } else if (brain.chargeTicks > 0) {
-      brain.chargeTicks--;
-      vx = brain.chargeX;
-      vy = brain.chargeY;
-    } else {
-      [vx, vy] = this.enemyMove(brain, enemy, target);
-    }
+  /** What the enemy AI (enemies/) sees of the room. */
+  private createEnemyHost(): EnemyHost {
+    return {
+      grid: this.map.collision,
+      // Read through `this.rng` on every roll: tests swap the room's generator.
+      rng: () => this.rng(),
+      nearestHero: (x, y, home, range) => this.nearestHero(x, y, home, range),
+      freeSpot: (home, half, x, y, radius) => this.freeSpot(home, half, x, y, radius),
+      enemyAlive: (id) => this.state.enemies.has(id),
+    };
+  }
 
-    if (target) {
-      def.attacks.forEach((attack, i) => {
-        const cd = brain.attackCd[i] ?? 0;
-        if (cd > 0) {
-          brain.attackCd[i] = cd - 1;
-          return;
+  /** Carries out a side effect the enemy AI asked for this tick. */
+  private applyEnemyEvent(id: string, enemy: Enemy, brain: EnemyBrain, ev: EnemyEvent) {
+    switch (ev.type) {
+      case "shots":
+        this.fireHostile(id, brain.kind, ev);
+        break;
+      case "area": {
+        // A strike or a landing: every hero standing in the circle (pushed away from the enemy).
+        // A strike doesn't reach through a wall: the hero must be in sight of the enemy's body.
+        for (const [playerId, player] of this.state.players) {
+          if (player.out) continue;
+          const reach = ev.radius + PLAYER_HALF;
+          if ((player.x - ev.x) ** 2 + (player.y - ev.y) ** 2 > reach * reach) continue;
+          if (ev.walls) {
+            const dx = player.x - enemy.x;
+            const dy = player.y - enemy.y;
+            const d = Math.hypot(dx, dy);
+            if (d > 4 && travelDistance(this.map.collision, enemy.x, enemy.y, dx / d, dy / d, d) < d - 4) continue;
+          }
+          this.hurtPlayer(playerId, player, ev.damage, enemy.x, enemy.y, brain.kind);
         }
-        this.enemyAttack(enemy, brain, attack, target);
-        brain.attackCd[i] = attack.cooldownTicks + Math.floor(this.rng() * 15);
-      });
+        break;
+      }
+      case "summon": {
+        const tier = brain.spawner?.tier ?? 0;
+        for (const spot of ev.spots)
+          brain.minions.add(this.spawnEnemy(ev.kind, spot.x, spot.y, tier, true, undefined, true));
+        break;
+      }
     }
+  }
 
-    const { home } = brain;
-    const half = stats.half;
-    const grid = this.map.collision;
-    const clampX = (x: number) => Math.min(home.x + home.width - half - 1, Math.max(home.x + half + 1, x));
-    const clampY = (y: number) => Math.min(home.y + home.height - half - 1, Math.max(home.y + half + 1, y));
-    const nextX = clampX(moveAxis(grid, "x", enemy.x, enemy.y, half, vx * dt));
-    const nextY = clampY(moveAxis(grid, "y", nextX, enemy.y, half, vy * dt));
-    // Bumped into something: turn soon, and a charge ends.
-    if ((nextX === enemy.x && vx !== 0) || (nextY === enemy.y && vy !== 0)) {
-      brain.turnIn = Math.min(brain.turnIn, 5);
-      brain.chargeTicks = 0;
-    }
-    enemy.x = nextX;
-    enemy.y = nextY;
-    const facing = facingFromDir(Math.sign(Math.round(vx)), Math.sign(Math.round(vy)));
-    if (facing >= 0) enemy.facing = facing;
-
-    // Contact damage.
-    const reach = half + PLAYER_HALF;
+  /** Touching an enemy hurts. */
+  private contactDamage(enemy: Enemy, brain: EnemyBrain) {
+    const reach = brain.stats.half + PLAYER_HALF;
     for (const [playerId, player] of this.state.players) {
       if (Math.abs(player.x - enemy.x) < reach && Math.abs(player.y - enemy.y) < reach)
-        this.hurtPlayer(playerId, player, stats.damage, enemy.x, enemy.y);
+        this.hurtPlayer(playerId, player, brain.stats.damage, enemy.x, enemy.y, brain.kind);
     }
   }
 
-  /** Velocity (px/s) for this tick from the enemy's behaviour. */
-  private enemyMove(brain: EnemyBrain, enemy: Enemy, target: Player | undefined): [number, number] {
-    const { def, stats } = brain;
-    const toward = (p: Player) => {
-      const dx = p.x - enemy.x;
-      const dy = p.y - enemy.y;
-      const len = Math.hypot(dx, dy) || 1;
-      return [dx / len, dy / len] as const;
-    };
-    const wander = (minTicks: number, maxTicks: number, rest: boolean) => {
-      if (--brain.turnIn > 0) return;
-      const choice = Math.floor(this.rng() * (rest ? 10 : 8));
-      const angle = (choice * Math.PI) / 4;
-      brain.dirX = choice < 8 ? Math.cos(angle) : 0;
-      brain.dirY = choice < 8 ? Math.sin(angle) : 0;
-      brain.turnIn = minTicks + Math.floor(this.rng() * (maxTicks - minTicks));
-    };
-    switch (def.behaviour) {
-      case "guard":
-        return [0, 0];
-      case "chase":
-        if (target) [brain.dirX, brain.dirY] = toward(target);
-        else wander(30, 90, true);
-        break;
-      case "erratic":
-        wander(8, 20, false);
-        break;
-      case "hop": {
-        if (brain.hopTicks > 0) {
-          brain.hopTicks--;
-          return [brain.dirX * stats.speed, brain.dirY * stats.speed];
-        }
-        if (--brain.turnIn > 0) return [0, 0];
-        // Next hop: toward a hero nearby, or anywhere.
-        const near = this.nearestPlayer(enemy, brain, 120);
-        if (near) [brain.dirX, brain.dirY] = toward(near);
-        else {
-          const angle = this.rng() * Math.PI * 2;
-          brain.dirX = Math.cos(angle);
-          brain.dirY = Math.sin(angle);
-        }
-        brain.hopTicks = 8;
-        brain.turnIn = 14 + Math.floor(this.rng() * 12);
-        return [0, 0];
-      }
-      default:
-        wander(30, 90, true);
-    }
-    return [brain.dirX * stats.speed, brain.dirY * stats.speed];
-  }
-
-  private enemyAttack(enemy: Enemy, brain: EnemyBrain, attack: AttackDef, target: Player) {
-    const aim = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-    switch (attack.type) {
-      case "aimed": {
-        const spread = (attack.spreadDeg * Math.PI) / 180;
-        const angles =
-          attack.count <= 1
-            ? [aim]
-            : Array.from({ length: attack.count }, (_, i) => aim - spread / 2 + (i * spread) / (attack.count - 1));
-        this.fireHostile(
-          enemy,
-          angles,
-          attack.speed,
-          attack.range,
-          attack.damage * brain.stats.shotDamage,
-          attack.style,
-        );
-        break;
-      }
-      case "ring": {
-        const offset = this.rng() * ((Math.PI * 2) / attack.count);
-        const angles = Array.from({ length: attack.count }, (_, i) => offset + (i * Math.PI * 2) / attack.count);
-        this.fireHostile(
-          enemy,
-          angles,
-          attack.speed,
-          attack.range,
-          attack.damage * brain.stats.shotDamage,
-          attack.style,
-        );
-        break;
-      }
-      case "charge":
-        if (brain.chargeTicks === 0) {
-          brain.chargeX = Math.cos(aim) * attack.speed;
-          brain.chargeY = Math.sin(aim) * attack.speed;
-          brain.chargeTicks = attack.ticks;
-        }
-        break;
-      case "summon": {
-        for (const m of brain.minions) if (!this.state.enemies.has(m)) brain.minions.delete(m);
-        const room = Math.min(attack.count, attack.max - brain.minions.size);
-        for (let i = 0; i < room; i++) {
-          const spot = this.freeSpot(brain, enemy.x, enemy.y, 28);
-          if (!spot) break;
-          const tier = brain.spawner?.tier ?? 0;
-          brain.minions.add(this.spawnEnemy(attack.kind, spot.x, spot.y, tier, true, undefined, true));
-        }
-        break;
-      }
-      case "blink": {
-        const spot = this.freeSpot(
-          brain,
-          brain.home.x + brain.home.width / 2,
-          brain.home.y + brain.home.height / 2,
-          90,
-        );
-        if (spot && Math.hypot(spot.x - target.x, spot.y - target.y) > 40) {
-          enemy.x = spot.x;
-          enemy.y = spot.y;
-        }
-        break;
-      }
-    }
-  }
-
-  /** A random open spot within `radius` of (x, y) on the enemy's screen. */
-  private freeSpot(brain: EnemyBrain, x: number, y: number, radius: number) {
-    const { home } = brain;
-    const half = brain.stats.half + 2;
+  /** A random open spot within `radius` of (x, y) on the `home` screen, for a body of `half` (plus 2 px). */
+  private freeSpot(home: Rect, half: number, x: number, y: number, radius: number) {
+    const margin = half + 2;
     for (let attempt = 0; attempt < 12; attempt++) {
       const sx = x + (this.rng() * 2 - 1) * radius;
       const sy = y + (this.rng() * 2 - 1) * radius;
       if (
-        sx < home.x + half ||
-        sy < home.y + half ||
-        sx > home.x + home.width - half ||
-        sy > home.y + home.height - half
+        sx < home.x + margin ||
+        sy < home.y + margin ||
+        sx > home.x + home.width - margin ||
+        sy > home.y + home.height - margin
       )
         continue;
-      const ts = TILE_SIZE;
-      let free = true;
-      for (const [cx, cy] of [
-        [sx - half, sy - half],
-        [sx + half, sy - half],
-        [sx - half, sy + half],
-        [sx + half, sy + half],
-      ] as const)
-        if (this.map.collision.isSolid(Math.floor(cx / ts), Math.floor(cy / ts))) free = false;
-      if (free) return { x: sx, y: sy };
+      // Every tile under the box, not just its corners: a 16 px pillar fits between two corners.
+      if (!boxHitsSolid(this.map.collision, sx, sy, margin)) return { x: sx, y: sy };
     }
     return undefined;
   }
 
   /** Fires enemy projectiles; clients draw them from the message. */
-  private fireHostile(enemy: Enemy, angles: number[], speed: number, range: number, damage: number, style: ShotStyle) {
+  private fireHostile(from: string, kind: EnemyKind, shots: Extract<EnemyEvent, { type: "shots" }>) {
+    const { x, y, angles, speed, range, damage, style } = shots;
     const key = `h${this.nextId++}`;
     angles.forEach((angle, i) => {
       const dirX = Math.cos(angle);
       const dirY = Math.sin(angle);
       this.hostiles.push({
         key: `${key}:${i}`,
-        x0: enemy.x,
-        y0: enemy.y,
+        x0: x,
+        y0: y,
         dirX,
         dirY,
         dist: 0,
-        maxDist: travelDistance(this.map.collision, enemy.x, enemy.y, dirX, dirY, range),
+        maxDist: travelDistance(this.map.collision, x, y, dirX, dirY, range),
         speed,
-        radius: SHOT_RADIUS[style],
+        radius: SHOT_DEFS[style].radius,
         damage,
+        kind,
+        slowTicks: SHOT_DEFS[style].slowTicks ?? 0,
       });
     });
-    const message: EnemyShotMessage = { key, x: enemy.x, y: enemy.y, angles, speed, range, style };
-    this.sendNear(enemy.x, enemy.y, Msg.enemyShot, message);
+    const message: EnemyShotMessage = { key, from, x, y, angles, speed, range, style };
+    this.sendNear(x, y, Msg.enemyShot, message);
   }
 
   private stepHostiles(dt: number) {
@@ -1654,7 +1546,12 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
       for (const [id, player] of this.state.players) {
         if (player.dead || player.invuln > 0) continue;
         if (!sweptHit(ax, ay, bx, by, h.radius, player.x, player.y, PLAYER_HALF)) continue;
-        this.hurtPlayer(id, player, h.damage, ax, ay);
+        this.hurtPlayer(id, player, h.damage, ax, ay, h.kind);
+        // A web: slowed for a while, then immune to webs for SLOW_IMMUNE_TICKS.
+        if (h.slowTicks > 0 && !player.dead && this.tick >= (this.slowImmuneUntil.get(id) ?? 0)) {
+          player.slow = h.slowTicks;
+          this.slowImmuneUntil.set(id, this.tick + h.slowTicks + SLOW_IMMUNE_TICKS);
+        }
         ended.push({ key: h.key, x: bx, y: by });
         return false;
       }
@@ -1663,22 +1560,25 @@ export class WorldRoom extends GameRoom<{ state: WorldState; input: PlayerInput 
     this.sendEnded(ended);
   }
 
-  private nearestPlayer(enemy: Enemy, brain: EnemyBrain, range: number): Player | undefined {
+  /** The nearest hero still up within `range` of (x, y), on the `home` screen (enemies never leave theirs). */
+  private nearestHero(x: number, y: number, home: Rect, range: number): HeroRef | undefined {
     if (range <= 0) return undefined;
     let best: Player | undefined;
+    let bestId = "";
     let bestDist = range * range;
-    const { home } = brain;
-    for (const player of this.state.players.values()) {
+    for (const [id, player] of this.state.players) {
       if (player.dead) continue;
       if (player.x < home.x || player.y < home.y || player.x >= home.x + home.width || player.y >= home.y + home.height)
         continue;
-      const d = (player.x - enemy.x) ** 2 + (player.y - enemy.y) ** 2;
+      const d = (player.x - x) ** 2 + (player.y - y) ** 2;
       if (d <= bestDist) {
         bestDist = d;
         best = player;
+        bestId = id;
       }
     }
-    return best;
+    // One small object per call that finds someone (callers keep it through the tick).
+    return best && { id: bestId, x: best.x, y: best.y };
   }
 
   private anyPlayerNear(x: number, y: number, radius: number) {

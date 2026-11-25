@@ -197,6 +197,72 @@
         "h": 32
       },
       "duration": 150
+    },
+    {
+      "filename": "9",
+      "frame": {
+        "x": 33,
+        "y": 33,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      },
+      "duration": 100
+    },
+    {
+      "filename": "10",
+      "frame": {
+        "x": 66,
+        "y": 33,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      },
+      "duration": 110
+    },
+    {
+      "filename": "11",
+      "frame": {
+        "x": 0,
+        "y": 66,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      },
+      "duration": 110
     }
   ],
   "meta": {
@@ -227,6 +293,20 @@
         "name": "fall",
         "from": 7,
         "to": 8,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
+        "name": "crouch",
+        "from": 9,
+        "to": 9,
+        "direction": "forward",
+        "repeat": "1"
+      },
+      {
+        "name": "air",
+        "from": 10,
+        "to": 11,
         "direction": "forward",
         "repeat": "1"
       },

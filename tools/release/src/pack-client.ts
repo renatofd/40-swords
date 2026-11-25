@@ -33,6 +33,13 @@ if (!files["index.html"]) {
   process.exit(1);
 }
 
+// Dev-only pages (the enemy gallery, apps/client/gallery.html) must never ship: `vite build` bundles index.html alone.
+const devOnly = Object.keys(files).filter((name) => /gallery/i.test(name));
+if (devOnly.length > 0) {
+  console.error(`Dev-only files in apps/client/dist: ${devOnly.join(", ")}`);
+  process.exit(1);
+}
+
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { name: string; version: string };
 const version = (process.env.RELEASE_VERSION || pkg.version).replace(/^v/, "");
 const out = join(ROOT, "release", `${pkg.name}-client-${version}.zip`);

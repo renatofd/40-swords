@@ -13,6 +13,7 @@ import {
   POTION_PRICE,
   projectileDamage,
   type Rng,
+  SLOW_FACTOR,
   type Spot,
   type Stats,
   scaledCooldown,
@@ -25,6 +26,29 @@ import {
 } from "@game/shared";
 import { axis, type Exit, type Field, type Navigation, type Region } from "./navigation";
 
+/**
+ * Where a monster's attack (or a shot in flight) is about to hit, as bots read the tell.
+ * A `lane` runs from (x, y) along the unit (dirX, dirY) for `length` px, `width` px wide;
+ * a `zone` is a circle. `ticks` is how long until it starts to hurt; along a lane the
+ * danger then travels at `speed` px per tick (0: the whole lane at once), so a point
+ * `along` px down the lane is hit about `ticks + along / speed` ticks from now.
+ * `key` names the act (enemy id + its act counter, + lane index for fans): bots decide once per key.
+ */
+export type Threat =
+  | {
+      kind: "lane";
+      x: number;
+      y: number;
+      dirX: number;
+      dirY: number;
+      length: number;
+      width: number;
+      ticks: number;
+      speed: number;
+      key: string;
+    }
+  | { kind: "zone"; x: number; y: number; radius: number; ticks: number; key: string };
+
 /** A monster as a bot sees it. */
 export interface BotEnemy {
   id: string;
@@ -33,12 +57,43 @@ export interface BotEnemy {
   hp: number;
   half: number;
   defense: number;
-  /** Contact damage (0: harmless to touch). */
+  /** Its strongest blow: max(contact, strongest attack), so `canBeat` stays conservative. */
   damage: number;
   /** How hard it is (see `enemyDanger`). */
   danger: number;
-  /** Goes after heroes (chases, hops at them or shoots); the others only hurt whoever walks into them. */
+  /** Goes after heroes (chases, hops at them or shoots, and awake); the others only hurt whoever walks into them. */
   aggressive: boolean;
+  /** Has aimed or ring shots. */
+  ranged: boolean;
+  /** Blows do nothing now (stone, a leap in the air). */
+  invulnerable: boolean;
+  /** Front block (lancer): unit facing of the guarded side; absent while it can't guard (stunned, attacking). */
+  block?: { fx: number; fy: number };
+  elite: boolean;
+  /** A blow in its wind-up cancels the attack (normal kinds that aren't elites). */
+  interruptible: boolean;
+  /** In the recover of an act (or stunned): a free hit. */
+  open: boolean;
+  /** Velocity, px per tick (last tick). */
+  vx: number;
+  vy: number;
+  /** Its attack about to land, if any (empty most of the time). */
+  threats: readonly Threat[];
+}
+
+/** An enemy shot in flight. */
+export interface BotHostile {
+  key: string;
+  /** Where it is now. */
+  x: number;
+  y: number;
+  dirX: number;
+  dirY: number;
+  /** px per tick. */
+  speed: number;
+  radius: number;
+  /** px it can still fly. */
+  left: number;
 }
 
 /** Something to walk onto: a chest, a rupee or a heart. */
@@ -78,7 +133,9 @@ export interface BotView {
   /** Every hero still in the match (bots included). */
   heroes(): Iterable<[string, Player]>;
   enemy(id: string): BotEnemy | undefined;
-  enemiesOn(screen: number): BotEnemy[];
+  enemiesOn(screen: number): readonly BotEnemy[];
+  /** Enemy shots in flight within `r` px of (x, y). */
+  hostilesNear(x: number, y: number, r: number): readonly BotHostile[];
   /** Closed chests. */
   chestsOn(screen: number): BotSpot[];
   pickupsOn(screen: number): BotSpot[];
@@ -94,10 +151,14 @@ export interface BotView {
 
 /**
  * How hard a monster is: its tier, +4 for an elite (three times the health),
- * +6 for a mini-boss, +9 for a boss. Screens are rated by their strongest monster.
+ * +6 for a mini-boss, +9 for a boss, plus its kind's own `bonus` (EnemyDef.danger:
+ * ranged and tricky kinds). Screens are rated by their strongest monster.
  */
-export const enemyDanger = (rank: EnemyRank, tier: number, elite: boolean): number =>
-  tier + (elite ? 4 : 0) + (rank === "boss" ? 9 : rank === "miniboss" ? 6 : 0);
+export const enemyDanger = (rank: EnemyRank, tier: number, elite: boolean, bonus = 0): number =>
+  tier + (elite ? 4 : 0) + (rank === "boss" ? 9 : rank === "miniboss" ? 6 : 0) + bonus;
+
+/** Base chance (plus the bot's skill) that a bot reacts to a tell by stepping out of it. A balance knob. */
+export const BOT_DODGE_BASE = 0.35;
 
 /** What makes bots different from each other. */
 export interface BotPersonality {
@@ -152,6 +213,34 @@ function lined(dx: number, dy: number): boolean {
 }
 
 const move = (moveX: number, moveY: number): PlayerInputLike => ({ moveX, moveY, attack: 0 });
+
+/** Tells that start to hurt later than this (ticks) are not worth a step yet. */
+const DODGE_HORIZON = 12;
+/** A dodge looks this many ticks of walking ahead. */
+const DODGE_LOOKAHEAD = 8;
+/** Shots this close (px) are read as threats. */
+const HOSTILE_SIGHT = 96;
+/** Room around the hero's body when reading a threat (px). */
+const THREAT_MARGIN = PLAYER_HALF + 2;
+/** cos 60°: a lancer guards blows within ±60° of its facing. */
+const BLOCK_COS = 0.5;
+/** Around a target it can't hurt (stone, in the air): never closer than this (px). */
+const ORBIT_MIN = 48;
+
+/**
+ * When a threat reaches (x, y) (a body `margin` px around it), in ticks from now; -1 when
+ * it doesn't (outside the lane or zone).
+ */
+export function threatEta(t: Threat, x: number, y: number, margin = THREAT_MARGIN): number {
+  if (t.kind === "zone") return Math.hypot(x - t.x, y - t.y) < t.radius + margin ? t.ticks : -1;
+  const rx = x - t.x;
+  const ry = y - t.y;
+  const along = rx * t.dirX + ry * t.dirY;
+  if (along < 0 || along > t.length) return -1;
+  if (Math.abs(rx * t.dirY - ry * t.dirX) >= t.width / 2 + margin) return -1;
+  return t.ticks + (t.speed > 0 ? along / t.speed : 0);
+}
+
 const toward = (me: { x: number; y: number }, x: number, y: number, dead: number) =>
   move(axis(x - me.x, dead), axis(y - me.y, dead));
 
@@ -193,7 +282,8 @@ interface Walk {
  * grass and break the pots close by (now and then); otherwise explore screens
  * it hasn't seen lately, harder ones as it grows. Every tick
  * it steers toward that goal (around walls, through screen edges and portals)
- * and fights hit-and-run.
+ * and fights hit-and-run; when it reads a monster's tell (a wind-up about to end,
+ * a shot on its way) it may step out of it first (see `dodge`).
  */
 export class BotBrain {
   /** What it is doing now (tests and debugging). */
@@ -207,6 +297,15 @@ export class BotBrain {
   /** Running away: the exit, kept until `fleeUntil` (changing its mind every decision runs in circles). */
   private via: Exit | undefined;
   private fleeUntil = 0;
+  /**
+   * Back-and-forth across one border: the screen it last ran out of, until when running back
+   * into it counts as a turn back, and how many turn backs in a row. A hero chasing it to the
+   * edge could keep it (and the chaser) crossing the same border for a minute; after two turn
+   * backs it runs on instead (only then: a single turn back is often the right way out).
+   */
+  private fledScreen = -1;
+  private fledUntil = 0;
+  private turnBacks = 0;
   /** Tick it was last on each screen. */
   private readonly visited = new Map<number, number>();
   /** Screens where it met monsters far too strong for it, avoided until a tick. */
@@ -234,6 +333,20 @@ export class BotBrain {
   private tried = false;
   private unstick = 0;
   private unstickDir: readonly [number, number] = [0, 0];
+  /** Dodges started (balance runs read it). */
+  dodges = 0;
+  /** Threats it rolled for (by key): whether it steps out of them, and when it rolled. */
+  private readonly decided = new Map<string, { go: boolean; at: number }>();
+  private lastPrune = 0;
+  private dodgeUntil = 0;
+  private dodgeDir: readonly [number, number] = [0, 1];
+  /** Last way it walked (dodges try it first). */
+  private heading: readonly [number, number] = [0, 1];
+  /** Circling a target it can't hurt: which way round. */
+  private orbit: 1 | -1 = 1;
+  private readonly threats: Threat[] = [];
+  /** Monsters on its screen this tick (a dodge never steps into one). */
+  private bodies: readonly BotEnemy[] = [];
 
   constructor(
     readonly id: string,
@@ -262,10 +375,16 @@ export class BotBrain {
       this.nextThink = view.tick + THINK_TICKS;
       this.decide(view, me);
     }
-    const input = this.act(view, me);
+    const input = this.dodge(view, me) ?? this.act(view, me);
+    if (input.moveX !== 0 || input.moveY !== 0) this.heading = [input.moveX, input.moveY];
     // A swing roots the hero and knockback carries it: neither counts as being stuck.
     this.tried = (input.moveX !== 0 || input.moveY !== 0) && input.attack === 0 && me.lock === 0 && me.knockTicks === 0;
     return input;
+  }
+
+  /** Whether it is stepping out of a threat now (balance runs). */
+  isDodging(tick: number): boolean {
+    return tick < this.dodgeUntil;
   }
 
   /** The danger (see `enemyDanger`) of the screens it explores: grows with level and relics. */
@@ -326,13 +445,18 @@ export class BotBrain {
       const pack = enemy.aggressive && d < 140 ? near.length : near.length + 1;
       // Monsters it can beat with the health it has now (even hurt, the weak ones: hearts and levels heal).
       if (enemy.danger <= comfort + 2 && this.canBeat(me, stats, enemy, pack)) {
-        if (d < preyDist && !this.ignored(enemy.id, tick) && reachable(enemy.x, enemy.y)) [prey, preyDist] = [enemy, d];
+        // Nothing to win against stone or a monster in the air: its adds first (it keeps circling one it fights).
+        const busy = enemy.invulnerable && !(this.mode === "fight" && this.target === enemy.id);
+        if (d < preyDist && !busy && !this.ignored(enemy.id, tick) && reachable(enemy.x, enemy.y))
+          [prey, preyDist] = [enemy, d];
       } else if ((enemy.aggressive || d < 32) && d < threatDist) {
         // Too strong: worth running from if it comes after heroes, or is about to touch.
         [threat, threatDist] = [enemy, d];
       }
     }
-    if (threat && threatDist < (hurt ? 110 : 80)) {
+    // Webbed, it can't outrun much: it runs earlier.
+    const runAt = me.slow > 0 ? (hurt ? 140 : 100) : hurt ? 110 : 80;
+    if (threat && threatDist < runAt) {
       // Too much for it: away from the pack, and around this screen for a while.
       this.avoid.set(screen, tick + 40 * SECOND);
       const pack = near.length > 0 ? near : [threat];
@@ -399,8 +523,12 @@ export class BotBrain {
       this.walkTo(view, coin.spot.id, coin.spot.x, coin.spot.y, PICKUP_RADIUS - 3, region);
       return;
     }
-    // Tall grass and pots close by: rupees, sometimes a heart (not every one: it has places to go).
-    const prop = this.mode === "cut" ? undefined : this.closest(view.propsOn(screen), me, reachable, tick, 72);
+    // Tall grass and pots close by: rupees, sometimes a heart (not every one: it has places to go;
+    // and hardly any before its first level: monsters first).
+    const prop =
+      this.mode === "cut" || (me.level === 1 && this.rng() < 0.7)
+        ? undefined
+        : this.closest(view.propsOn(screen), me, reachable, tick, 72);
     if (prop) {
       if (this.rng() < 0.6) {
         this.cut(view, prop.spot, region);
@@ -570,12 +698,17 @@ export class BotBrain {
       const trap = nav.exitsOf(exit.to).length <= 1 && seen !== undefined && tick - seen < 30 * SECOND;
       // Toward easier screens: it can't see what waits on the other side.
       const harder = Math.max(0, nav.dangerOf(exit.screen) - (comfort - 2)) * 6;
-      const score = (theirs < 0 ? 40 : theirs) - mine - harder - (worse ? 60 : 0) - (trap ? 40 : 0);
+      const pingPong = this.turnBacks >= 2 && exit.screen === this.fledScreen && tick < this.fledUntil;
+      const score =
+        (theirs < 0 ? 40 : theirs) - mine - harder - (worse ? 60 : 0) - (trap ? 40 : 0) - (pingPong ? 80 : 0);
       if (score > bestScore) [best, bestScore] = [exit, score];
     }
     if (best) {
       this.travel(view, best.screen, 8, Number.POSITIVE_INFINITY, best);
       this.fleeUntil = tick + 2 * SECOND;
+      this.turnBacks = best.screen === this.fledScreen && tick < this.fledUntil ? this.turnBacks + 1 : 0;
+      this.fledScreen = nav.screenAt(me.x, me.y);
+      this.fledUntil = tick + 10 * SECOND;
       return;
     }
     this.fleeFrom = { x, y };
@@ -719,13 +852,15 @@ export class BotBrain {
 
   /**
    * Whether it beats a monster with health to spare: the swings it needs
-   * (hit-and-run, so not every cooldown), and about one touch every 1.5 s
-   * meanwhile from each of the `pack` monsters coming after it.
+   * (hit-and-run, so not every cooldown), and about one blow every 1.5 s
+   * meanwhile from each of the `pack` monsters coming after it (one more from a
+   * monster that shoots: it hits on the way in too).
    */
   private canBeat(me: Player, stats: Stats, enemy: BotEnemy, pack = 1): boolean {
     const swings = Math.ceil(enemy.hp / Math.max(1, stats.damage - enemy.defense));
     const ticks = swings * stats.attackCooldownTicks * 1.5;
-    const taken = Math.max(1, enemy.damage - stats.defense) * (1 + ticks / 45) * Math.max(1, pack);
+    const blows = 1 + ticks / 45 + (enemy.ranged ? 1 : 0);
+    const taken = Math.max(1, enemy.damage - stats.defense) * blows * Math.max(1, pack);
     return taken < me.hp * 0.6;
   }
 
@@ -802,7 +937,11 @@ export class BotBrain {
     return move(dir[0], dir[1]);
   }
 
-  /** Hit-and-run: swing when in reach and ready, keep clear while the sword recovers. */
+  /**
+   * Hit-and-run: swing when in reach and ready, keep clear while the sword recovers. Against a
+   * lancer facing it, from the side; a monster in its recover (or stunned) is a free hit; one
+   * it can't hurt (stone, in the air) it circles at a distance.
+   */
   private fightInput(view: BotView, me: Player): PlayerInputLike {
     const enemy = this.targetHero ? undefined : view.enemy(this.target);
     const target = enemy ?? (this.targetHero ? view.hero(this.target) : undefined);
@@ -817,21 +956,217 @@ export class BotBrain {
     const dx = target.x - me.x;
     const dy = target.y - me.y;
     const d = Math.hypot(dx, dy);
+    if (enemy?.invulnerable) return this.orbitInput(view, me, dx, dy, d);
     const [ox, oy] = octant(dx, dy);
     // The sword reaches about `reach` in the direction faced, whichever of the 8 (see swordHitbox).
     const reach = stats.reach + half;
+    const guard = enemy?.block;
+    if (guard && d > 0 && -(guard.fx * dx + guard.fy * dy) / d >= BLOCK_COS) {
+      // In front of its guard: round to its side first (it turns slowly).
+      const side = -(-guard.fy * dx + guard.fx * dy) >= 0 ? 1 : -1;
+      const off = half + stats.reach * 0.7;
+      const fx = target.x - guard.fy * side * off;
+      const fy = target.y + guard.fx * side * off;
+      return this.approach(view, me, fx, fy, Math.hypot(fx - me.x, fy - me.y));
+    }
     const sharp = this.rng() < this.personality.skill;
     if (me.cooldown === 0 && d <= reach && sharp) return { moveX: ox, moveY: oy, attack: 1 };
     if (d <= SHOOT_RANGE && sharp && this.canShoot(me) && lined(dx, dy)) return { moveX: ox, moveY: oy, attack: 1 };
-    // While the sword recovers, keep clear of the monster's body or the other hero's sword.
+    // While the sword recovers, keep clear of the monster's body or the other hero's sword
+    // (not of a monster wide open: stay on it for the next swing).
+    const open = enemy?.open === true && d <= reach + 20;
     const keep = enemy
       ? enemy.damage > 0
         ? half + PLAYER_HALF + 6
         : 0
       : view.stats(this.target).reach + PLAYER_HALF + 4;
-    if (me.cooldown > 3 && d < keep) return move(-ox, -oy);
+    if (me.cooldown > 3 && d < keep && !open) return move(-ox, -oy);
     if (d > reach * 0.75) return this.approach(view, me, target.x, target.y, d);
     return IDLE;
+  }
+
+  /** Circles a target it can't hurt now, out of its reach, never standing still. */
+  private orbitInput(view: BotView, me: Player, dx: number, dy: number, d: number): PlayerInputLike {
+    if (this.stuck >= 3) this.orbit = this.orbit === 1 ? -1 : 1;
+    const away = octant(-dx, -dy);
+    const round = octant(-dy * this.orbit, dx * this.orbit);
+    const back = octant(dy * this.orbit, -dx * this.orbit);
+    for (const dir of d < ORBIT_MIN ? [away, round, back] : [round, back, away]) {
+      if (!this.clear(view, me, dir)) continue;
+      if (dir === back) this.orbit = this.orbit === 1 ? -1 : 1;
+      return move(dir[0], dir[1]);
+    }
+    const free = OCTANTS.find((dir) => this.clear(view, me, dir)) ?? away;
+    return move(free[0], free[1]);
+  }
+
+  /** Whether a few steps in `dir` stay on open ground. */
+  private clear(view: BotView, me: Player, dir: readonly [number, number]): boolean {
+    const { nav } = view;
+    const len = Math.hypot(dir[0], dir[1]) || 1;
+    const step = PLAYER_HALF + 6;
+    const [tx, ty] = nav.tileOf(me.x + (dir[0] / len) * step, me.y + (dir[1] / len) * step);
+    return nav.walkable(tx, ty);
+  }
+
+  // ─── Dodging ──────────────────────────────────────────────────────────────
+
+  /**
+   * Steps out of a monster's tell (a charge lane, a strike or landing zone, a fan of shots,
+   * a hop at it) or a shot flying at it, when it notices: it rolls once per threat
+   * (BOT_DODGE_BASE + skill). Moves every tick while a threat it reacted to is on; else
+   * undefined (its plan goes on).
+   */
+  private dodge(view: BotView, me: Player): PlayerInputLike | undefined {
+    const { tick } = view;
+    if (tick - this.lastPrune >= SECOND) {
+      this.lastPrune = tick;
+      for (const [key, d] of this.decided) if (tick - d.at > 3 * SECOND) this.decided.delete(key);
+    }
+    const threats = this.threatsAround(view, me);
+    if (threats.length === 0) {
+      this.dodgeUntil = 0;
+      return undefined;
+    }
+    const interrupt = this.interruptInput(view, me);
+    if (interrupt) return interrupt;
+    let held = false;
+    let hit = false;
+    let latest = 0;
+    for (const t of threats) {
+      const known = this.decided.get(t.key);
+      if (known?.go) held = true;
+      // It reads the tell itself (a wind-up about to end, a shot on its way), wherever it stands in it.
+      if (t.ticks > DODGE_HORIZON || threatEta(t, me.x, me.y) < 0) continue;
+      let d = known;
+      if (!d) {
+        d = { go: this.rng() < BOT_DODGE_BASE + this.personality.skill, at: tick };
+        this.decided.set(t.key, d);
+      }
+      if (d.go) {
+        hit = true;
+        held = true;
+        latest = Math.max(latest, t.ticks);
+      }
+    }
+    if (!held) {
+      this.dodgeUntil = 0;
+      return undefined;
+    }
+    if (tick < this.dodgeUntil && this.clear(view, me, this.dodgeDir)) return this.dodgeInput(view, me, this.dodgeDir);
+    if (!hit) {
+      // Out of it already: back to the plan (it rolls again for anything new).
+      this.dodgeUntil = 0;
+      return undefined;
+    }
+    const dir = this.dodgeDirection(view, me, threats);
+    if (!dir) return undefined;
+    this.dodges++;
+    this.dodgeDir = dir;
+    this.dodgeUntil = tick + Math.min(10, Math.ceil(latest) + 4);
+    return this.dodgeInput(view, me, dir);
+  }
+
+  /**
+   * Its fight target winding up within sword reach while the sword is ready: a blow now cancels
+   * the attack (what a player does), unless the target can't be interrupted or guards its front.
+   */
+  private interruptInput(view: BotView, me: Player): PlayerInputLike | undefined {
+    if (me.cooldown > 0) return undefined;
+    const enemy = this.fightTarget(view)?.enemy;
+    if (!enemy?.interruptible || enemy.block || enemy.invulnerable) return undefined;
+    if (!enemy.threats.some((t) => t.ticks > 1)) return undefined;
+    const dx = enemy.x - me.x;
+    const dy = enemy.y - me.y;
+    if (Math.hypot(dx, dy) > view.stats(this.id).reach + enemy.half) return undefined;
+    const [ox, oy] = octant(dx, dy);
+    return { moveX: ox, moveY: oy, attack: 1 };
+  }
+
+  /** Every threat on its screen (monsters never leave theirs) and the shots flying near it. */
+  private threatsAround(view: BotView, me: Player): readonly Threat[] {
+    const out = this.threats;
+    out.length = 0;
+    this.bodies = view.enemiesOn(view.nav.screenAt(me.x, me.y));
+    for (const e of this.bodies) for (const t of e.threats) out.push(t);
+    for (const h of view.hostilesNear(me.x, me.y, HOSTILE_SIGHT))
+      out.push({
+        kind: "lane",
+        x: h.x,
+        y: h.y,
+        dirX: h.dirX,
+        dirY: h.dirY,
+        length: h.left,
+        width: 2 * h.radius + 2,
+        ticks: 0,
+        speed: h.speed,
+        key: h.key,
+      });
+    return out;
+  }
+
+  /**
+   * The open way (8 directions, the one it walks first) where the fewest threats still
+   * reach it after DODGE_LOOKAHEAD ticks of walking, not into a monster, toward its fight on a tie.
+   */
+  private dodgeDirection(view: BotView, me: Player, threats: readonly Threat[]): readonly [number, number] | undefined {
+    const { nav } = view;
+    const pace = view.stats(this.id).speed * (me.slow > 0 ? SLOW_FACTOR : 1);
+    const far = (pace * DODGE_LOOKAHEAD) / SECOND;
+    const target = this.fightTarget(view);
+    const tl = target ? Math.hypot(target.x - me.x, target.y - me.y) || 1 : 1;
+    const tx = target ? (target.x - me.x) / tl : 0;
+    const ty = target ? (target.y - me.y) / tl : 0;
+    let best: readonly [number, number] | undefined;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (let i = -1; i < OCTANTS.length; i++) {
+      const dir = i < 0 ? this.heading : (OCTANTS[i] ?? this.heading);
+      const len = Math.hypot(dir[0], dir[1]) || 1;
+      const ux = dir[0] / len;
+      const uy = dir[1] / len;
+      const px = me.x + ux * far;
+      const py = me.y + uy * far;
+      const [ex, ey] = nav.tileOf(px, py);
+      const [hx, hy] = nav.tileOf(me.x + (ux * far) / 2, me.y + (uy * far) / 2);
+      if (!nav.walkable(ex, ey) || !nav.walkable(hx, hy)) continue;
+      let still = 0;
+      for (const t of threats) if (threatEta(t, px, py) >= 0) still++;
+      let bump = 0;
+      for (const e of this.bodies) {
+        if (e.damage <= 0) continue;
+        const touch = e.half + PLAYER_HALF + 4;
+        if (
+          Math.hypot(px - e.x, py - e.y) < touch ||
+          Math.hypot(me.x + (ux * far) / 2 - e.x, me.y + (uy * far) / 2 - e.y) < touch
+        )
+          bump++;
+      }
+      const score = still * 100 + bump * 60 - (ux * tx + uy * ty) * 2;
+      if (score < bestScore) [best, bestScore] = [dir, score];
+    }
+    return best;
+  }
+
+  /** Walks `dir`; swings at its fight target on the way when the target is in reach that way. */
+  private dodgeInput(view: BotView, me: Player, dir: readonly [number, number]): PlayerInputLike {
+    const target = this.fightTarget(view);
+    if (target && me.cooldown === 0 && !(target.enemy?.invulnerable ?? false)) {
+      const dx = target.x - me.x;
+      const dy = target.y - me.y;
+      const [ox, oy] = octant(dx, dy);
+      const reach = view.stats(this.id).reach + (target.enemy ? target.enemy.half : PLAYER_HALF);
+      if (ox === dir[0] && oy === dir[1] && Math.hypot(dx, dy) <= reach && this.rng() < this.personality.skill)
+        return { moveX: dir[0], moveY: dir[1], attack: 1 };
+    }
+    return move(dir[0], dir[1]);
+  }
+
+  /** What it is fighting, if anything. */
+  private fightTarget(view: BotView): { x: number; y: number; enemy?: BotEnemy } | undefined {
+    if (this.mode !== "fight") return undefined;
+    if (this.targetHero) return view.hero(this.target);
+    const enemy = view.enemy(this.target);
+    return enemy ? { x: enemy.x, y: enemy.y, enemy } : undefined;
   }
 
   private cutInput(view: BotView, me: Player): PlayerInputLike {

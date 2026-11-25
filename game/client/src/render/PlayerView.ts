@@ -14,6 +14,8 @@ const HURT_MS = 160;
 const DEAD_ALPHA = 0.5;
 /** Smoke left behind when a hero falls or leaves. */
 const PUFF = "fx-smoke-32";
+/** Drawn at the feet of a webbed hero (the spider's projectile, still). */
+const WEB = "hostile-web";
 
 /** Hero sheets: 32x32 frames, feet line at y = 24 (see spriteAnchors.json). */
 const HERO_FEET = spriteAnchor("knight")?.y ?? 24;
@@ -58,6 +60,8 @@ export interface PlayerLook {
   dead: boolean;
   /** Invulnerability ticks left: the sprite blinks while > 0. */
   invuln: number;
+  /** Ticks of web slow left: a web holds its feet while > 0. */
+  slow?: number;
 }
 
 /** Texture of a hero in a colour: its sheet, recoloured once into its own texture. */
@@ -73,6 +77,7 @@ export class PlayerView {
   readonly container: Phaser.GameObjects.Container;
   private body: Phaser.GameObjects.Sprite;
   private weapon: Phaser.GameObjects.Sprite;
+  private readonly web: Phaser.GameObjects.Image;
   private readonly sheet: string;
   /** Unflipped horizontal origins of the body and the weapon (mirrored with the flip, see setFlipAnchored). */
   private readonly bodyOriginX: number;
@@ -109,7 +114,9 @@ export class PlayerView {
     this.weaponOriginX = wx;
     this.weapon = scene.add.sprite(0, WEAPON_Y, weapon).setOrigin(wx, wy).setVisible(false);
     this.weaponFrames = scene.anims.get(animKey(weapon, "slash-right"))?.frames.map((f) => f.textureFrame) ?? [];
-    this.container = scene.add.container(0, 0, [shadow, this.body, this.weapon]);
+    // Just over the shadow, under the body.
+    this.web = scene.add.image(0, PLAYER_HALF - 1, WEB).setVisible(false);
+    this.container = scene.add.container(0, 0, [shadow, this.web, this.body, this.weapon]);
   }
 
   /** Moves the view; picks the animation from how far it moved since the last frame. */
@@ -134,6 +141,7 @@ export class PlayerView {
       playAnim(this.body, animKey(this.sheet, `${anim}-${dir}`));
       setFlipAnchored(this.body, flipX, this.bodyOriginX);
     }
+    this.web.setVisible((look.slow ?? 0) > 0 && !look.dead && this.scene.textures.exists(WEB));
     const alpha = look.dead ? DEAD_ALPHA : look.invuln > 0 && Math.floor(time / 70) % 2 === 0 ? 0.3 : 1;
     this.body.setAlpha(alpha);
     this.weapon.setAlpha(alpha);

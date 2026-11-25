@@ -27,6 +27,15 @@ const SHOT_LOOKS: Readonly<Record<string, ShotLook>> = {
   "hostile-rock": { loop: "spin", turn: null, impact: "fx-smoke-small" },
   "hostile-orb": { loop: "loop", turn: null, impact: "fx-explosion-small-pink" },
   "hostile-sting": { loop: "loop", turn: null, impact: "fx-smoke-small" },
+  "hostile-axe": { loop: "spin", turn: null, impact: "fx-spark" },
+  "hostile-web": { turn: null, impact: "fx-smoke-small" },
+  "hostile-arrow": { turn: 0, impact: "fx-spark" },
+  // Frames 0-1 only: the comet points right.
+  "hostile-bolt": { loop: "loop", turn: 0, impact: "fx-explosion-small-blue" },
+  "hostile-curse": { loop: "loop", turn: null, impact: "fx-explosion-small-pink" },
+  "hostile-spore": { loop: "loop", turn: null, impact: "fx-smoke-small" },
+  // The spear is drawn diagonally, tip up-right, like the dagger.
+  "hostile-spear": { turn: Math.PI / 4, impact: "fx-spark" },
 };
 const DEFAULT_LOOK: ShotLook = { turn: 0, impact: "fx-smoke-small" };
 
@@ -111,7 +120,9 @@ export class Projectiles {
     const sprite = this.scene.add.sprite(Math.round(x), Math.round(y), sheet).setDepth(DEPTH.shots);
     if (look.turn !== null) sprite.setRotation(snapTurn(angle + look.turn));
     const loop = animKey(sheet, look.loop ?? "idle");
-    if (this.scene.anims.exists(loop)) sprite.play({ key: loop, startFrame: look.loop ? (Math.random() * 4) | 0 : 0 });
+    const anim = this.scene.anims.get(loop);
+    // A loop starts on a random frame of its own (some shots, like the bolt, have only 2).
+    if (anim) sprite.play({ key: loop, startFrame: look.loop ? Math.floor(Math.random() * anim.frames.length) : 0 });
     const maxDist = travelDistance(this.grid, x, y, dx, dy, range);
     this.flying.set(key, { sprite, look, x0: x, y0: y, dx, dy, speed, maxDist, born: now });
   }

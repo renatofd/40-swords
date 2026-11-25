@@ -79,6 +79,7 @@ import { recordMatch } from "../career";
 import { feetOrigin, setFlipAnchored } from "../render/anim";
 import { actorDepth, DEPTH } from "../render/depth";
 import { EnemyView } from "../render/EnemyView";
+import { type EnemyPlace, enemySkin } from "../render/enemyLooks";
 import { playFx } from "../render/fx";
 import { HERO_HEAD, PlayerView } from "../render/PlayerView";
 import { Projectiles } from "../render/Projectiles";
@@ -151,6 +152,7 @@ const SIM_FIELDS = [
   "knockX",
   "knockY",
   "knockTicks",
+  "slow",
   "dead",
   "speed",
   "swingCd",
@@ -286,7 +288,9 @@ export class GameScene extends Phaser.Scene {
     callbacks.onRemove("brokenProps", (_kind: number, id: string) => this.setPropBroken(Number(id), false));
 
     room.onMessage(Msg.damage, (m: DamageMessage) => {
-      this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now);
+      // A blocked blow (stone witch, lancer's guard): a grey number, none at all when nothing got through.
+      if (!m.blocked || m.amount > 0)
+        this.labels?.damage(m.x, m.y, m.amount, m.crit, m.player, this.time.now, m.blocked === true);
       this.hitSpark(m);
       // Blows landing on monsters in view (the hero's own hurt sound comes from its health, see update).
       if (!m.player && this.cameras.main.worldView.contains(m.x, m.y))
@@ -311,8 +315,9 @@ export class GameScene extends Phaser.Scene {
     });
     room.onMessage(Msg.shot, (m: ShotMessage) => this.projectiles?.spawnVolley(m, this.time.now));
     room.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => {
+      // The shooter's release cue: this message comes before the patch with its act.
+      this.enemies.get(m.from)?.fired(this.time.now);
       this.projectiles?.spawnHostile(m, this.time.now);
-      (this.enemyAt(m.x, m.y, HIT_MATCH_PX) ?? this.nearestEnemy(m.x, m.y, 32))?.fired(m.angles, this.time.now);
     });
     room.onMessage(Msg.bossDown, (m: BossDownMessage) => {
       this.bossDownAt = this.time.now;
@@ -460,7 +465,20 @@ export class GameScene extends Phaser.Scene {
 
   private addEnemy(enemy: Enemy, id: string) {
     if (this.enemies.has(id)) return;
-    this.enemies.set(id, new EnemyView(this, enemy.kind, enemy.elite));
+    const kind = isEnemyKind(enemy.kind) ? enemy.kind : "slime";
+    this.enemies.set(
+      id,
+      new EnemyView(this, kind, enemy.elite, enemySkin(kind, enemy.elite, this.placeOf(enemy.x, enemy.y))),
+    );
+  }
+
+  /** Biome or dungeon of the screen at (x, y): enemies never leave their home screen, so it picks their skin once. */
+  private placeOf(x: number, y: number): EnemyPlace {
+    const { col, row } = screenOf(x, y);
+    const area = areaAt(this.info.areas, col, row);
+    if (area?.kind === "dungeon") return { dungeon: area.id };
+    if (row < 0 || row >= this.info.rows || col < 0 || col >= this.info.columns) return {};
+    return { biome: this.info.biomes[row * this.info.columns + col] };
   }
 
   /**
@@ -528,6 +546,11 @@ export class GameScene extends Phaser.Scene {
       if (view) {
         view.lastHitAt = this.time.now;
         ({ x, y } = view.centre());
+      }
+      if (m.blocked) {
+        // A guarded blow twinkles (never the big cross: that shape is the tell's, "attack coming").
+        if (this.cameras.main.worldView.contains(x, y)) playFx(this, "fx-spark", x, y - 2, { tag: "twinkle" });
+        return;
       }
     }
     if (!this.cameras.main.worldView.contains(x, y)) return;
@@ -972,7 +995,7 @@ export class GameScene extends Phaser.Scene {
       const x = predict.value(player, "x");
       const y = predict.value(player, "y");
       this.labels?.name(id, player.name, x, y - HERO_HEAD - 1, isSelf, pvp && !isSelf);
-      view.update(x, y, { facing: state.facing, dead: state.dead, invuln: player.invuln }, time);
+      view.update(x, y, { facing: state.facing, dead: state.dead, invuln: player.invuln, slow: state.slow }, time);
       // Own swings come from prediction (instant feedback); others' from the server.
       if (state.swing !== this.lastSwing.get(id)) {
         this.lastSwing.set(id, state.swing);

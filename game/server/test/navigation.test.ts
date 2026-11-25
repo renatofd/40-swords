@@ -40,6 +40,7 @@ function hero(x: number, y: number): PlayerSimState {
     knockX: 0,
     knockY: 0,
     knockTicks: 0,
+    slow: 0,
     dead: false,
     speed: 80,
     swingCd: 12,

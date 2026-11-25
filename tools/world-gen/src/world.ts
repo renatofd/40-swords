@@ -75,7 +75,7 @@ export interface DungeonDef {
   depth: number;
   miniboss: string;
   boss: string;
-  /** Enemy glyphs of its rooms. */
+  /** Enemy glyphs of its rooms (repeated letters are weights; one pick per enemy). */
   enemies: string;
   /** Graph of its rooms (build.ts dungeonLayout). */
   layout: number;
@@ -88,9 +88,9 @@ export const DUNGEONS: DungeonDef[] = [
     entrance: "crypt",
     at: [0, 0],
     depth: 1,
-    miniboss: "brute",
+    miniboss: "hexer",
     boss: "warden",
-    enemies: "kkb",
+    enemies: "kkbiy",
     layout: 0,
   },
   {
@@ -99,9 +99,9 @@ export const DUNGEONS: DungeonDef[] = [
     entrance: "skull",
     at: [3, 0],
     depth: 2,
-    miniboss: "hexer",
+    miniboss: "drake",
     boss: "witch",
-    enemies: "fefb",
+    enemies: "ffpcbt",
     layout: 1,
   },
   {
@@ -112,7 +112,7 @@ export const DUNGEONS: DungeonDef[] = [
     depth: 3,
     miniboss: "brute",
     boss: "matriarch",
-    enemies: "zzk",
+    enemies: "zcvah",
     layout: 2,
   },
   {
@@ -121,9 +121,9 @@ export const DUNGEONS: DungeonDef[] = [
     entrance: "temple",
     at: [9, 0],
     depth: 4,
-    miniboss: "hexer",
+    miniboss: "warlord",
     boss: "colossus",
-    enemies: "gkb",
+    enemies: "jrvih",
     layout: 3,
   },
 ];

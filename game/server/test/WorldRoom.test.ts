@@ -1,15 +1,24 @@
+import type { StepContext } from "@colyseus/core";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import { createGameServer } from "@core/server";
-import { CORE_PROTOCOL_VERSION } from "@core/shared";
+import { boxHitsSolid, CORE_PROTOCOL_VERSION, type CollisionGrid } from "@core/shared";
 import {
+  ActPhase,
   ARENA_PREP_SECONDS,
+  actPhase,
   arenaRect,
   BOSS_CHEST_RARITY,
   type BossDownMessage,
+  type DamageMessage,
   DEFAULT_MATCH_TIMES,
+  ENEMIES,
+  ENEMY_KINDS,
+  type Enemy,
+  type EnemyKind,
   type EnemyShotMessage,
   type GainMessage,
   HEART_HEAL,
+  type HitResult,
   INTEREST_RADIUS,
   inRect,
   type KillMessage,
@@ -25,8 +34,10 @@ import {
   PROTOCOL_VERSION,
   RESULTS_SECONDS,
   ROOM_WORLD,
+  SHOT_DEFS,
   type ShopMessage,
   type ShotMessage,
+  SLOW_FACTOR,
   START_COUNTDOWN_SECONDS,
   type SummaryMessage,
   screenOf,
@@ -58,18 +69,72 @@ const START = { col: 8, row: 4 };
 /** Room internals the tests reach into to set up a scene (teleports, timers, gifts). */
 interface Brain {
   home: { x: number; y: number; width: number; height: number };
-  def: { attacks: unknown[]; behaviour: string };
-  stats: { speed: number; damage: number };
+  def: { attacks: unknown[]; behaviour: string; stone?: { ticks: number; endRing?: { count: number } } };
+  stats: { speed: number; damage: number; half: number };
+  attackCd: number[];
+  actSlot: number;
+  actPhase: number;
+  stunned: boolean;
+  destX: number;
+  destY: number;
 }
 interface RoomInternals {
   brains: Map<string, Brain>;
+  hostiles: unknown[];
+  step(ctx: StepContext): void;
+  spawnEnemy(
+    kind: EnemyKind,
+    x: number,
+    y: number,
+    tier: number,
+    dungeon: boolean,
+    spawner?: undefined,
+    summoned?: boolean,
+  ): string;
+  removeEnemy(id: string): void;
+  damageEnemy(
+    enemyId: string,
+    enemy: Enemy,
+    brain: Brain,
+    attackerId: string,
+    attacker: Player,
+    hit: HitResult,
+    fromX: number,
+    fromY: number,
+    knockSpeed: number,
+  ): void;
+  resolveSwing(id: string, player: Player): void;
+  fireHostile(
+    from: string,
+    kind: EnemyKind,
+    shots: {
+      type: "shots";
+      x: number;
+      y: number;
+      angles: number[];
+      speed: number;
+      range: number;
+      damage: number;
+      style: string;
+    },
+  ): void;
+  heroDown(id: string, player: Player, cause: KillMessage["cause"]): void;
+  applyInput(id: string, player: Player, input: { moveX: number; moveY: number; attack: number }, dt: number): void;
   matchStart: number;
   fightStart: number;
-  map: { pixelWidth: number; pixelHeight: number };
+  map: { pixelWidth: number; pixelHeight: number; collision: CollisionGrid };
+  freeSpot(
+    home: Brain["home"],
+    half: number,
+    x: number,
+    y: number,
+    radius: number,
+  ): { x: number; y: number } | undefined;
   rng: () => number;
   regrowAt: Map<number, number>;
   giveRelic(id: string, player: Player, kind: string, rarity: number, source: string): void;
   openLobby(): void;
+  teleport(player: Player, x: number, y: number): void;
 }
 const internals = (room: unknown) => room as RoomInternals;
 
@@ -167,6 +232,17 @@ describe("WorldRoom", () => {
     return { id, enemy, brain };
   }
 
+  /** Runs the room's simulation `ticks` ticks right away (no waiting), or until `until` holds (checked before each). */
+  function fastForward(room: unknown, ticks: number, until?: () => boolean) {
+    const ctx = { dt: TICK_DT, dtMs: 1000 / TICK_RATE, tick: 0, subSteps: 1, subDt: TICK_DT } as StepContext;
+    let n = 0;
+    while (n < ticks && !until?.()) {
+      internals(room).step.call(room, ctx);
+      n++;
+    }
+    return n;
+  }
+
   it("creates the hero picked before joining, with a sanitized name", async () => {
     const room = await createWorld();
     const { client, player } = await joinAs(room, "rogue", "  Ana\u0007  ");
@@ -245,8 +321,8 @@ describe("WorldRoom", () => {
     await room.waitForNextTimestep();
     expect(room.state.enemies.size).toBe(objects.enemies.length);
     const kinds = new Set([...room.state.enemies.values()].map((e) => e.kind));
-    for (const kind of ["slime", "goblin", "skeleton", "brute", "warden", "colossus"])
-      expect(kinds.has(kind)).toBe(true);
+    // Every kind is placed somewhere (normal kinds in the overworld or dungeons, one of each boss).
+    for (const kind of ENEMY_KINDS) expect(kinds.has(kind), kind).toBe(true);
     expect(room.state.chests.size).toBe(objects.chests.length);
   });
 
@@ -515,7 +591,7 @@ describe("WorldRoom", () => {
     expect(screenOf(player.x, player.y).row).toBeGreaterThanOrEqual(8); // caves and dungeons lie below the overworld
   });
 
-  it("ranged enemies shoot at heroes, and their shots hurt", async () => {
+  it("ranged enemies wind up, then shoot (the message names the shooter), and their shots hurt", async () => {
     const room = await createWorld();
     await room.waitForNextTimestep();
     const hero = await joinAs(room, "knight");
@@ -524,10 +600,21 @@ describe("WorldRoom", () => {
     const shots: EnemyShotMessage[] = [];
     client.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => shots.push(m));
     // Straight south of the spawn the square is open floor (no pillar in the way).
-    pinEnemy(room, room.state, player.x, player.y + 48, { kind: "skeleton", keepAttacks: true });
+    const { id, enemy, brain } = pinEnemy(room, room.state, player.x, player.y + 48, {
+      kind: "skeleton",
+      keepAttacks: true,
+    });
+    brain.attackCd = brain.attackCd.map(() => 0);
+    let woundUp = false;
+    fastForward(room, 5 * TICK_RATE, () => {
+      if (actPhase(enemy.act) === ActPhase.windup) woundUp = true;
+      return internals(room).hostiles.length > 0;
+    });
+    // The wind-up is on the wire before the shot.
+    expect(woundUp).toBe(true);
     const before = player.hp;
     await vi.waitFor(() => expect(shots.length).toBeGreaterThan(0), { timeout: 5000 });
-    expect(shots[0]?.style).toBe("bone");
+    expect(shots[0]).toMatchObject({ style: "bone", from: id });
     await vi.waitFor(() => expect(player.hp).toBeLessThan(before), { timeout: 5000 });
   });
 
@@ -605,6 +692,215 @@ describe("WorldRoom", () => {
     await leaving.client.leave();
     await vi.waitFor(() => expect(room.state.players.has(leaving.client.sessionId)).toBe(false));
     expect(room.state.roster.has(leaving.client.sessionId)).toBe(false);
+  });
+
+  describe("enemy acts", () => {
+    // An open stretch of the start square (rows 49-51 are floor from x 2592 to 2848).
+    const ROW_Y = 808;
+
+    /** Two heroes in a match (no bots), sturdy, and no other monster around the start. */
+    async function scene() {
+      const room = await createWorld();
+      await room.waitForNextTimestep();
+      const a = await joinAs(room, "knight", "A");
+      const b = await joinAs(room, "knight", "B");
+      await play(room, a, b);
+      for (const [id, e] of room.state.enemies)
+        if (Math.abs(e.x - 2720) < 400 && Math.abs(e.y - ROW_Y) < 250) internals(room).removeEnemy(id);
+      for (const { player } of [a, b]) {
+        player.maxHp = 100000;
+        player.hp = 100000;
+      }
+      return { room, a, b };
+    }
+
+    /** Puts a hero somewhere (server side: the tests send no input). */
+    function place(player: Player, x: number, y: number) {
+      player.x = x;
+      player.y = y;
+    }
+
+    /** A fresh enemy of `kind` (never elite) living on the whole map; or the map's own one if it has to be. */
+    function addEnemy(room: World, kind: EnemyKind, x: number, y: number) {
+      const id = internals(room).spawnEnemy(kind, x, y, 0, false, undefined, true);
+      const enemy = room.state.enemies.get(id);
+      const brain = internals(room).brains.get(id);
+      if (!enemy || !brain) throw new Error(`no ${kind}`);
+      const { pixelWidth, pixelHeight } = internals(room).map;
+      brain.home = { x: 0, y: 0, width: pixelWidth, height: pixelHeight };
+      return { id, enemy, brain };
+    }
+
+    const blow = (amount: number): HitResult => ({ amount, crit: false, heal: 0 });
+
+    it("a web slows the hero it hits, not again right after, and the slow ends with the hero", async () => {
+      const { room, a } = await scene();
+      const { client, player } = a;
+      const id = client.sessionId;
+      place(player, 2700, ROW_Y);
+      const web = (y: number) =>
+        internals(room).fireHostile("e0", "spider", {
+          type: "shots",
+          x: 2700,
+          y,
+          angles: [Math.PI / 2],
+          speed: 100,
+          range: 130,
+          damage: 4,
+          style: "web",
+        });
+      web(770);
+      fastForward(room, 30, () => player.slow > 0);
+      expect(player.slow).toBe(SHOT_DEFS.web.slowTicks);
+      // Webbed: each input moves it SLOW_FACTOR as far.
+      player.knockTicks = 0;
+      const x0 = player.x;
+      internals(room).applyInput(id, player, { moveX: 1, moveY: 0, attack: 0 }, TICK_DT);
+      expect(player.x - x0).toBeCloseTo(player.speed * SLOW_FACTOR * TICK_DT, 6);
+      // Another web inside the immunity window hurts but doesn't slow again.
+      player.invuln = 0;
+      player.slow = 5;
+      const hp = player.hp;
+      web(player.y - 30);
+      fastForward(room, 30, () => player.hp < hp);
+      expect(player.hp).toBeLessThan(hp);
+      expect(player.slow).toBe(5);
+      // The match moving a hero (teleport: start, arena, waiting room) shakes the web off too.
+      internals(room).teleport(player, 2720, ROW_Y);
+      expect(player.slow).toBe(0);
+      player.slow = 7;
+      internals(room).heroDown(id, player, "monster");
+      expect(player.slow).toBe(0);
+    });
+
+    it("the witch turns to stone at a mark: HP clamps there, blows do nothing, wisps come, a ring ends it", async () => {
+      const { room, a } = await scene();
+      const { client, player } = a;
+      const damage: DamageMessage[] = [];
+      const shots: EnemyShotMessage[] = [];
+      client.onMessage(Msg.damage, (m: DamageMessage) => damage.push(m));
+      client.onMessage(Msg.enemyShot, (m: EnemyShotMessage) => shots.push(m));
+      const { id, enemy, brain } = pinEnemy(room, room.state, 2760, ROW_Y, { kind: "witch" });
+      brain.attackCd = [];
+      const stone = ENEMIES.witch.stone;
+      if (!stone?.endRing) throw new Error("the witch turns to stone");
+      place(player, 2700, ROW_Y);
+      enemy.hp = Math.round(enemy.maxHp * 0.7);
+      // Half her HP in one blow from 70%: she stops at the 66% mark, not lower.
+      internals(room).damageEnemy(id, enemy, brain, client.sessionId, player, blow(enemy.maxHp / 2), 2700, ROW_Y, 0);
+      const mark = Math.ceil((stone.marks[0] ?? 0) * enemy.maxHp);
+      expect(enemy.hp).toBe(mark);
+      fastForward(room, 8);
+      const wisps = [...room.state.enemies.values()].filter(
+        (e) => e.kind === "wisp" && Math.hypot(e.x - enemy.x, e.y - enemy.y) < 60,
+      );
+      expect(wisps).toHaveLength(stone.summon?.count ?? 0);
+      // A sword blow on the stone: amount 0, blocked, HP unchanged.
+      place(player, enemy.x, enemy.y - 12);
+      player.facing = 2;
+      damage.length = 0;
+      internals(room).resolveSwing(client.sessionId, player);
+      expect(enemy.hp).toBe(mark);
+      await vi.waitFor(() => expect(damage).toContainEqual(expect.objectContaining({ amount: 0, blocked: true })));
+      place(player, 2700, ROW_Y);
+      fastForward(room, stone.ticks + 4);
+      await vi.waitFor(() =>
+        expect(shots.some((m) => m.from === id && m.angles.length === stone.endRing?.count)).toBe(true),
+      );
+    });
+
+    it("a lancer guards its front (30%, blocked) but not its side, nor while stunned or charging", async () => {
+      const { room, a } = await scene();
+      const { client, player } = a;
+      const damage: DamageMessage[] = [];
+      client.onMessage(Msg.damage, (m: DamageMessage) => damage.push(m));
+      place(player, 2720, ROW_Y);
+      const { id, enemy, brain } = addEnemy(room, "lancer", 2740, ROW_Y);
+      enemy.facing = 4; // toward the hero
+      const hit = (fromX: number, fromY: number) => {
+        enemy.hp = 1000;
+        internals(room).damageEnemy(id, enemy, brain, client.sessionId, player, blow(20), fromX, fromY, 0);
+        return 1000 - enemy.hp;
+      };
+      expect(hit(2720, ROW_Y)).toBe(Math.round(20 * (ENEMIES.lancer.block ?? 1)));
+      await vi.waitFor(() => expect(damage.at(-1)).toMatchObject({ amount: 6, blocked: true }));
+      expect(hit(2740, ROW_Y - 20)).toBe(20);
+      Object.assign(brain, { actSlot: 0, actPhase: ActPhase.recover, stunned: true });
+      expect(hit(2720, ROW_Y)).toBe(20);
+      Object.assign(brain, { actSlot: 0, actPhase: ActPhase.action, stunned: false });
+      expect(hit(2720, ROW_Y)).toBe(20);
+      await vi.waitFor(() => expect(damage.at(-1)).toMatchObject({ amount: 20 }));
+      expect(damage.at(-1)?.blocked).toBeUndefined();
+    });
+
+    it("the colossus leaps: no sword reaches it in the air, it lands where the hero stood and hurts only there", async () => {
+      const { room, a, b } = await scene();
+      place(a.player, 2680, ROW_Y);
+      place(b.player, 2620, ROW_Y); // 60 px from the landing spot, farther from the colossus than A
+      const { enemy, brain } = pinEnemy(room, room.state, 2800, ROW_Y, { kind: "colossus", keepAttacks: true });
+      const leap = ENEMIES.colossus.attacks[1];
+      if (leap?.type !== "leap") throw new Error("the colossus leaps");
+      brain.attackCd = brain.attackCd.map((_, i) => (i === 1 ? 0 : 9999));
+      const [hpA, hpB] = [a.player.hp, b.player.hp];
+      let ticks = fastForward(room, leap.windupTicks + 10);
+      expect(brain.actPhase).toBe(ActPhase.action);
+      // In the air: a blade passes under it.
+      const hp = enemy.hp;
+      place(b.player, enemy.x, enemy.y - 12);
+      b.player.facing = 2;
+      internals(room).resolveSwing(b.client.sessionId, b.player);
+      expect(enemy.hp).toBe(hp);
+      place(b.player, 2620, ROW_Y);
+      ticks += fastForward(room, 60, () => a.player.hp < hpA);
+      expect(ticks).toBe(leap.windupTicks + leap.ticks);
+      expect([enemy.x, enemy.y]).toEqual([2680, ROW_Y]);
+      expect(b.player.hp).toBe(hpB);
+    });
+
+    it("a raider's strike hits the hero in front of it, not the one behind", async () => {
+      const { room, a, b } = await scene();
+      place(a.player, 2720, 800);
+      place(b.player, 2720, 844);
+      const { brain } = addEnemy(room, "raider", 2720, 820);
+      brain.def = { ...brain.def, behaviour: "guard" };
+      brain.attackCd = [0];
+      const strike = ENEMIES.raider.attacks[0];
+      if (strike?.type !== "strike") throw new Error("the raider strikes");
+      const [hpA, hpB] = [a.player.hp, b.player.hp];
+      fastForward(room, strike.windupTicks + 1);
+      expect(a.player.hp).toBeLessThan(hpA);
+      expect(b.player.hp).toBe(hpB);
+    });
+
+    it("summons and blinks only land on open floor: the whole body box, not just its corners", async () => {
+      const room = await createWorld();
+      await room.waitForNextTimestep();
+      const world = internals(room);
+      let spots = 0;
+      for (const [id, e] of room.state.enemies) {
+        const brain = world.brains.get(id);
+        if (!brain) continue;
+        for (const half of [5, 12]) {
+          for (let n = 0; n < 8; n++) {
+            const spot = world.freeSpot(brain.home, half, e.x, e.y, 60);
+            if (!spot) continue;
+            spots++;
+            expect(boxHitsSolid(world.map.collision, spot.x, spot.y, half + 2)).toBe(false);
+          }
+        }
+      }
+      expect(spots).toBeGreaterThan(1000);
+    });
+
+    it("every kind spawns and acts for 300 ticks next to a hero without throwing", async () => {
+      const { room, a } = await scene();
+      place(a.player, 2720, 800);
+      ENEMY_KINDS.forEach((kind, i) => {
+        addEnemy(room, kind, 2610 + (i % 9) * 26, 792 + Math.floor(i / 9) * 16);
+      });
+      expect(() => fastForward(room, 300)).not.toThrow();
+      for (const e of room.state.enemies.values()) expect(Number.isFinite(e.x + e.y + e.hp)).toBe(true);
+    });
   });
 
   describe("the waiting room", () => {

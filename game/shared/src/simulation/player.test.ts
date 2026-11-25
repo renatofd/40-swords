@@ -1,8 +1,9 @@
 import type { CollisionGrid } from "@core/shared";
 import { describe, expect, it } from "vitest";
 import { PLAYER_HALF, SWING_LOCK_TICKS, SWING_MOVE_FACTOR, TICK_DT, TILE_SIZE } from "../constants";
+import { SLOW_FACTOR } from "../enemies";
 import { scaledCooldown, WEAPONS } from "../weapons";
-import { facingFromDir, facingVector } from "./facing";
+import { angleFacing, facingFromDir, facingVector } from "./facing";
 import { type PlayerSimState, type SimWorld, stepPlayer } from "./player";
 
 /** Builds a grid from rows of "." (open) and "#" (solid). */
@@ -34,6 +35,7 @@ const fresh = (over: Partial<PlayerSimState> = {}): PlayerSimState => ({
   knockX: 0,
   knockY: 0,
   knockTicks: 0,
+  slow: 0,
   dead: false,
   speed: stats.speed,
   swingCd: stats.attackCooldownTicks,
@@ -148,6 +150,35 @@ describe("stepPlayer", () => {
     expect(p.x).toBeCloseTo(x + stats.speed * TICK_DT);
   });
 
+  it("a web slows walking for exactly `slow` steps, then wears off", () => {
+    const p = fresh({ slow: 10 });
+    for (let i = 0; i < 10; i++) stepPlayer(p, { ...idle, moveX: 1 }, TICK_DT, open);
+    expect(p.x).toBeCloseTo(centre + 10 * stats.speed * SLOW_FACTOR * TICK_DT);
+    expect(p.slow).toBe(0);
+    const x = p.x;
+    stepPlayer(p, { ...idle, moveX: -1 }, TICK_DT, open);
+    expect(p.x).toBeCloseTo(x - stats.speed * TICK_DT);
+  });
+
+  it("a webbed swing stacks both slowdowns", () => {
+    const p = fresh({ slow: 5 });
+    stepPlayer(p, { moveX: -1, moveY: 0, attack: 1 }, TICK_DT, open);
+    expect(p.x).toBeCloseTo(centre - stats.speed * SLOW_FACTOR * SWING_MOVE_FACTOR * TICK_DT);
+  });
+
+  it("knockback ignores the web but still wears it down; so does being dead", () => {
+    const p = fresh({ knockX: -150, knockTicks: 2, slow: 3 });
+    stepPlayer(p, { ...idle, moveX: 1 }, TICK_DT, open);
+    expect(p.x).toBeCloseTo(centre - 150 * TICK_DT);
+    expect(p.slow).toBe(2);
+    const dead = fresh({ dead: true, slow: 2 });
+    stepPlayer(dead, idle, TICK_DT, open);
+    stepPlayer(dead, idle, TICK_DT, open);
+    expect(dead.slow).toBe(0);
+    stepPlayer(dead, idle, TICK_DT, open);
+    expect(dead.slow).toBe(0);
+  });
+
   it("does nothing while dead", () => {
     const p = fresh({ dead: true });
     stepPlayer(p, { moveX: 1, moveY: 1, attack: 1 }, TICK_DT, open);
@@ -199,5 +230,20 @@ describe("stepPlayer", () => {
       return p;
     };
     expect(run()).toEqual(run());
+  });
+});
+
+describe("angleFacing", () => {
+  it("turns angles into 8-way facings (y grows down), matching facingVector", () => {
+    expect(angleFacing(0)).toBe(0);
+    expect(angleFacing(Math.PI / 2)).toBe(2);
+    expect(angleFacing(Math.PI)).toBe(4);
+    expect(angleFacing(-Math.PI)).toBe(4);
+    expect(angleFacing(-Math.PI / 2)).toBe(6);
+    expect(angleFacing(-Math.PI / 4)).toBe(7);
+    for (let f = 0; f < 8; f++) {
+      const [x, y] = facingVector(f);
+      expect(angleFacing(Math.atan2(y, x))).toBe(f);
+    }
   });
 });
