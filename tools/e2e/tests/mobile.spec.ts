@@ -158,3 +158,16 @@ for (const lang of ["en", "ar", "ja"])
       });
     }
   });
+
+test("right to left, the chat stays clear of the touch buttons", async ({ page }) => {
+  await joinMatch(page, "مريم", "lang=ar");
+  await page.getByRole("button", { name: "الدردشة" }).tap();
+  await page.locator(".ui-chat-input").fill("مرحبا بالجميع، هذه رسالة طويلة قليلًا");
+  await page.locator(".ui-chat-input").press("Enter");
+  await expect(page.locator(".ui-chat-line").last()).toContainText("مرحبا");
+  const chat = await page.locator(".ui-chat").boundingBox();
+  const buttons = await page.locator(".touch-buttons").boundingBox();
+  expect(chat && buttons).toBeTruthy();
+  if (!chat || !buttons) return;
+  expect(chat.x + chat.width).toBeLessThanOrEqual(buttons.x);
+});
