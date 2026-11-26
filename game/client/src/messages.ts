@@ -7,6 +7,8 @@ import type { MessageCatalog } from "@core/client";
 export const messages: MessageCatalog = {
   en: {
     "controls.hint": "Move: WASD / arrows / stick · Sword and weapons: Space / J / (A) · Attributes: C",
+    "controls.hintTouch":
+      "Move: drag on the left · Sword and weapons: the Sword button · Attributes: tap the health panel",
     "action.attack": "Sword",
     "select.heroTitle": "Choose your hero",
     "select.mapTitle": "Choose the map",
@@ -175,6 +177,8 @@ export const messages: MessageCatalog = {
   },
   pt: {
     "controls.hint": "Mover: WASD / setas / analógico · Espada e armas: Espaço / J / (A) · Atributos: C",
+    "controls.hintTouch":
+      "Mover: arraste à esquerda · Espada e armas: botão Espada · Atributos: toque no painel de vida",
     "action.attack": "Espada",
     "select.heroTitle": "Escolha seu herói",
     "select.mapTitle": "Escolha o mapa",
@@ -344,6 +348,8 @@ export const messages: MessageCatalog = {
   },
   es: {
     "controls.hint": "Moverse: WASD / flechas / stick · Espada y armas: Espacio / J / (A) · Atributos: C",
+    "controls.hintTouch":
+      "Moverse: arrastra a la izquierda · Espada y armas: botón Espada · Atributos: toca el panel de vida",
     "action.attack": "Espada",
     "select.heroTitle": "Elige tu héroe",
     "select.mapTitle": "Elige el mapa",
@@ -512,6 +518,8 @@ export const messages: MessageCatalog = {
   },
   fr: {
     "controls.hint": "Se déplacer : ZQSD / flèches / stick · Épée et armes : Espace / J / (A) · Attributs : C",
+    "controls.hintTouch":
+      "Se déplacer : glissez à gauche · Épée et armes : bouton Épée · Attributs : touchez le panneau de vie",
     "action.attack": "Épée",
     "select.heroTitle": "Choisissez votre héros",
     "select.mapTitle": "Choisissez la carte",
@@ -681,6 +689,8 @@ export const messages: MessageCatalog = {
   },
   de: {
     "controls.hint": "Bewegen: WASD / Pfeiltasten / Stick · Schwert und Waffen: Leertaste / J / (A) · Attribute: C",
+    "controls.hintTouch":
+      "Bewegen: links wischen · Schwert und Waffen: Schwert-Knopf · Attribute: Lebensanzeige antippen",
     "action.attack": "Schwert",
     "select.heroTitle": "Wähle deinen Helden",
     "select.mapTitle": "Wähle die Karte",
@@ -850,6 +860,8 @@ export const messages: MessageCatalog = {
   },
   it: {
     "controls.hint": "Muoviti: WASD / frecce / levetta · Spada e armi: Spazio / J / (A) · Attributi: C",
+    "controls.hintTouch":
+      "Muoviti: trascina a sinistra · Spada e armi: pulsante Spada · Attributi: tocca il pannello della vita",
     "action.attack": "Spada",
     "select.heroTitle": "Scegli il tuo eroe",
     "select.mapTitle": "Scegli la mappa",
@@ -1017,6 +1029,7 @@ export const messages: MessageCatalog = {
   },
   tr: {
     "controls.hint": "Hareket: WASD / ok tuşları / analog · Kılıç ve silahlar: Boşluk / J / (A) · Özellikler: C",
+    "controls.hintTouch": "Hareket: solda sürükle · Kılıç ve silahlar: Kılıç düğmesi · Özellikler: can paneline dokun",
     "action.attack": "Kılıç",
     "select.heroTitle": "Kahramanını seç",
     "select.mapTitle": "Haritayı seç",
@@ -1185,6 +1198,8 @@ export const messages: MessageCatalog = {
   },
   ru: {
     "controls.hint": "Движение: WASD / стрелки / стик · Меч и оружие: Пробел / J / (A) · Характеристики: C",
+    "controls.hintTouch":
+      "Движение: ведите пальцем слева · Меч и оружие: кнопка «Меч» · Характеристики: коснитесь панели здоровья",
     "action.attack": "Меч",
     "select.heroTitle": "Выберите героя",
     "select.mapTitle": "Выберите карту",
@@ -1353,6 +1368,7 @@ export const messages: MessageCatalog = {
   },
   ar: {
     "controls.hint": "الحركة: WASD / الأسهم / العصا · السيف والأسلحة: مسافة / J / (A) · السمات: C",
+    "controls.hintTouch": "الحركة: اسحب على اليسار · السيف والأسلحة: زر السيف · السمات: المس لوحة الصحة",
     "action.attack": "السيف",
     "select.heroTitle": "اختر بطلك",
     "select.mapTitle": "اختر الخريطة",
@@ -1521,6 +1537,7 @@ export const messages: MessageCatalog = {
   },
   hi: {
     "controls.hint": "चलें: WASD / तीर / स्टिक · तलवार और हथियार: Space / J / (A) · गुण: C",
+    "controls.hintTouch": "चलें: बाईं ओर खींचें · तलवार और हथियार: तलवार बटन · गुण: जीवन पैनल को छुएँ",
     "action.attack": "तलवार",
     "select.heroTitle": "अपना नायक चुनें",
     "select.mapTitle": "नक्शा चुनें",
@@ -1688,6 +1705,7 @@ export const messages: MessageCatalog = {
   },
   id: {
     "controls.hint": "Gerak: WASD / panah / stik · Pedang dan senjata: Spasi / J / (A) · Atribut: C",
+    "controls.hintTouch": "Gerak: geser di kiri · Pedang dan senjata: tombol Pedang · Atribut: ketuk panel nyawa",
     "action.attack": "Pedang",
     "select.heroTitle": "Pilih pahlawanmu",
     "select.mapTitle": "Pilih peta",
@@ -1857,6 +1875,7 @@ export const messages: MessageCatalog = {
   },
   ja: {
     "controls.hint": "移動: WASD / 矢印 / スティック · 剣と武器: Space / J / (A) · 能力値: C",
+    "controls.hintTouch": "移動: 左側をドラッグ · 剣と武器: 剣ボタン · 能力値: 体力パネルをタップ",
     "action.attack": "剣",
     "select.heroTitle": "ヒーローを選ぶ",
     "select.mapTitle": "マップを選ぶ",
@@ -2023,6 +2042,7 @@ export const messages: MessageCatalog = {
   },
   zh: {
     "controls.hint": "移动：WASD / 方向键 / 摇杆 · 剑与武器：空格 / J / (A) · 属性：C",
+    "controls.hintTouch": "移动：在左侧拖动 · 剑与武器：剑按钮 · 属性：轻触生命面板",
     "action.attack": "剑",
     "select.heroTitle": "选择你的英雄",
     "select.mapTitle": "选择地图",
@@ -2188,6 +2208,7 @@ export const messages: MessageCatalog = {
   },
   ko: {
     "controls.hint": "이동: WASD / 방향키 / 스틱 · 검과 무기: Space / J / (A) · 능력치: C",
+    "controls.hintTouch": "이동: 왼쪽을 드래그 · 검과 무기: 검 버튼 · 능력치: 체력 패널을 탭",
     "action.attack": "검",
     "select.heroTitle": "영웅 선택",
     "select.mapTitle": "맵 선택",

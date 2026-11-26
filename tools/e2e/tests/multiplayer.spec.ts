@@ -68,6 +68,38 @@ test("audio settings are saved between visits", async ({ page }) => {
   await expect(page.locator(".ui-slider input").first()).toHaveValue("25");
 });
 
+test("scanlines can be switched on in Settings, line up with the art pixels and stay on", async ({ page }) => {
+  await page.goto("/?lang=en");
+  await expect(page.locator("#game .ui-scanlines")).toBeHidden();
+  await page.getByRole("button", { name: /Settings/ }).click();
+  await page.getByLabel("Scanlines (retro screen)").check();
+  await page.getByRole("button", { name: "Back" }).click();
+  const lines = page.locator("#game .ui-scanlines");
+  await expect(lines).toBeVisible();
+  // Exactly over the game canvas, in device pixels, one line per row of art pixels.
+  const fit = await page.evaluate(() => {
+    const game = document.querySelector("#game canvas:not(.ui-scanlines)") as HTMLCanvasElement;
+    const over = document.querySelector("#game .ui-scanlines") as HTMLCanvasElement;
+    const a = game.getBoundingClientRect();
+    const b = over.getBoundingClientRect();
+    const ctx = over.getContext("2d") as CanvasRenderingContext2D;
+    const column = ctx.getImageData(0, 0, 1, over.height).data;
+    const alpha = (y: number) => column[y * 4 + 3] ?? 0;
+    let lines = 0;
+    for (let y = 0; y < over.height; y++) if (alpha(y) > 0 && (y === 0 || alpha(y - 1) === 0)) lines++;
+    return {
+      same: [a.left, a.top, a.width, a.height].join() === [b.left, b.top, b.width, b.height].join(),
+      lines,
+      rows: game.height,
+    };
+  });
+  expect(fit.same).toBe(true);
+  expect(fit.lines).toBe(fit.rows);
+
+  await page.reload();
+  await expect(page.locator("#game .ui-scanlines")).toBeVisible();
+});
+
 test("holding Tab shows the player list", async ({ page }) => {
   await joinMatch(page, "Gus");
   await page.keyboard.down("Tab");
