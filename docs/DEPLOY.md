@@ -23,16 +23,30 @@ docker run -p 2567:2567 \
 - O workflow **Release** (`.github/workflows/release.yml`) publica a imagem em `ghcr.io/<dono>/<repo>-server` a cada tag `v*`.
 - `infra/docker-compose.yml` sobe servidor + Redis localmente (`docker compose -f infra/docker-compose.yml up --build`).
 
-### Sem Docker (VPS com PM2, Colyseus Cloud)
+### Sem Docker (VPS com PM2)
 
 ```bash
 pnpm install && pnpm build:server
-cd apps/server && NODE_ENV=production pm2 start ecosystem.config.cjs
+NODE_ENV=production pm2 start ecosystem.config.cjs   # o da raiz, ou o de apps/server dentro dela
 ```
 
 O build fica em `apps/server/build/index.js`. Os mapas precisam estar acessíveis (`MAPS_DIR`, padrão `<repo>/content/maps`).
 
-> **Colyseus Cloud:** usa o `ecosystem.config.cjs` e o comando de build do projeto. Como este repositório é um monorepo, no primeiro deploy configure no painel o diretório `apps/server` e o build `pnpm install && pnpm --filter @app/server build`, e confirme que `content/maps` vai junto (ou defina `MAPS_DIR`). Esse fluxo ainda não foi testado num deploy real.
+### Colyseus Cloud (recomendado para começar)
+
+O Colyseus Cloud roda o servidor com PM2 atrás de um NGINX com SSL e cuida sozinho de vários processos e do Redis. Ele exige `defineServer()` (o template já usa, em `createGameServer`) e um `ecosystem.config.cjs` na pasta raiz configurada. Num workspace pnpm, essa pasta é a raiz do repositório, e por isso existe `ecosystem.config.cjs` na raiz: ele roda o de `apps/server` a partir de lá.
+
+1. Crie a conta e a aplicação em <https://cloud.colyseus.io> e conecte o repositório do GitHub do jogo.
+2. Em **Settings → Build & deploy → Build settings**:
+   - **Root directory:** `/`
+   - **Build command:** `pnpm --filter @app/server build` (o `build` da raiz também gera o cliente, que o servidor não usa)
+   - **Watch paths** (para não fazer deploy a cada mudança só no cliente ou na documentação): `!apps/client/**`, `!docs/**`, `!tools/**`
+3. Escolha a **região** e o plano no painel. Para testadores no mundo todo, comece com uma região só, no meio deles (por exemplo, leste da América do Norte ou Europa). Vários servidores regionais pedem que o cliente escolha o servidor pela região, o que o template ainda não faz.
+4. Em **Application Settings → Environment variables**, defina pelo menos `ALLOWED_ORIGINS` (os domínios onde o cliente é servido) e `MONITOR_PASSWORD`. Não defina `REDIS_URL` nem `PUBLIC_ADDRESS`: a plataforma cuida disso.
+5. Faça o deploy (cada push na branch escolhida, ou `npx @colyseus/cloud deploy`) e confira `https://<seu-endereço>/health` e `/version`.
+6. Gere o cliente com `VITE_SERVER_URL=wss://<seu-endereço>` (veja a seção 2).
+
+O caminho deste guia (instalar com pnpm na raiz, `pnpm --filter @app/server build`, PM2 com o `ecosystem.config.cjs` da raiz) foi testado localmente num clone limpo. O primeiro deploy real ainda pode pedir ajustes; registre aqui o que mudar.
 
 ### Variáveis de ambiente do servidor
 
