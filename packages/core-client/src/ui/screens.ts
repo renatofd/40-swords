@@ -212,9 +212,12 @@ export interface SettingsOptions {
   music: number;
   sfx: number;
   muted: boolean;
+  /** Retro scanlines over the game picture (see scanlines.ts). */
+  scanlines: boolean;
   onMusic: (value: number) => void;
   onSfx: (value: number) => void;
   onMuted: (muted: boolean) => void;
+  onScanlines: (on: boolean) => void;
   onLocale: (locale: Locale) => void;
   onBack: () => void;
 }
@@ -241,7 +244,7 @@ function slider(label: string, value: number, onInput: (v: number) => void) {
   );
 }
 
-/** Audio and language settings, opened from the main menu and the pause menu. */
+/** Audio, display and language settings, opened from the main menu and the pause menu. */
 export function settingsScreen(i18n: I18n, o: SettingsOptions) {
   return h(
     "div",
@@ -258,6 +261,16 @@ export function settingsScreen(i18n: I18n, o: SettingsOptions) {
         onchange: (e: Event) => o.onMuted((e.target as HTMLInputElement).checked),
       }),
       i18n.t("settings.mute"),
+    ),
+    h(
+      "label",
+      { className: "ui-check" },
+      h("input", {
+        type: "checkbox",
+        checked: o.scanlines,
+        onchange: (e: Event) => o.onScanlines((e.target as HTMLInputElement).checked),
+      }),
+      i18n.t("settings.scanlines"),
     ),
     h(
       "label",

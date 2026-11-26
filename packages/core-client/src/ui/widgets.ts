@@ -36,7 +36,7 @@ function rowEl(i18n: I18n, rank: number, row: ScoreRow, selfId?: string) {
     "li",
     { className: row.id === selfId ? "ui-score-row self" : "ui-score-row" },
     h("span", { className: "ui-score-rank" }, i18n.formatNumber(rank)),
-    h("span", { className: "ui-score-name", dir: "auto" }, row.name),
+    h("span", { className: "ui-score-name" }, h("bdi", {}, row.name)),
     h("span", { className: "ui-score-value" }, i18n.formatNumber(row.score)),
   );
 }
