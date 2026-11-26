@@ -2,6 +2,17 @@
 
 Mudanças do template. Jogos derivados: leia antes de `git merge template/main`. Veja [`docs/TEMPLATE.md`](docs/TEMPLATE.md).
 
+## 0.7.1
+
+Deploy no Colyseus Cloud a partir da raiz do workspace.
+
+### Novo
+- **`ecosystem.config.cjs` na raiz:** roda o de `apps/server` a partir da raiz do repositório, como o Colyseus Cloud pede para workspaces pnpm (Root directory `/`).
+- **`docs/DEPLOY.md`:** passo a passo do Colyseus Cloud (build, watch paths, região, variáveis), testado localmente num clone limpo.
+
+### Ao atualizar um jogo
+- Nada quebra.
+
 ## 0.7.0
 
 Placar que o jogador pode recolher.
