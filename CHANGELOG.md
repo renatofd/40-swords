@@ -2,6 +2,20 @@
 
 Mudanças do template. Jogos derivados: leia antes de `git merge template/main`. Veja [`docs/TEMPLATE.md`](docs/TEMPLATE.md).
 
+## 0.8.0
+
+Scanlines opcionais e acertos de direita para a esquerda no celular e no placar.
+
+### Novo
+- **Scanlines:** opção nas Configurações ("Scanlines (tela retrô)"), lembrada no navegador. Desenha uma linha escura sob cada linha de pixels da arte, alinhada em pixels do aparelho em qualquer zoom inteiro e DPR. Fica só sobre a imagem do jogo, por baixo de menus e HUD, para o texto continuar legível. Com menos de 2 pixels de tela por pixel da arte, não aparece. O jogo escolhe o padrão com `GameModule.scanlines` (desligado se omitido). Texto novo nos 14 idiomas: `settings.scanlines`.
+
+### Corrigido
+- **Chat no celular, da direita para a esquerda:** o chat ficava sobre os botões de toque, que estão sempre à direita. Em telas de toque o chat agora fica sempre à esquerda.
+- **Placar e lista de jogadores:** um nome da direita para a esquerda (árabe) num idioma da esquerda para a direita era alinhado à direita, colado na pontuação. O nome agora fica num `<bdi>` e começa onde a linha começa.
+
+### Ao atualizar um jogo
+- Nada quebra. Se o jogo estiliza as caixas de seleção das Configurações (`.ui-check`), confira a nova linha.
+
 ## 0.7.1
 
 Deploy no Colyseus Cloud a partir da raiz do workspace.

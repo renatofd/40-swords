@@ -62,6 +62,8 @@ export interface GameModule<State = unknown> {
 
   /** Music key (content/audio/music/<key>.*) played on the main menu. */
   menuMusic?: string;
+  /** Retro scanlines over the game picture until the player chooses in Settings (default off). */
+  scanlines?: boolean;
   /** Sfx key played as feedback when the sfx volume slider moves. */
   uiSound?: string;
   /** Show the chat UI (Enter to type). Default true. Set false if your rooms disable chat. */

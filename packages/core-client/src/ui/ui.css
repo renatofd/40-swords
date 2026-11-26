@@ -57,6 +57,12 @@ body {
   image-rendering: pixelated;
 }
 
+/* Retro scanlines over the game picture (scanlines.ts), under the menus and HUD. */
+#game .ui-scanlines {
+  position: absolute;
+  pointer-events: none;
+}
+
 .ui-root {
   position: fixed;
   inset: 0;
@@ -539,7 +545,9 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The name sits in a <bdi>: a right-to-left name keeps its own order but starts where the row does. */
 .ui-score-name {
+  min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -580,6 +588,13 @@ body {
   gap: 6px;
   pointer-events: none;
   z-index: 2;
+}
+
+/* On touch screens the buttons stay on the physical right in every language (touch-buttons), so the
+   chat stays on the physical left, even right-to-left, instead of running into them. */
+.ui-root:has(.touch-controls) .ui-chat {
+  inset-inline: auto;
+  left: max(8px, var(--ui-safe-left));
 }
 
 .ui-chat-log {

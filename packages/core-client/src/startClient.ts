@@ -14,6 +14,7 @@ import { InputManager, isTouchDevice } from "./input";
 import { JoinError, joinRoom } from "./net/session";
 import { computeZoom, createPhaserConfig } from "./phaserConfig";
 import { createPlatform, type Platform } from "./platform";
+import { Scanlines } from "./scanlines";
 import { BOOT_SCENE_KEY, BootScene, type BootSceneData } from "./scenes/BootScene";
 import { Storage } from "./storage";
 import { h, isTextField } from "./ui/dom";
@@ -73,6 +74,7 @@ class ClientApp<State> {
   private audio!: AudioManager;
   private toasts = new Toasts();
   private scoreboard!: Scoreboard;
+  private scanlines!: Scanlines;
   private playerList!: PlayerList;
   private chat!: Chat;
 
@@ -115,6 +117,9 @@ class ClientApp<State> {
     this.phaser = new Phaser.Game(createPhaserConfig(this.resolution, [], this.game.backgroundColor));
     this.phaser.events.on(Phaser.Core.Events.PRE_STEP, () => this.input.update());
     this.audio = new AudioManager(this.phaser.sound, this.storage);
+    this.scanlines = new Scanlines(this.phaser.canvas, this.resolution);
+    const savedScanlines = this.storage.get("scanlines");
+    this.scanlines.setEnabled(savedScanlines === null ? (this.game.scanlines ?? false) : savedScanlines === "1");
 
     window.addEventListener("resize", this.onResize);
     window.addEventListener("keydown", this.onGlobalKey);
@@ -185,6 +190,11 @@ class ClientApp<State> {
           this.audio.playSfx(this.game.uiSound ?? "", { volume: 0.8 });
         },
         onMuted: (muted) => this.audio.update({ muted }),
+        scanlines: this.scanlines.isEnabled,
+        onScanlines: (on) => {
+          this.scanlines.setEnabled(on);
+          this.storage.set("scanlines", on ? "1" : "0");
+        },
         onLocale: (locale) => {
           this.storage.set("locale", locale);
           this.i18n.setLocale(locale);
