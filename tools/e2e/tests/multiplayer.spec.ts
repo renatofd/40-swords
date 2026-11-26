@@ -79,9 +79,9 @@ test("scanlines can be switched on in Settings, line up with the art pixels and 
     const b = over.getBoundingClientRect();
     const ctx = over.getContext("2d") as CanvasRenderingContext2D;
     const column = ctx.getImageData(0, 0, 1, over.height).data;
+    const alpha = (y: number) => column[y * 4 + 3] ?? 0;
     let lines = 0;
-    for (let y = 0; y < over.height; y++)
-      if (column[y * 4 + 3] > 0 && (y === 0 || column[(y - 1) * 4 + 3] === 0)) lines++;
+    for (let y = 0; y < over.height; y++) if (alpha(y) > 0 && (y === 0 || alpha(y - 1) === 0)) lines++;
     return {
       same: [a.left, a.top, a.width, a.height].join() === [b.left, b.top, b.width, b.height].join(),
       lines,
