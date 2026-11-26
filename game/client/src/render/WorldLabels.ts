@@ -31,6 +31,10 @@ export class WorldLabels {
   private scale = 1;
   private offsetX = 0;
   private offsetY = 0;
+  /** Top of the game view in the labels layer (CSS px). */
+  private viewTop = 0;
+  /** The `clip-path` that keeps labels inside the game view (written only when it changes). */
+  private clip = "";
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -51,6 +55,14 @@ export class WorldLabels {
     this.scale = canvas.width / cam.width;
     this.offsetX = canvas.left - host.left - cam.worldView.x * this.scale;
     this.offsetY = canvas.top - host.top - cam.worldView.y * this.scale;
+    this.viewTop = canvas.top - host.top;
+    // Labels of heroes on the next screen (outside the view) are cut off at the view's edge,
+    // also where the view is letterboxed inside the page.
+    const clip = `inset(${Math.max(0, Math.round(this.viewTop))}px ${Math.max(0, Math.round(host.right - canvas.right))}px ${Math.max(0, Math.round(host.bottom - canvas.bottom))}px ${Math.max(0, Math.round(canvas.left - host.left))}px)`;
+    if (clip !== this.clip) {
+      this.clip = clip;
+      this.el.style.clipPath = clip;
+    }
     // CSS can size world-anchored cards with the zoom (1 world pixel = --sw-px).
     this.el.style.setProperty("--sw-px", `${this.scale}px`);
     for (const [child, width] of widths) child.style.left = `${-Math.round(width / 2)}px`;
@@ -68,13 +80,16 @@ export class WorldLabels {
   }
 
   /**
-   * Puts the element's bottom centre at world (x, y). An element taller than
-   * the space above its anchor (a shop card's details near the top of a phone
-   * screen) is pushed down so its top stays in view.
+   * Puts the element's bottom centre at world (x, y). An element anchored in
+   * the view but taller than the space above its anchor (a shop card's details
+   * near the top of a phone screen) is pushed down so its top stays in view.
+   * Anchors outside the view (heroes on the screen above) are left where they
+   * are, cut off by the clip.
    */
   private place(el: HTMLElement, x: number, y: number) {
-    const top = (this.heights.get(el) ?? 0) + EDGE_PX;
-    const py = Math.max(Math.round(this.offsetY + y * this.scale), top);
+    const at = Math.round(this.offsetY + y * this.scale);
+    const top = this.viewTop + (this.heights.get(el) ?? 0) + EDGE_PX;
+    const py = at >= this.viewTop ? Math.max(at, top) : at;
     el.style.transform = `translate(${Math.round(this.offsetX + x * this.scale)}px, ${py}px)`;
   }
 

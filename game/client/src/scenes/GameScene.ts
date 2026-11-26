@@ -1,6 +1,6 @@
 import { Callbacks, type InputHandle } from "@colyseus/sdk";
 import { Predict } from "@colyseus/sdk/predict";
-import { animKey, type GameContext, h, type SfxOptions } from "@core/client";
+import { animKey, type GameContext, h, isTouchDevice, type SfxOptions } from "@core/client";
 import { type GameMap, parseTiledMap, type TiledMap } from "@core/maps";
 import {
   areaAt,
@@ -468,9 +468,13 @@ export class GameScene extends Phaser.Scene {
     this.arena = arenaRect(this.info);
   }
 
-  /** A hint that fades after a few seconds. */
+  /** A hint that fades after a few seconds: the keys, or on a touch screen the joystick and buttons. */
   private showControlsHint() {
-    const hint = h("div", { className: "sw-hint" }, this.ctx.t("controls.hint"));
+    const hint = h(
+      "div",
+      { className: "sw-hint" },
+      this.ctx.t(isTouchDevice() ? "controls.hintTouch" : "controls.hint"),
+    );
     this.ctx.hud.append(hint);
     this.time.delayedCall(6000, () => hint.remove());
   }

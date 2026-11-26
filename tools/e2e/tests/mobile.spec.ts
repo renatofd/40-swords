@@ -3,6 +3,9 @@ import { joinMatch } from "./helpers";
 
 test("touch devices get the virtual joystick", async ({ page }) => {
   await joinMatch(page, "Dani", "lang=pt");
+  // The controls hint speaks of the joystick and buttons, not of keys.
+  await expect(page.locator(".sw-hint")).toContainText("arraste à esquerda");
+  await expect(page.locator(".sw-hint")).not.toContainText("WASD");
   await expect(page.locator(".touch-controls")).toBeVisible();
   await expect(page.locator(".touch-stick-zone")).toBeVisible();
 });

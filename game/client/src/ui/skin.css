@@ -651,9 +651,15 @@
   font-size: calc(8 * var(--sw-fp));
 }
 
+/* Ping and FPS over grass and trees: a one-art-pixel black outline, like the world labels. */
 .ui-hud-stats {
   font-size: calc(5 * var(--sw-fp));
-  text-shadow: none;
+  color: var(--sw-light);
+  text-shadow:
+    var(--sw-u) 0 #000,
+    calc(-1 * var(--sw-u)) 0 #000,
+    0 var(--sw-u) #000,
+    0 calc(-1 * var(--sw-u)) #000;
 }
 
 /* ─── Core HUD widgets ────────────────────────────────────────────────── */
@@ -809,9 +815,11 @@
 /* Scrollbars of the UI (the details, the summary, credits, long menus): square pixel bars in the
    pack colours instead of the system ones. Chrome and Safari draw ::-webkit-scrollbar; Firefox only
    takes the two colours. */
+/* width/height, not inline-size/block-size: the scrollbar pseudo-elements only take the physical ones
+   in every engine (a scrollbar's width is its thickness in either writing direction). */
 .ui-root ::-webkit-scrollbar {
-  inline-size: calc(3 * var(--sw-fp));
-  block-size: calc(3 * var(--sw-fp));
+  width: calc(3 * var(--sw-fp));
+  height: calc(3 * var(--sw-fp));
 }
 
 /* A dark groove with a blue line down its middle, like the frames' inner stroke. */

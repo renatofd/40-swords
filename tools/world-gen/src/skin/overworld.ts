@@ -15,7 +15,7 @@
  * Palettes per biome come from the pack's colour variants (see PALETTES).
  */
 
-import type { Landmark, Shape } from "../overworld";
+import type { Landmark } from "../overworld";
 import {
   BOULDERS,
   CLIFF,
@@ -495,7 +495,13 @@ export function skinOverworld(view: WorldView, out: SkinLayers) {
       if (glyph === "o" && biome === "M")
         // Ruins: tan flagstones (a plain floor of Tiles.png in the rock colours); stray cells are trail.
         ground = paving(x, y) ? PAVING : "mud";
-      else if (glyph === "o" || glyph === "S")
+      else if (
+        glyph === "o" ||
+        glyph === "S" ||
+        // A pillar standing on paving (the start square's centre) has the paving around and under it:
+        // the art has transparent corners, and the screen's grass showed through them.
+        (glyph === "P" && count4(x, y, (xx, yy) => g(xx, yy) === "o" || g(xx, yy) === "S") >= 2)
+      )
         ground = plain(variant([1606, 1607], seed, x, y, 19) + (biome === "M" ? p.rock : 0), false);
       else if (glyph === ":") ground = p.ground === "grass" ? "path" : base;
       else if (glyph === "s") ground = p.ground === "sand" ? "whiteSand" : "sand";

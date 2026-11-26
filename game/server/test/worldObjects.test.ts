@@ -28,9 +28,10 @@ const solidAt = (x: number, y: number) => map.collision.isSolid(Math.floor(x / T
  * sha256 of the tile layers (name + data) of content/maps/overworld.tmj, recorded before stage 8B
  * changed the enemy pools: placing other kinds must not move a single tile. Regenerating the world
  * on purpose (new layout, new art) changes it; record the new value then. Last: stage 10, forests made
- * of whole big trees (only wall cells look different; objects and collision are unchanged).
+ * of whole big trees (only wall cells look different; objects and collision are unchanged); stage 12,
+ * paving under the start square's pillar (one ground cell).
  */
-const TILE_LAYERS_SHA256 = "0a4ad1c88933d821c0b8ba16ddc1fedb684aebe12d01bd2fb6e3ea7351f9bef8";
+const TILE_LAYERS_SHA256 = "81f094b87cbc1df45d73ba344066aec56e38c348429a5cdbceb27856f7942250";
 
 describe("overworld objects", () => {
   it("is a big world of screens with dungeons and caves", () => {

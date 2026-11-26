@@ -6,7 +6,7 @@
  */
 :root {
   /* Top of the HUD boxes under the core HUD buttons (same formula as .ui-hud-inner + .ui-icon-button). */
-  --sw-hud-top: calc(max(8px, var(--ui-safe-top)) + max(44px, calc(24 * var(--sw-u))) + 4 * var(--sw-u));
+  --sw-hud-top: calc(max(8px, var(--ui-safe-top)) + max(44px, calc(28 * var(--sw-u))) + 4 * var(--sw-u));
 }
 
 /* ─── Status (HP, level, XP, rupees, slots, minimap, details) ─────────── */
@@ -119,6 +119,15 @@
   .sw-status[data-slot-rows="3"] .sw-minimap,
   .sw-status.sw-status-open .sw-minimap {
     display: none;
+  }
+
+  /* Open, the panel is wider (130 font px): the found box and the banner keep clear of it. */
+  .sw-status-open ~ :is(.sw-top, .sw-bottom) .sw-found {
+    inline-size: min(calc(200 * var(--sw-fp)), 100vw - 2 * (130 * var(--sw-fp) + 24px));
+  }
+
+  .sw-status-open ~ .sw-banner {
+    max-inline-size: calc(100vw - 2 * (130 * var(--sw-fp) + 24px));
   }
 
   /* Open, the details get the height: each of their weapon and relic lines shows its slot anyway. */
@@ -284,11 +293,6 @@
   pointer-events: none;
 }
 
-.sw-top > .sw-bossbar {
-  position: static;
-  margin: 0;
-}
-
 /* Bottom centre, over the kill feed and the hint: the found box opens here when at the top it would
    cover the hero (GameScene.placeFound). */
 .sw-bottom {
@@ -440,6 +444,12 @@
   pointer-events: none;
 }
 
+/* In the top column (GameScene) the bar flows with the found box instead of sitting on its own. */
+.sw-top > .sw-bossbar {
+  position: static;
+  margin: 0;
+}
+
 .sw-bossbar-name {
   display: flex;
   align-items: center;
@@ -579,6 +589,12 @@
 
 .sw-lobby-key {
   margin: calc(2 * var(--sw-u)) 0 0;
+}
+
+/* The keyboard and gamepad shortcut means nothing on a touch screen, and phones need the room:
+   the Bots button must fit under Ready without scrolling. */
+.ui-root:has(.touch-controls) .sw-lobby-key {
+  display: none;
 }
 
 .sw-lobby-list {
